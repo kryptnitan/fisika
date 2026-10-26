@@ -119,7 +119,7 @@ function Heatmap({ data }: { data: Heat | null }) {
                     return (
                       <td key={v} className="cell">
                         <span className="swatch" style={{ background: d ? `rgba(233,185,73,${a.toFixed(2)})` : 'transparent', color: a > 0.55 ? 'var(--amber-ink)' : undefined }}>
-                          {d ? `$${d >= 1000 ? `${Math.round(d / 1000)}k` : d}${d >= (latest.maxSampledUsd ?? Infinity) ? '+' : ''}` : ''}
+                          {d ? `$${d >= 1000 ? `${Math.round(d / 1000)}k` : d}${v !== 'textile' && d >= (latest.maxSampledUsd ?? Infinity) ? '+' : ''}` : ''}
                         </span>
                       </td>
                     );

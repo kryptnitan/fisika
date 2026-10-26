@@ -58,6 +58,7 @@ export class PaperArbRunner {
       this.detected += decisions.length;
       for (const d of decisions) {
         const o = d.opportunity;
+        if (d.reason === 'already_filled_prices_unchanged') continue; // not a new decision; keep the log readable
 
         const path = [o.cycle[0]!.tokenIn, ...o.cycle.map((e) => e.tokenOut)].map((t) => this.tokens.get(t)?.symbol ?? t.slice(0, 8)).join('→');
         this.events.unshift({ atMs: nowMs, action: d.action, reason: d.reason, path, venues: o.cycle.map((e) => e.venue), sizeUsd: o.sizeUsd, netBps: o.netBps, netUsd: o.netUsd, txCount: o.txCount, indicativeLegs: o.indicativeLegs });

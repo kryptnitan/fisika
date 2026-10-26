@@ -151,7 +151,9 @@ export function createApp(d: AppDeps) {
       const direct: { venue: string; rate: number }[] = r100 && 'directByVenue' in r100 && r100.directByVenue ? r100.directByVenue : [];
       const bestPerVenue = new Map<string, number>();
       for (const x of direct) bestPerVenue.set(x.venue, Math.max(bestPerVenue.get(x.venue) ?? 0, x.rate));
-      const rates = [...bestPerVenue.values()];
+      // A venue quoting >20% below the best is a broken or dust pool, not a tradable price; leave it out.
+      const top = Math.max(0, ...bestPerVenue.values());
+      const rates = [...bestPerVenue.values()].filter((r) => r >= top * 0.8);
       const spreadBps = rates.length > 1 ? ((Math.max(...rates) - Math.min(...rates)) / Math.max(...rates)) * 10_000 : null;
       return { corridor: `${a}-${b}`, from: a, to: b, sizes, spreadBps };
     });
