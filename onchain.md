@@ -1,6 +1,6 @@
 # On-chain verification
 
-Block 81101541 · 2026-10-26T08:11:41.545Z
+Block 81101762 · 2026-10-26T08:15:22.928Z
 
 All hard checks passed.
 
@@ -28,19 +28,19 @@ All hard checks passed.
 ## Uniswap v3 pools
 | Pair | Fee | Pool | Balances |
 |---|---|---|---|
-| USDT/USDC | 100 | `0x1a810e0B6c2dd5629AFa2f0c898b9512C6F78846` | 161054.07 USDT / 26910.91 USDC |
+| USDT/USDC | 100 | `0x1a810e0B6c2dd5629AFa2f0c898b9512C6F78846` | 160872.05 USDT / 27092.77 USDC |
 | USDT/USDC | 500 | `0x2392AE4Ba6Daf181CE7343d237b695CdF525E233` | 0.00 USDT / 0.00 USDC |
 | USDT/USDC | 3000 | `0x9AfAc41cbd701a184a74475Aa8BDcda6a1a564a1` | 3.50 USDT / 3.50 USDC |
-| USDT/USDm | 100 | `0x5dC631aD6C26BEA1a59fBF2C2680CF3df43d249f` | 614754.90 USDT / 29518.63 USDm |
+| USDT/USDm | 100 | `0x5dC631aD6C26BEA1a59fBF2C2680CF3df43d249f` | 614970.39 USDT / 29303.43 USDm |
 | USDT/USDm | 500 | `0x13E726e06C4a1f21668173ba9134926eb74e95bD` | 0.00 USDT / 0.00 USDm |
 | USDT/USDm | 3000 | `0x110ebF7E9244a6Cc5d2060E0DEd2d01C1075E5af` | 3.10 USDT / 3.14 USDm |
 | USDT/USDm | 10000 | `0x6a33ddcBD1d9F8Eb14B8aC150D5e0244e707cd52` | 0.02 USDT / 0.02 USDm |
 | USDT/cNGN | 100 | `0x6519d56Eb0A69FC0338657784c783B169b8f7d32` | 94744.69 USDT / 118061166.95 cNGN |
-| USDT/NGNm | 100 | `0x1e2F87e1f8056Fcd39695aAeb63cb475E1DD2318` | 44575.42 USDT / 28287422.33 NGNm |
+| USDT/NGNm | 100 | `0x1e2F87e1f8056Fcd39695aAeb63cb475E1DD2318` | 44430.40 USDT / 28481109.65 NGNm |
 | USDT/KESm | 100 | `0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F` | 618.97 USDT / 1410915.37 KESm |
 | USDT/GHSm | 100 | `0x6BAB3AfA6d0c42d539bcbc33Ffb68C0406913413` | 7293.02 USDT / 158799.05 GHSm |
 | USDT/ZARm | 100 | `0xb793ff8031FCe64b3f553DBf40a70370FDEAC1C7` | 533.10 USDT / 8806.35 ZARm |
-| USDT/wBRL | 100 | `0x01c3cf91cdf7B34181C7eC8566c0236951FEA40F` | 224.00 USDT / 146002.93 wBRL |
+| USDT/wBRL | 100 | `0x01c3cf91cdf7B34181C7eC8566c0236951FEA40F` | 424.00 USDT / 144940.72 wBRL |
 | USDT/wARS | 100 | `0x5D8ef8B839be522b9E3d60a51EDB5837CD0b2391` | 30925.51 USDT / 124822066.97 wARS |
 | USDT/BRLm | 100 | `0x1625fE58Cdb3726e5841Fb2bb367Dde9AAa009B3` | 21424.72 USDT / 605.85 BRLm |
 | USDT/BRLA | 100 | `0x14E577e42d45Fd2200A9B0e31D87Fe826467111a` | 19976.58 USDT / 55237.79 BRLA |
@@ -73,7 +73,7 @@ All hard checks passed.
     "pool": "0x0FEBa760d93423D127DE1B6ABECdB60E5253228D",
     "token0": "USDT",
     "token1": "USDm",
-    "quote": "1 USDT -> 0.9983003 USDm"
+    "quote": "1 USDT -> 0.998333523354 USDm"
   },
   "USDC/USDm": {
     "pool": "0x462fe04b4FD719Cbd04C0310365D421D02AaA19E",
@@ -91,7 +91,7 @@ All hard checks passed.
     "pool": "0x8C0014afe032E4574481D8934504100bF23fCB56",
     "token0": "USDm",
     "token1": "0xCCF663b1fF11028f0b19058d0f7B674004a40746",
-    "quote": "1 USDm -> 0.746453037846741287 0xCCF663b1fF11028f0b19058d0f7B674004a40746"
+    "quote": "1 USDm -> 0.746279828737387346 0xCCF663b1fF11028f0b19058d0f7B674004a40746"
   },
   "USDm->NGNm": "not routable via default factory: The contract function \"getAmountsOut\" reverted with the following signature:",
   "USDm->KESm": "not routable via default factory: The contract function \"getAmountsOut\" reverted with the following signature:",
@@ -100,7 +100,7 @@ All hard checks passed.
   "USDm->ZARm": "not routable via default factory: The contract function \"getAmountsOut\" reverted with the following signature:",
   "USDm->BRLm": "not routable via default factory: The contract function \"getAmountsOut\" reverted with the following signature:",
   "USDm->COPm": "not routable via default factory: The contract function \"getAmountsOut\" reverted with the following signature:",
-  "USDm->EURm": "1 USDm -> 0.890116362078812107 EURm"
+  "USDm->EURm": "1 USDm -> 0.889798758295868122 EURm"
 }
 ```
 
@@ -110,7 +110,7 @@ All hard checks passed.
   {
     "pair": "cNGN->USDT",
     "min": "1379.322",
-    "max": "125345251.032254",
+    "max": "124792763.037389",
     "points": 9
   },
   {
@@ -121,26 +121,26 @@ All hard checks passed.
   },
   {
     "pair": "wARS->USDT",
-    "min": "1641.145",
-    "max": "148746737.366842350531974244",
+    "min": "1640.59",
+    "max": "148078206.846537025247917883",
     "points": 9
   },
   {
     "pair": "USDT->wARS",
     "min": "1",
-    "max": "4.127152",
+    "max": "4.127483",
     "points": 5
   },
   {
     "pair": "wBRL->USDT",
-    "min": "5.3105",
-    "max": "481630.841107269245839306",
+    "min": "5.3002",
+    "max": "478582.940207327702801056",
     "points": 9
   },
   {
     "pair": "USDT->wBRL",
     "min": "1",
-    "max": "46784.813709",
+    "max": "47075.338322",
     "points": 9
   },
   {
@@ -157,44 +157,44 @@ All hard checks passed.
   },
   {
     "pair": "0x471ece3750da237f93b8e339c536989b8978a438->USDT",
-    "min": "1.301744337412",
-    "max": "1180627.109441208498026675",
+    "min": "1.302931596091",
+    "max": "1176485.483080302366166796",
     "points": 9
   },
   {
     "pair": "USDT->0x471ece3750da237f93b8e339c536989b8978a438",
     "min": "0.1",
-    "max": "553.176208",
+    "max": "552.672142",
     "points": 9
   },
   {
     "pair": "USAT->USDT",
     "min": "1.00055",
-    "max": "115493.79717",
+    "max": "90344.923236",
     "points": 9
   },
   {
     "pair": "USDT->USAT",
     "min": "1",
-    "max": "5899.692934",
+    "max": "700.740709",
     "points": 9
   },
   {
     "pair": "0x18bc5bcc660cf2b9ce3cd51a404afe1a0cbd3c22->USDT",
-    "min": "18117.5",
-    "max": "13719981691.2",
+    "min": "18119.5",
+    "max": "13265574611.28",
     "points": 9
   },
   {
     "pair": "USDT->0x18bc5bcc660cf2b9ce3cd51a404afe1a0cbd3c22",
     "min": "1",
-    "max": "524515.432108",
+    "max": "524512.424954",
     "points": 9
   },
   {
     "pair": "0x8a1d45e102e886510e891d2ec656a708991e2d76->USDT",
     "min": "3166",
-    "max": "365452496.125618855231048169",
+    "max": "285874833.530779415770768265",
     "points": 9
   },
   {
@@ -205,19 +205,19 @@ All hard checks passed.
   },
   {
     "pair": "0xd221812de1bd094f35587ee8e174b07b6167d9af->USDT",
-    "min": "0.000433625018",
-    "max": "0.674887929641582425",
-    "points": 9
+    "min": "0.000432898559",
+    "max": "0",
+    "points": 0
   },
   {
     "pair": "USDT->0xd221812de1bd094f35587ee8e174b07b6167d9af",
     "min": "1",
-    "max": "55.864942",
-    "points": 8
+    "max": "0",
+    "points": 0
   },
   {
     "pair": "0x337e7456b420bd3481e7fa61fa9850343d610d34->USDT",
-    "min": "18.723",
+    "min": "18.722",
     "max": "0",
     "points": 0
   },
@@ -241,7 +241,7 @@ All hard checks passed.
   },
   {
     "pair": "0x62b8b11039fcfe5ab0c56e502b1c372a3d2a9c7a->USDT",
-    "min": "8759.522253858195",
+    "min": "8759.81377005699",
     "max": "0",
     "points": 0
   },
