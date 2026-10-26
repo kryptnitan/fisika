@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   core:
     runs-on: ubuntu-latest
@@ -49,15 +53,8 @@ jobs:
         if: always() && github.ref == 'refs/heads/main'
         run: |
           test -d verification || exit 0
-          cp -r verification /tmp/verification
-          git config user.name "fisika-ci"
-          git config user.email "fisika-ci@users.noreply.github.com"
-          git checkout --orphan publish
-          git rm -rfq .
-          cp /tmp/verification/* .
-          git add onchain.json onchain.md
-          git commit -qm "on-chain verification for ${GITHUB_SHA}"
-          git push -fq origin HEAD:verification
+          cp verification/onchain.json verification/onchain.md /tmp/
+          bash .github/publish.sh verification "on-chain verification for ${GITHUB_SHA}" /tmp/onchain.json /tmp/onchain.md
 
   paper-run:
     runs-on: ubuntu-latest
@@ -79,14 +76,7 @@ jobs:
           test -f verification/paper-run.md || exit 0
           cp verification/paper-run.md /tmp/paper-run.md
           cat /tmp/paper-run.md >> "$GITHUB_STEP_SUMMARY"
-          git config user.name "fisika-ci"
-          git config user.email "fisika-ci@users.noreply.github.com"
-          git fetch -q origin verification
-          git checkout -q -B pub origin/verification
-          cp /tmp/paper-run.md paper-run.md
-          git add paper-run.md
-          git commit -qm "paper run for ${GITHUB_SHA}"
-          git push -q origin HEAD:verification
+          bash .github/publish.sh verification "paper run for ${GITHUB_SHA}" /tmp/paper-run.md
 
   contracts:
     runs-on: ubuntu-latest
@@ -103,17 +93,10 @@ jobs:
         env:
           CELO_RPC_URL: ${{ secrets.CELO_RPC_URL || 'https://forno.celo.org' }}
         run: forge test -vv --gas-report | tee forge-test.txt
-      - name: Publish forge results to the forge-results branch
+      - name: Publish forge results to the verification branch
         if: always() && github.ref == 'refs/heads/main'
+        working-directory: .
         run: |
-          test -f forge-test.txt || exit 0
-          cp forge-test.txt /tmp/forge-test.txt
-          cd ..
-          git config user.name "fisika-ci"
-          git config user.email "fisika-ci@users.noreply.github.com"
-          git checkout --orphan publish
-          git rm -rfq .
-          cp /tmp/forge-test.txt .
-          git add forge-test.txt
-          git commit -qm "forge results for ${GITHUB_SHA}"
-          git push -fq origin HEAD:forge-results
+          test -f contracts/forge-test.txt || exit 0
+          cp contracts/forge-test.txt /tmp/forge-test.txt
+          bash .github/publish.sh verification "forge results for ${GITHUB_SHA}" /tmp/forge-test.txt
