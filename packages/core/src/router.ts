@@ -1,4 +1,4 @@
-import { curveOut } from './curve.ts';
+import { curveGas, curveOut } from './curve.ts';
 import { edgeKey, type PriceGraph } from './graph.ts';
 import type { Pricer } from './pricer.ts';
 import type { Address, Edge, VenueId } from './types.ts';
@@ -125,9 +125,14 @@ function pathTxCount(path: readonly Edge[], textileAtomic: boolean): number {
   return txs;
 }
 
-function pathGas(path: readonly Edge[], textileAtomic: boolean): bigint {
-  const hops = path.reduce((s, e) => s + e.gasUnits, 0n);
-  return hops + TX_BASE_GAS * BigInt(pathTxCount(path, textileAtomic));
+/** Gas for a path at a given input size, using per-size gas samples where the venue reports them. */
+function pathGas(path: readonly Edge[], textileAtomic: boolean, amountIn: bigint): bigint {
+  const hops = simulatePath(path, amountIn);
+  let gas = 0n;
+  path.forEach((e, i) => {
+    gas += hops ? curveGas(e.points, hops[i]!, e.gasUnits) : e.gasUnits;
+  });
+  return gas + TX_BASE_GAS * BigInt(pathTxCount(path, textileAtomic));
 }
 
 function sharesEdge(a: readonly Edge[], b: readonly Edge[]): boolean {
@@ -136,37 +141,45 @@ function sharesEdge(a: readonly Edge[], b: readonly Edge[]): boolean {
 }
 
 /**
- * Best route for an exact input. Splits across up to `splitCandidates` edge-disjoint paths using greedy
- * marginal allocation: each chunk goes where it adds the most output, and opening a new path is charged its
- * gas. Edge-disjointness keeps each path's curve independent, so the marginal maths is exact per path.
+ * Best route for an exact input.
+ *
+ * 1. Rank every path: paths that can fill the whole order by their net output at full size, then paths that
+ *    can only take part of it (by their rate at one chunk).
+ * 2. Split greedily across up to `splitCandidates` edge-disjoint paths from that ranking: each chunk goes where
+ *    it adds the most output, and opening a path is charged its gas. Disjointness keeps each path's curve
+ *    independent, so the per-path marginal maths is exact.
+ * 3. Compare the split with the best single path at full size and keep whichever nets more. Greedy splitting is
+ *    myopic about a path's one-off gas cost; this comparison makes sure it can never return worse than the
+ *    best unsplit route.
  */
 export function bestRoute(graph: PriceGraph, pricer: Pricer, req: RouteRequest): Route | null {
   if (req.amountIn <= 0n) return null;
   const textileAtomic = req.textileAtomic ?? false;
   const chunks = BigInt(Math.max(1, req.chunks ?? 20));
   const K = Math.max(1, req.splitCandidates ?? 4);
-  const feeBps = BigInt(req.feeBps ?? 0);
-  const slippageBps = BigInt(req.slippageBps ?? 30);
 
-  const gasToOut = (gas: bigint): { out: bigint; usd: number; unpriced: boolean } => {
+  const gasToOut = (gas: bigint): bigint => {
     const usd = (Number(gas * req.gasPriceWei) / 1e18) * req.celoUsd;
-    const out = pricer.amountForUsd(req.tokenOut, usd, req.nowMs);
-    return { out: out ?? 0n, usd, unpriced: out === null };
+    return pricer.amountForUsd(req.tokenOut, usd, req.nowMs) ?? 0n;
   };
 
   const paths = enumeratePaths(graph, req);
   if (!paths.length) return null;
 
-  // Rank paths by value at one chunk (the size they will first be tested at), then keep edge-disjoint top K.
   const chunk = req.amountIn / chunks || req.amountIn;
-  const ranked = paths
-    .map((p) => {
-      const sim = simulatePath(p, chunk);
-      const out = sim ? sim[sim.length - 1]! : null;
-      return { p, score: out === null ? null : out - gasToOut(pathGas(p, textileAtomic)).out };
-    })
-    .filter((r): r is { p: Edge[]; score: bigint } => r.score !== null)
-    .sort((a, b) => (a.score > b.score ? -1 : a.score < b.score ? 1 : 0));
+  type Ranked = { p: Edge[]; full: boolean; score: bigint };
+  const ranked: Ranked[] = [];
+  for (const p of paths) {
+    const full = simulatePath(p, req.amountIn);
+    if (full) {
+      ranked.push({ p, full: true, score: full.at(-1)! - gasToOut(pathGas(p, textileAtomic, req.amountIn)) });
+      continue;
+    }
+    const part = simulatePath(p, chunk);
+    if (part) ranked.push({ p, full: false, score: part.at(-1)! * chunks - gasToOut(pathGas(p, textileAtomic, chunk)) });
+  }
+  ranked.sort((a, b) => (a.full !== b.full ? (a.full ? -1 : 1) : a.score > b.score ? -1 : a.score < b.score ? 1 : 0));
+  if (!ranked.length) return null;
 
   const candidates: Edge[][] = [];
   for (const r of ranked) {
@@ -174,13 +187,11 @@ export function bestRoute(graph: PriceGraph, pricer: Pricer, req: RouteRequest):
     if (candidates.some((c) => sharesEdge(c, r.p))) continue;
     candidates.push(r.p);
   }
-  if (!candidates.length) return null;
 
   const alloc = candidates.map(() => 0n);
   const outs = candidates.map(() => 0n);
-  const gasOut = candidates.map((p) => gasToOut(pathGas(p, textileAtomic)).out);
-
   let remaining = req.amountIn;
+  let splitOk = true;
   while (remaining > 0n) {
     const step = remaining < chunk * 2n ? remaining : chunk; // last chunk absorbs rounding
     let bestIdx = -1;
@@ -189,30 +200,51 @@ export function bestRoute(graph: PriceGraph, pricer: Pricer, req: RouteRequest):
     for (let i = 0; i < candidates.length; i++) {
       const sim = simulatePath(candidates[i]!, alloc[i]! + step);
       if (!sim) continue;
-      const newOut = sim[sim.length - 1]!;
-      const marg = newOut - outs[i]! - (alloc[i] === 0n ? gasOut[i]! : 0n);
+      const newOut = sim.at(-1)!;
+      const opening = alloc[i] === 0n ? gasToOut(pathGas(candidates[i]!, textileAtomic, step)) : 0n;
+      const marg = newOut - outs[i]! - opening;
       if (bestMarg === null || marg > bestMarg) {
         bestMarg = marg;
         bestIdx = i;
         bestNewOut = newOut;
       }
     }
-    if (bestIdx < 0) return null; // not enough depth across all candidate paths for this size
+    if (bestIdx < 0) {
+      splitOk = false; // not enough depth across the candidate paths for this size
+      break;
+    }
     alloc[bestIdx] = alloc[bestIdx]! + step;
     outs[bestIdx] = bestNewOut;
     remaining -= step;
   }
 
+  const split = splitOk ? assemble(candidates.map((p, i) => ({ p, amountIn: alloc[i]! })), req, textileAtomic, gasToOut) : null;
+  const bestFull = ranked.find((r) => r.full);
+  const single = bestFull ? assemble([{ p: bestFull.p, amountIn: req.amountIn }], req, textileAtomic, gasToOut) : null;
+  if (split && single) return single.netValueOut >= split.netValueOut ? single : split;
+  return split ?? single;
+}
+
+function assemble(
+  allocation: { p: Edge[]; amountIn: bigint }[],
+  req: RouteRequest,
+  textileAtomic: boolean,
+  gasToOut: (gas: bigint) => bigint,
+): Route | null {
+  const feeBps = BigInt(req.feeBps ?? 0);
+  const slippageBps = BigInt(req.slippageBps ?? 30);
   const fills: PathFill[] = [];
   let gasUnits = 0n;
   let txCount = 0;
-  for (let i = 0; i < candidates.length; i++) {
-    if (alloc[i] === 0n) continue;
-    const hopAmounts = simulatePath(candidates[i]!, alloc[i]!)!;
-    fills.push({ edges: candidates[i]!, amountIn: alloc[i]!, amountOut: hopAmounts[hopAmounts.length - 1]!, hopAmounts });
-    gasUnits += pathGas(candidates[i]!, textileAtomic);
-    txCount += pathTxCount(candidates[i]!, textileAtomic);
+  for (const { p, amountIn } of allocation) {
+    if (amountIn === 0n) continue;
+    const hopAmounts = simulatePath(p, amountIn);
+    if (!hopAmounts) return null;
+    fills.push({ edges: p, amountIn, amountOut: hopAmounts.at(-1)!, hopAmounts });
+    gasUnits += pathGas(p, textileAtomic, amountIn);
+    txCount += pathTxCount(p, textileAtomic);
   }
+  if (!fills.length) return null;
   // Without Textile legs, every path's hops fit in one executor call, so only one tx base cost applies.
   const hasNonAtomicTextile = !textileAtomic && fills.some((f) => f.edges.some((e) => e.venue === 'textile'));
   if (!hasNonAtomicTextile) {
@@ -224,7 +256,8 @@ export function bestRoute(graph: PriceGraph, pricer: Pricer, req: RouteRequest):
   const grossOut = fills.reduce((s, f) => s + f.amountOut, 0n);
   const serviceFee = (grossOut * feeBps) / 10_000n;
   const amountOut = grossOut - serviceFee;
-  const gas = gasToOut(gasUnits);
+  const gasUsd = (Number(gasUnits * req.gasPriceWei) / 1e18) * req.celoUsd;
+  const gasInOut = gasToOut(gasUnits);
   const edges = fills.flatMap((f) => f.edges);
 
   return {
@@ -235,11 +268,11 @@ export function bestRoute(graph: PriceGraph, pricer: Pricer, req: RouteRequest):
     grossOut,
     serviceFee,
     gasUnits,
-    gasUsd: gas.usd,
-    gasInOut: gas.out,
-    gasUnpriced: gas.unpriced,
+    gasUsd,
+    gasInOut,
+    gasUnpriced: gasUsd > 0 && gasInOut === 0n,
     amountOut,
-    netValueOut: amountOut - gas.out,
+    netValueOut: amountOut - gasInOut,
     minOut: (amountOut * (10_000n - slippageBps)) / 10_000n,
     execution,
     txCount,

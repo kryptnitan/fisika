@@ -21,6 +21,16 @@ export function curveOut(points: readonly CurvePoint[], amountIn: bigint): bigin
   return null;
 }
 
+/**
+ * Gas for a swap of `amountIn`: the gas measured at the smallest sample that covers it. A sparse pool can cost
+ * 10x more gas at $10k than at $10 (ticks crossed), so charging one max figure for every size misprices
+ * small orders.
+ */
+export function curveGas(points: readonly CurvePoint[], amountIn: bigint, fallback: bigint): bigint {
+  for (const p of points) if (amountIn <= p.amountIn) return p.gas ?? fallback;
+  return points.at(-1)?.gas ?? fallback;
+}
+
 /** Deepest input the curve has evidence for. */
 export function curveCapacity(points: readonly CurvePoint[]): bigint {
   return points.length ? points[points.length - 1]!.amountIn : 0n;
@@ -39,7 +49,7 @@ export function normalizeCurve(points: readonly CurvePoint[]): CurvePoint[] {
     const last = out[out.length - 1];
     if (last && p.amountIn === last.amountIn) continue;
     if (last && p.amountOut < last.amountOut) continue;
-    out.push({ amountIn: p.amountIn, amountOut: p.amountOut });
+    out.push(p.gas === undefined ? { amountIn: p.amountIn, amountOut: p.amountOut } : { amountIn: p.amountIn, amountOut: p.amountOut, gas: p.gas });
   }
   return out;
 }

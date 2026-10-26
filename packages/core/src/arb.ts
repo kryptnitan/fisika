@@ -1,4 +1,4 @@
-import { curveOut } from './curve.ts';
+import { curveGas, curveOut } from './curve.ts';
 import { edgeKey, type PriceGraph } from './graph.ts';
 import type { Pricer } from './pricer.ts';
 import { TX_BASE_GAS, simulatePath } from './router.ts';
@@ -159,7 +159,7 @@ export function evaluateCycle(cycle: Edge[], amountIn: bigint, pricer: Pricer, c
   const start = cycle[0]!.tokenIn;
   const final = amounts[amounts.length - 1]!;
   const txCount = cycleTxCount(cycle, cfg.textileAtomic);
-  const gasUnits = cycle.reduce((s, e) => s + e.gasUnits, 0n) + TX_BASE_GAS * BigInt(txCount);
+  const gasUnits = cycle.reduce((s, e, i) => s + curveGas(e.points, amounts[i]!, e.gasUnits), 0n) + TX_BASE_GAS * BigInt(txCount);
   const gasUsd = (Number(gasUnits * cfg.gasPriceWei) / 1e18) * cfg.celoUsd;
   const gasInStart = pricer.amountForUsd(start, gasUsd, nowMs);
   if (gasInStart === null) return null;

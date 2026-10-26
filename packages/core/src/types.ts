@@ -6,6 +6,8 @@ export type VenueId = 'mento' | 'mento-v2' | 'uniswap-v3' | 'textile';
 export interface CurvePoint {
   amountIn: bigint;
   amountOut: bigint;
+  /** Gas measured for a swap of this size, when the venue reports it (Uniswap ticks crossed scale with size). */
+  gas?: bigint;
 }
 
 /** A directed, size-aware edge in the price graph: "venue X turns tokenIn into tokenOut along this curve". */
@@ -17,7 +19,7 @@ export interface Edge {
   tokenOut: Address;
   /** Ascending by amountIn. Output between points is interpolated linearly (conservative for concave curves). */
   points: CurvePoint[];
-  /** Gas for this hop only, excluding transaction base cost. */
+  /** Gas for this hop only, excluding transaction base cost. Fallback when points carry no per-size gas. */
   gasUnits: bigint;
   feeBps: number;
   /** true = executable at this price for the current block; false = indicative (Textile ladder). */

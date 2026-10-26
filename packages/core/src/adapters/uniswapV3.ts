@@ -64,7 +64,7 @@ export class UniswapV3Adapter implements VenueAdapter {
           for (const amountIn of sizes) {
             const q = await this.reader.quoteExactInputSingle({ tokenIn, tokenOut, amountIn, fee: pool.fee }).catch(() => null);
             if (!q || q.amountOut === 0n) break; // deeper sizes will not do better
-            points.push({ amountIn, amountOut: q.amountOut });
+            points.push({ amountIn, amountOut: q.amountOut, gas: q.gasEstimate });
             if (q.gasEstimate > gas) gas = q.gasEstimate;
           }
           if (!points.length) return;

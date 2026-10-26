@@ -9,7 +9,7 @@ export function edgeKey(e: Pick<Edge, 'venue' | 'poolId' | 'tokenIn' | 'tokenOut
 
 /** Serializable form for Redis / Postgres. */
 export interface EdgeSnapshot extends Omit<Edge, 'points' | 'gasUnits' | 'asOfBlock'> {
-  points: { amountIn: string; amountOut: string }[];
+  points: { amountIn: string; amountOut: string; gas?: string }[];
   gasUnits: string;
   asOfBlock?: string;
 }
@@ -55,7 +55,7 @@ export class PriceGraph {
   snapshot(): EdgeSnapshot[] {
     return this.all().map((e) => ({
       ...e,
-      points: e.points.map((p) => ({ amountIn: p.amountIn.toString(), amountOut: p.amountOut.toString() })),
+      points: e.points.map((p) => ({ amountIn: p.amountIn.toString(), amountOut: p.amountOut.toString(), ...(p.gas === undefined ? {} : { gas: p.gas.toString() }) })),
       gasUnits: e.gasUnits.toString(),
       asOfBlock: e.asOfBlock?.toString(),
     }));
@@ -66,7 +66,7 @@ export class PriceGraph {
     for (const s of snap) {
       g.upsert({
         ...s,
-        points: s.points.map((p) => ({ amountIn: BigInt(p.amountIn), amountOut: BigInt(p.amountOut) })),
+        points: s.points.map((p) => ({ amountIn: BigInt(p.amountIn), amountOut: BigInt(p.amountOut), ...(p.gas === undefined ? {} : { gas: BigInt(p.gas) }) })),
         gasUnits: BigInt(s.gasUnits),
         asOfBlock: s.asOfBlock === undefined ? undefined : BigInt(s.asOfBlock),
       });

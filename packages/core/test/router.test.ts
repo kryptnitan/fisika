@@ -102,4 +102,28 @@ describe('router', () => {
     assert.deepEqual(paths[0]!.map((e) => e.poolId), ['a', 'c', 'd']);
     assert.equal(enumeratePaths(graph, req({ tokenOut: A.cNGN, maxHops: 2 })).length, 0);
   });
+
+  // Regression (live graph, 26 Oct 2026): the direct pool was skipped because its $10k-size gas was charged
+  // to a $10 order, and greedy splitting charged it on one chunk instead of the whole order.
+  it('charges gas measured at the order size and never returns worse than the best single path', () => {
+    const direct = cpEdge('uniswap-v3', 'direct', A.USDm, A.USDT, U18(1e5), U6(1e5), [U18(10), U18(100), U18(1_000)], 1);
+    direct.points = direct.points.map((p, i) => ({ ...p, gas: [150_000n, 600_000n, 2_000_000n][i]! }));
+    direct.gasUnits = 2_000_000n;
+    const viaA = cpEdge('mento', 'm1', A.USDm, A.USDC, U18(1e6), U6(0.99e6), [U18(10), U18(100), U18(1_000)], 1);
+    const viaB = cpEdge('mento', 'm2', A.USDC, A.USDT, U6(1e6), U6(1e6), [U6(10), U6(100), U6(1_000)], 1);
+    const { graph, pricer } = setup([direct, viaA, viaB]);
+    const r = bestRoute(graph, pricer, req({ tokenIn: A.USDm, tokenOut: A.USDT, amountIn: U18(10), gasPriceWei: 202_500_000_000n }))!;
+    assert.deepEqual(r.paths.map((p) => p.edges.map((e) => e.poolId)), [['direct']]);
+  });
+
+  // Regression: a capped path ranked first at chunk size used to exclude the only full-size path sharing its edge.
+  it('prefers a path that can fill the order over a better-rate path that cannot', () => {
+    const shared = cpEdge('textile', 'textile-rfq', A.wBRL, A.USDT, U18(5.4e6), U6(1e6), [U18(5.4), U18(540), U18(54_000)], 1);
+    const tinyLeg = cpEdge('textile', 'textile-rfq', A.USDT, A.wARS, U6(1e6), U18(1.7e9), [U6(1), U6(4)], 1); // $4 cap
+    const deepLeg = cpEdge('uniswap-v3', 'uni', A.USDT, A.wARS, U6(1e6), U18(1.63e9), [U6(10), U6(100), U6(1_000)], 1);
+    const { graph, pricer } = setup([shared, tinyLeg, deepLeg]);
+    const r = bestRoute(graph, pricer, req({ tokenIn: A.wBRL, tokenOut: A.wARS, amountIn: U18(54) }))!;
+    const rate = Number(r.amountOut) / Number(U18(54));
+    assert.ok(rate > 300, `rate ${rate} wARS per wBRL`);
+  });
 });
