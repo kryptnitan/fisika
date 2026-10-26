@@ -2,8 +2,12 @@ name: ci
 
 on:
   push:
+    branches-ignore: [verification, forge-results]
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   core:
@@ -41,3 +45,46 @@ jobs:
       - name: Publish summary
         if: always()
         run: test -f verification/onchain.md && cat verification/onchain.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Publish results to the verification branch
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          test -d verification || exit 0
+          cp -r verification /tmp/verification
+          git config user.name "fisika-ci"
+          git config user.email "fisika-ci@users.noreply.github.com"
+          git checkout --orphan publish
+          git rm -rfq .
+          cp /tmp/verification/* .
+          git add onchain.json onchain.md
+          git commit -qm "on-chain verification for ${GITHUB_SHA}"
+          git push -fq origin HEAD:verification
+
+  contracts:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: git clone --depth 1 https://github.com/foundry-rs/forge-std lib/forge-std
+      - run: forge build --sizes
+      - name: Unit + fork tests
+        env:
+          CELO_RPC_URL: ${{ secrets.CELO_RPC_URL || 'https://forno.celo.org' }}
+        run: forge test -vv --gas-report | tee forge-test.txt
+      - name: Publish forge results to the forge-results branch
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          test -f forge-test.txt || exit 0
+          cp forge-test.txt /tmp/forge-test.txt
+          cd ..
+          git config user.name "fisika-ci"
+          git config user.email "fisika-ci@users.noreply.github.com"
+          git checkout --orphan publish
+          git rm -rfq .
+          cp /tmp/forge-test.txt .
+          git add forge-test.txt
+          git commit -qm "forge results for ${GITHUB_SHA}"
+          git push -fq origin HEAD:forge-results

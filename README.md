@@ -23,8 +23,8 @@ Default mode is `PAPER`: everything live except signing. `LIVE` requires `MODE=L
 
 - [x] 1. Research report
 - [x] 2. Architecture
-- [ ] 3. Venue adapters + price graph + router (core done, unit-tested; fork tests pending CI)
-- [ ] 4. Executor contract
+- [ ] 3. Venue adapters + price graph + router (done; CI green, on-chain checks pass)
+- [ ] 4. Executor contract (written; unit + fork tests run in CI)
 - [ ] 5. Arb engine (PAPER)
 - [ ] 6. Paid API + ERC-8004
 - [ ] 7. Web swap app (replaces the Telegram bot)
