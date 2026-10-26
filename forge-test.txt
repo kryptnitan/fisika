@@ -1,7 +1,7 @@
 No files changed, compilation skipped
 
 Ran 14 tests for test/FisikaExecutor.t.sol:FisikaExecutorTest
-[PASS] testFuzz_feeNeverExceedsCap(uint96,uint16) (runs: 512, μ: 288811, ~: 290377)
+[PASS] testFuzz_feeNeverExceedsCap(uint96,uint16) (runs: 512, μ: 288243, ~: 290179)
 [PASS] test_badPatchOffset() (gas: 154660)
 [PASS] test_deadline() (gas: 48922)
 [PASS] test_feeCap() (gas: 48820)
@@ -15,7 +15,7 @@ Ran 14 tests for test/FisikaExecutor.t.sol:FisikaExecutorTest
 [PASS] test_reentrancyBlocked() (gas: 1305013)
 [PASS] test_singleLeg() (gas: 281130)
 [PASS] test_targetMustBeAllowlisted() (gas: 68110)
-Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 69.95ms (73.03ms CPU time)
+Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 78.79ms (86.55ms CPU time)
 
 Ran 4 tests for test/FisikaExecutor.fork.t.sol:FisikaExecutorForkTest
 [PASS] test_fork_crossVenueTwoHopAtomic() (gas: 929473)
@@ -31,7 +31,7 @@ Logs:
 Logs:
   USDT->USDC uni fee 100 out 99887025
 
-Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 12.43s (40.09s CPU time)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 11.04s (35.14s CPU time)
 
 ╭------------------------------------------------+-----------------+--------+--------+--------+---------╮
 | src/FisikaExecutor.sol:FisikaExecutor Contract |                 |        |        |        |         |
@@ -46,7 +46,7 @@ Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 12.43s (40.09s CPU 
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | acceptOwnership                                |           33065 |  33065 |  33065 |  33065 |       1 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
-| execute                                        |           31306 | 225618 | 226742 | 630141 |     273 |
+| execute                                        |           31306 | 224907 | 226742 | 630141 |     273 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | owner                                          |            2391 |   2391 |   2391 |   2391 |       2 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
@@ -106,7 +106,7 @@ Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 12.43s (40.09s CPU 
 |----------------------------------+-----------------+-------+--------+-------+---------|
 | allowance                        |            2732 |  2732 |   2732 |  2732 |       1 |
 |----------------------------------+-----------------+-------+--------+-------+---------|
-| approve                          |           24267 | 34378 |  44356 | 44380 |     525 |
+| approve                          |           24267 | 34379 |  44356 | 44380 |     525 |
 |----------------------------------+-----------------+-------+--------+-------+---------|
 | balanceOf                        |             529 |   555 |    529 |  2529 |     530 |
 |----------------------------------+-----------------+-------+--------+-------+---------|
@@ -138,4 +138,4 @@ Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 12.43s (40.09s CPU 
 ╰----------------------------------------+-----------------+--------+--------+--------+---------╯
 
 
-Ran 2 test suites in 12.43s (12.50s CPU time): 18 tests passed, 0 failed, 0 skipped (18 total tests)
+Ran 2 test suites in 11.04s (11.11s CPU time): 18 tests passed, 0 failed, 0 skipped (18 total tests)
