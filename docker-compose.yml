@@ -1,0 +1,15 @@
+# Local stack: API (graph + paper arb + x402) and web. Copy .env.example to .env first.
+services:
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    env_file: .env
+    ports: ["8787:8787"]
+    restart: unless-stopped
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    environment:
+      API_URL: http://api:8787
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+    ports: ["3000:3000"]
+    depends_on: [api]
+    restart: unless-stopped

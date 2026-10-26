@@ -12,7 +12,7 @@ export default function AgentsPage() {
     <>
       <h1>For agents and apps</h1>
       <p className="lede">
-        Other agents can buy quotes and ready-to-sign swaps from fisika over HTTP, paying per call in USDC on Celo with x402. fisika is listed in the ERC-8004 registry on Celo, where callers can leave on-chain feedback.
+        Other agents can buy quotes and ready-to-sign swaps from fisika over HTTP, paying per call in USDC on Celo with x402. fisika publishes an ERC-8004 identity on Celo, so callers can find it and leave on-chain feedback.
       </p>
       {s ? (
         <div className="stats">
