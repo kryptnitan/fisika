@@ -1,6 +1,6 @@
 # On-chain verification
 
-Block 81100149 · 2026-10-26T07:48:28.465Z
+Block 81100225 · 2026-10-26T07:49:45.153Z
 
 All hard checks passed.
 
@@ -73,7 +73,7 @@ All hard checks passed.
     "pool": "0x0FEBa760d93423D127DE1B6ABECdB60E5253228D",
     "token0": "USDT",
     "token1": "USDm",
-    "quote": "1 USDT -> 0.998319706118 USDm"
+    "quote": "1 USDT -> 0.998352649528 USDm"
   },
   "USDC/USDm": {
     "pool": "0x462fe04b4FD719Cbd04C0310365D421D02AaA19E",
@@ -109,7 +109,7 @@ All hard checks passed.
 [
   {
     "pair": "cNGN->USDT",
-    "min": "1379.458",
+    "min": "1379.508",
     "max": "125612258.196825",
     "points": 9
   },
@@ -121,31 +121,31 @@ All hard checks passed.
   },
   {
     "pair": "wARS->USDT",
-    "min": "1641.02",
-    "max": "149102514.823178777514458835",
+    "min": "1641.4",
+    "max": "149144371.080777154864605307",
     "points": 9
   },
   {
     "pair": "USDT->wARS",
     "min": "1",
-    "max": "4.1264",
+    "max": "4.125242",
     "points": 5
   },
   {
     "pair": "wBRL->USDT",
-    "min": "5.3605",
-    "max": "487247.986829227346753561",
+    "min": "5.3592",
+    "max": "487120.731129009772312135",
     "points": 9
   },
   {
     "pair": "USDT->wBRL",
     "min": "1",
-    "max": "46149.121765",
+    "max": "46161.177606",
     "points": 9
   },
   {
     "pair": "USDC->USDT",
-    "min": "0.998761",
+    "min": "0.998741",
     "max": "0",
     "points": 0
   },
@@ -157,14 +157,14 @@ All hard checks passed.
   },
   {
     "pair": "0x471ece3750da237f93b8e339c536989b8978a438->USDT",
-    "min": "1.299207483435",
-    "max": "1180927.581134987397557424",
+    "min": "1.298195508244",
+    "max": "1180007.736206153186940088",
     "points": 9
   },
   {
     "pair": "USDT->0x471ece3750da237f93b8e339c536989b8978a438",
     "min": "0.1",
-    "max": "554.256349",
+    "max": "554.688405",
     "points": 9
   },
   {
@@ -181,14 +181,14 @@ All hard checks passed.
   },
   {
     "pair": "0x18bc5bcc660cf2b9ce3cd51a404afe1a0cbd3c22->USDT",
-    "min": "18111",
-    "max": "13718766851.94",
+    "min": "18114",
+    "max": "13721020802.5",
     "points": 9
   },
   {
     "pair": "USDT->0x18bc5bcc660cf2b9ce3cd51a404afe1a0cbd3c22",
     "min": "1",
-    "max": "27687.364666",
+    "max": "27682.853936",
     "points": 9
   },
   {
@@ -205,14 +205,14 @@ All hard checks passed.
   },
   {
     "pair": "0xd221812de1bd094f35587ee8e174b07b6167d9af->USDT",
-    "min": "0.000430683624",
-    "max": "0.670927084209917826",
+    "min": "0.000430854341",
+    "max": "0.670768114557093302",
     "points": 9
   },
   {
     "pair": "USDT->0xd221812de1bd094f35587ee8e174b07b6167d9af",
     "min": "1",
-    "max": "56.194743",
+    "max": "56.208061",
     "points": 8
   },
   {
