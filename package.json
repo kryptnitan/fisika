@@ -1,0 +1,17 @@
+{
+  "name": "fisika",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "verify:onchain": "node scripts/verify-onchain.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^6.0.3",
+    "viem": "^2.21.0"
+  }
+}

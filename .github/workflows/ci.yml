@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  verify-onchain:
+    runs-on: ubuntu-latest
+    needs: core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --no-frozen-lockfile
+      - name: Verify addresses, decimals, pools, Mento routes, Textile ladder
+        env:
+          # Add a CELO_RPC_URLS repo secret (comma-separated) once you have a paid RPC; public endpoint otherwise.
+          CELO_RPC_URLS: ${{ secrets.CELO_RPC_URLS || 'https://forno.celo.org' }}
+        run: node scripts/verify-onchain.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: onchain-verification
+          path: verification/
+      - name: Publish summary
+        if: always()
+        run: test -f verification/onchain.md && cat verification/onchain.md >> "$GITHUB_STEP_SUMMARY" || true

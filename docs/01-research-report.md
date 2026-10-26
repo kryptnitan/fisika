@@ -1,4 +1,4 @@
-# RATEWISE — Deliverable 1: Research Report
+# fisika — Deliverable 1: Research Report
 
 *Celo mainnet (chain 42220) · researched 26 Oct 2026*
 
@@ -195,7 +195,7 @@ I could not verify meaningful stablecoin liquidity on Ubeswap, Velodrome, Curve 
    - a client's own wallet when the client signs the swap themselves
 2. **For atomic multi-venue routes.** Email **contact@textilecredit.com** or Telegram **t.me/textileprotocol** with the request below.
 
-> We're building RATEWISE, a best-execution stablecoin FX router and agent API on Celo (42220). We'd like an **aggregator key with the `rfq:aggregator` scope** so our executor contract can be the RFQ `taker` and fill Textile quotes inside multi-venue transactions alongside Mento and Uniswap.
+> We're building fisika, a best-execution stablecoin FX router and agent API on Celo (42220). We'd like an **aggregator key with the `rfq:aggregator` scope** so our executor contract can be the RFQ `taker` and fill Textile quotes inside multi-venue transactions alongside Mento and Uniswap.
 >
 > - Taker contract: `<executor address, after deployment>`
 > - Corridors: cNGN↔USDT, wBRL↔USDT, wARS↔USDT, USDC↔USDT

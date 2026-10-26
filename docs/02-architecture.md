@@ -1,4 +1,4 @@
-# RATEWISE — Deliverable 2: Architecture
+# fisika — Deliverable 2: Architecture
 
 Status: draft v1, 26 Oct 2026. It builds on [01-research-report.md](01-research-report.md).
 
@@ -38,7 +38,7 @@ flowchart LR
   T --> A
 
   RK --> W1[Arb wallet]
-  RK --> SC[RatewiseExecutor.sol]
+  RK --> SC[FisikaExecutor.sol]
   W1 --> SC
 
   subgraph Edge
@@ -120,7 +120,7 @@ Input: `tokenIn`, `tokenOut`, `amountIn`, slippage in bps, and taker.
    net_out_usd = Σ out_value
                − gas_units × baseFee × CELO_usd   (or USDT if fee-currency gas)
                − venue fees (already inside quotes)
-               − ratewise_fee_bps × out_value
+               − fisika_fee_bps × out_value
    ```
 5. **Re-quote.** Every leg of the winning route is re-quoted live: an `eth_call` for Mento and Uniswap, and a firm quote for Textile, which only happens at execution.
 6. **Output.** Return the route along with either an **unsigned transaction** (for client wallets) or an executor call.
@@ -133,7 +133,7 @@ Input: `tokenIn`, `tokenOut`, `amountIn`, slippage in bps, and taker.
 
 Class B is shown to clients as "2 transactions". The arb engine only takes B routes when the leftover inventory risk is within its per-token limits.
 
-## 5. Executor contract — `RatewiseExecutor.sol`
+## 5. Executor contract — `FisikaExecutor.sol`
 
 ```solidity
 struct Step { address target; address tokenIn; uint256 amountIn; bytes data; address spender; }
@@ -214,7 +214,7 @@ Every one of these is enforced in code, and the code refuses to start if a value
 |---|---|---|
 | `GET /v1/pairs`, `/v1/board` | free | Public FX board |
 | `POST /v1/quote` | **$0.001** via x402 (USDC/USDT, Celo) | Best route at size, with the route breakdown |
-| `POST /v1/build` | **$0.001** via x402 | Returns unsigned transaction(s) for the client's wallet. Includes the RatewiseExecutor fee (default **10 bps**, paid in-swap) |
+| `POST /v1/build` | **$0.001** via x402 | Returns unsigned transaction(s) for the client's wallet. Includes the FisikaExecutor fee (default **10 bps**, paid in-swap) |
 | `GET /v1/receipts/:id` | free | Public, verifiable receipt |
 | `/.well-known/agent-registration.json` | free | ERC-8004 registration file |
 
@@ -233,7 +233,7 @@ fisika/
   packages/
     core/           tokens, adapters (mento, uniswap-v3, textile), graph, router, arb, risk, profit math
     db/             Postgres schema + migrations (drizzle)
-  contracts/        Foundry: RatewiseExecutor + fork tests
+  contracts/        Foundry: FisikaExecutor + fork tests
   services/
     graph/  arb/  indexer/   thin process entrypoints over packages/core
   scripts/
