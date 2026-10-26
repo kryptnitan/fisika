@@ -335,3 +335,29 @@ These are in addition to the five questions sent earlier.
 - [Celo x402 facilitator launch](https://www.cryptowisser.com/news/celo-core-co-launches-x402-facilitator/)
 - [x402 server guide on Celo](https://dev.to/emmo00/building-x402-servers-on-celo-a-getting-started-guide-498f)
 - [cNGN on Celo](https://blog.celo.org/cngn-deploys-on-celo-bringing-the-nigerian-naira-to-the-leading-stablecoin-networks-onchain-fx-f2b570a079da)
+
+---
+
+## Addendum — verified on-chain (CI, block 81,099,565, 26 Oct 2026)
+
+`scripts/verify-onchain.ts` ran in GitHub Actions against Celo mainnet. The full output lives on the repo's `verification` branch. **Every hard check passed.** Every contract address in this report has code, and every configured decimals value matches the chain.
+
+What changed or was settled:
+
+1. **Decimals.**
+   - Every Mento token is 18 decimals, as are BRLA and COPM.
+   - USAT is 6.
+   - USDT, USDC and cNGN are 6, and wBRL and wARS are 18, matching the Textile docs.
+2. **The "two cNGN pools" question is resolved.** Uniswap's USDT/cNGN pool (fee 100, `0x6519…7d32`) holds the regulated cNGN, about $95k USDT plus 118M cNGN. Its USDT/NGNm pool (fee 100, `0x1e2F…2318`) holds Mento's naira, about $45k USDT plus 28M NGNm. DexPaprika labelled both as "cNGN".
+3. **Nearly all Uniswap stablecoin depth sits in the 0.01% (fee 100) tier.** The 0.05%, 0.3% and 1% tiers are mostly empty.
+4. **Several Uniswap pools are one-sided:**
+   - USDT/wBRL holds about 24 USDT against 147k wBRL, so it can't absorb wBRL→USDT.
+   - USDT/KESm holds about $620 of USDT.
+   - USDT/BRLm holds very little BRLm.
+5. **Mento v3's Router quotes USDT/USDm, USDC/USDm, GBPm and EURm.** The ABI is confirmed and a quote matched execution exactly on a fork. **KESm, NGNm, GHSm, XOFm, ZARm, BRLm and COPm are not routable through it.** They trade on the v2 Broker, so v2 gets its own adapter (`mento-v2`).
+6. **Textile depth is strongly one-sided on Celo:**
+   - Selling cNGN, wARS or wBRL for USDT is deep: up to about $85k of cNGN.
+   - Buying cNGN or wARS with USDT is capped at roughly $25 and $4 respectively.
+   - USDC↔USDT shows no depth at all.
+   - The ladder also lists undocumented pairs: CELO, USAT, IDRX and wCOP against USDT.
+7. **Fork tests passed on mainnet state.** That covers USDT→USDC on Uniswap, USDC→USDm on Mento, and the atomic two-venue route USDT→USDC→USDm through FisikaExecutor with the fee collected. A slippage failure on the second leg rolled back the first.

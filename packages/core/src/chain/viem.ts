@@ -155,3 +155,97 @@ export function viemMentoReader(client: PublicClient, factory: Address = zeroAdd
     blockNumber: () => client.getBlockNumber(),
   };
 }
+
+/* ------------------------------------------------------------------ Mento v2 (Broker + BiPoolManager)
+ * Mento's local-currency stables (KESm, NGNm, GHSm, XOFm, ZARm, BRLm, COPm) are not routable through the v3
+ * Router's default factory (verified on-chain 26 Oct 2026). They still trade on the v2 Broker. ABIs below are
+ * from the verified Broker / BiPoolManager sources on the Celo explorer (mento-core 2.x).
+ */
+export const biPoolManagerAbi = [
+  {
+    type: 'function',
+    name: 'getExchanges',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [
+      {
+        name: 'exchanges',
+        type: 'tuple[]',
+        components: [
+          { name: 'exchangeId', type: 'bytes32' },
+          { name: 'assets', type: 'address[]' },
+        ],
+      },
+    ],
+  },
+] as const;
+
+export const brokerAbi = [
+  {
+    type: 'function',
+    name: 'getAmountOut',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'exchangeProvider', type: 'address' },
+      { name: 'exchangeId', type: 'bytes32' },
+      { name: 'tokenIn', type: 'address' },
+      { name: 'tokenOut', type: 'address' },
+      { name: 'amountIn', type: 'uint256' },
+    ],
+    outputs: [{ name: 'amountOut', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'swapIn',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'exchangeProvider', type: 'address' },
+      { name: 'exchangeId', type: 'bytes32' },
+      { name: 'tokenIn', type: 'address' },
+      { name: 'tokenOut', type: 'address' },
+      { name: 'amountIn', type: 'uint256' },
+      { name: 'amountOutMin', type: 'uint256' },
+    ],
+    outputs: [{ name: 'amountOut', type: 'uint256' }],
+  },
+] as const;
+
+export interface MentoV2Exchange {
+  exchangeId: `0x${string}`;
+  assets: Address[];
+}
+
+export async function discoverMentoV2Exchanges(client: PublicClient, manager: Address = MENTO.biPoolManagerV2): Promise<MentoV2Exchange[]> {
+  const ex = await client.readContract({ address: manager, abi: biPoolManagerAbi, functionName: 'getExchanges' });
+  return ex.map((e) => ({ exchangeId: e.exchangeId, assets: e.assets.map((a) => a.toLowerCase() as Address) }));
+}
+
+/** MentoReader over the v2 Broker for a known set of exchanges. A breaker or limit makes getAmountOut revert. */
+export function viemMentoV2Reader(client: PublicClient, exchanges: readonly MentoV2Exchange[], manager: Address = MENTO.biPoolManagerV2): MentoReader {
+  const find = (i: Address, o: Address) =>
+    exchanges.find((e) => e.assets.includes(i.toLowerCase() as Address) && e.assets.includes(o.toLowerCase() as Address));
+  const amountOut = async (tokenIn: Address, tokenOut: Address, amountIn: bigint) => {
+    const ex = find(tokenIn, tokenOut);
+    if (!ex) return null;
+    try {
+      const out = await client.readContract({
+        address: MENTO.brokerV2,
+        abi: brokerAbi,
+        functionName: 'getAmountOut',
+        args: [manager, ex.exchangeId, tokenIn, tokenOut, amountIn],
+      });
+      return out > 0n ? out : null;
+    } catch {
+      return null;
+    }
+  };
+  return {
+    getAmountOut: amountOut,
+    async isTradable(tokenIn, tokenOut) {
+      const dec = await client.readContract({ address: tokenIn, abi: erc20Abi, functionName: 'decimals' }).catch(() => null);
+      if (dec === null) return false;
+      return (await amountOut(tokenIn, tokenOut, 10n ** BigInt(dec))) !== null;
+    },
+    blockNumber: () => client.getBlockNumber(),
+  };
+}

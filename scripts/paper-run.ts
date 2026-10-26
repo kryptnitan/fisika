@@ -10,7 +10,7 @@ import { MentoAdapter } from '../packages/core/src/adapters/mento.ts';
 import { TextileAdapter } from '../packages/core/src/adapters/textile.ts';
 import { UniswapV3Adapter } from '../packages/core/src/adapters/uniswapV3.ts';
 import { ArbEngine, RiskGate, type ArbConfig } from '../packages/core/src/arb.ts';
-import { makeClient, viemMentoReader, viemUniV3Reader } from '../packages/core/src/chain/viem.ts';
+import { discoverMentoV2Exchanges, makeClient, viemMentoReader, viemMentoV2Reader, viemUniV3Reader } from '../packages/core/src/chain/viem.ts';
 import { PriceGraph } from '../packages/core/src/graph.ts';
 import { Pricer, SAMPLE_USD } from '../packages/core/src/pricer.ts';
 import { refreshGraph } from '../packages/core/src/refresh.ts';
@@ -51,8 +51,16 @@ async function main() {
     { tokenA: T('USDC'), tokenB: T('USDm'), poolId: MENTO.fpmmPools['USDC/USDm'] },
     { tokenA: T('USDm'), tokenB: T('EURm'), poolId: 'mento-default-USDm/EURm' },
   ]);
+  // Mento v2 exchanges between USDm and the local-currency stables we track.
+  const known = new Set(tokens.all().map((t) => t.address));
+  const v2ex = (await discoverMentoV2Exchanges(client).catch(() => [])).filter((e) => e.assets.length === 2 && e.assets.every((a) => known.has(a)));
+  const mentoV2 = new MentoAdapter(
+    viemMentoV2Reader(client, v2ex),
+    v2ex.map((e) => ({ tokenA: e.assets[0]!, tokenB: e.assets[1]!, poolId: e.exchangeId })),
+    'mento-v2',
+  );
   const textile = new TextileAdapter();
-  const adapters: VenueAdapter[] = [uni, mento, textile];
+  const adapters: VenueAdapter[] = [uni, mento, mentoV2, textile];
 
   // Pass 1 prices non-USD tokens off USD-side edges; pass 2 samples their reverse directions at correct sizes.
   const r1 = await refreshGraph(graph, pricer, adapters);
@@ -67,7 +75,7 @@ async function main() {
   log('');
   log(`${new Date(now).toISOString()} · block ${await client.getBlockNumber()} · gas ${formatUnits(gasPrice, 9)} gwei · CELO $${celoUsd.toFixed(4)}`);
   log('');
-  log(`Uniswap v3 pools discovered: ${pools.length}. Graph edges: ${graph.size()}.`);
+  log(`Uniswap v3 pools discovered: ${pools.length}. Mento v2 exchanges between tracked tokens: ${v2ex.map((e) => e.assets.map((a) => tokens.get(a)!.symbol).join('/')).join(', ') || 'none'}. Graph edges: ${graph.size()}.`);
   log('');
   log('| Venue | Pass 1 | Pass 2 |');
   log('|---|---|---|');

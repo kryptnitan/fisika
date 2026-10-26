@@ -25,14 +25,16 @@ export const MENTO_SWAP_GAS_ESTIMATE = 180_000n;
 const QUOTE_TTL_MS = 2_000;
 
 export class MentoAdapter implements VenueAdapter {
-  readonly id = 'mento' as const;
+  readonly id: 'mento' | 'mento-v2';
 
   private readonly reader: MentoReader;
   private readonly pairs: readonly MentoPair[];
 
-  constructor(reader: MentoReader, pairs: readonly MentoPair[]) {
+  /** One instance per Mento generation: 'mento' = v3 Router (FPMM), 'mento-v2' = v2 Broker exchanges. */
+  constructor(reader: MentoReader, pairs: readonly MentoPair[], id: 'mento' | 'mento-v2' = 'mento') {
     this.reader = reader;
     this.pairs = pairs;
+    this.id = id;
   }
 
   async fetchEdges(ctx: EdgeContext): Promise<Edge[]> {
