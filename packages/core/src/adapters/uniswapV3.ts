@@ -37,7 +37,7 @@ export class UniswapV3Adapter implements VenueAdapter {
     const jobs = pairs.flatMap(([a, b]) =>
       this.feeTiers.map(async (fee) => {
         const pool = await this.reader.getPool(a, b, fee).catch(() => null);
-        if (!pool) return;
+        if (!pool || found.some((p) => p.address === pool.toLowerCase())) return;
         const [t0, t1] = a.toLowerCase() < b.toLowerCase() ? [a, b] : [b, a];
         found.push({ address: pool.toLowerCase() as Address, token0: t0.toLowerCase() as Address, token1: t1.toLowerCase() as Address, fee });
       }),

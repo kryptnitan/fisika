@@ -12,11 +12,8 @@ export const A = {
   wARS: '0x0dc4f92879b7670e5f4e4e6e3c801d229129d90d' as Address,
 };
 
-/** Test registry with all decimals filled (USDm verified as 18 only inside tests). */
 export function testTokens(): TokenRegistry {
-  const reg = new TokenRegistry();
-  reg.applyOnchainDecimals(A.USDm, 18);
-  return reg;
+  return new TokenRegistry();
 }
 
 export const U6 = (n: number) => BigInt(Math.round(n * 1e6));

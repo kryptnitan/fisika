@@ -100,7 +100,7 @@ export function makeClient(rpcUrls: readonly string[]): PublicClient {
   if (!rpcUrls.length) throw new Error('no RPC URLs configured');
   return createPublicClient({
     chain: celo,
-    transport: fallback(rpcUrls.map((u) => http(u, { timeout: 10_000, retryCount: 1 })), { rank: false }),
+    transport: fallback(rpcUrls.map((u) => http(u, { timeout: 15_000, retryCount: 2, batch: { batchSize: 50, wait: 20 } })), { rank: false }),
   }) as PublicClient;
 }
 

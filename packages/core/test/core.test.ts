@@ -35,13 +35,16 @@ describe('token registry', () => {
     assert.equal(r.bySymbol('cKES').symbol, 'KESm');
     assert.equal(r.bySymbol('cNGN').issuer, 'Africa Stablecoin Consortium');
     assert.equal(r.bySymbol('NGNm').issuer, 'Mento');
+    assert.equal(r.bySymbol('COPM').issuer, 'Minteo');
+    assert.equal(r.bySymbol('COPm').issuer, 'Mento');
+    assert.throws(() => r.bySymbol('copm'), /ambiguous/);
   });
   it('refuses unverified decimals and rejects a mismatch', () => {
-    const r = new TokenRegistry();
-    assert.throws(() => r.decimals(A.USDm), /not verified/);
-    assert.throws(() => r.applyOnchainDecimals(A.USDT, 18), /mismatch/);
-    r.applyOnchainDecimals(A.USDm, 18);
-    assert.equal(r.decimals(A.USDm), 18);
+    const r = new TokenRegistry([{ symbol: 'NEW', address: '0x00000000000000000000000000000000000000aa', decimals: null, issuer: 'x', fiat: 'USD', usd: true, tier: 2 }]);
+    assert.throws(() => r.decimals('0x00000000000000000000000000000000000000aa'), /not verified/);
+    r.applyOnchainDecimals('0x00000000000000000000000000000000000000aa', 6);
+    assert.equal(r.decimals('0x00000000000000000000000000000000000000aa'), 6);
+    assert.throws(() => new TokenRegistry().applyOnchainDecimals(A.USDT, 18), /mismatch/);
   });
 });
 
@@ -72,8 +75,9 @@ describe('pricer', () => {
     assert.equal(samples.length, 4);
     assert.ok(samples[1]! > U6(149_000) && samples[1]! < U6(151_000));
   });
-  it('returns null for tokens with unverified decimals', () => {
+  it('returns null for tokens it cannot price', () => {
     const { pricer } = setup([]);
-    assert.equal(pricer.usdPerToken('0x456a3d042c0dbd3db53d5489e98dfb038553b0d0', NOW), null);
+    assert.equal(pricer.usdPerToken('0x456a3d042c0dbd3db53d5489e98dfb038553b0d0', NOW), null, 'KESm with no edges');
+    assert.equal(pricer.usdPerToken('0x00000000000000000000000000000000000000aa', NOW), null, 'unknown token');
   });
 });

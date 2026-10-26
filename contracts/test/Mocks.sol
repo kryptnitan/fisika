@@ -102,6 +102,8 @@ interface IExecutorLike {
 contract ReentrantToken is MockERC20 {
     address public target;
     bytes public payload;
+    bool public reentered;
+    bytes public reentryRevert;
 
     constructor() MockERC20("RE", 18) {}
 
@@ -111,13 +113,11 @@ contract ReentrantToken is MockERC20 {
     }
 
     function transferFrom(address f, address to, uint256 a) external override returns (bool) {
-        if (target != address(0)) {
+        if (target != address(0) && !reentered) {
+            reentered = true;
             (bool ok, bytes memory ret) = target.call(payload);
-            if (!ok) {
-                assembly {
-                    revert(add(ret, 32), mload(ret))
-                }
-            }
+            require(!ok, "reentry unexpectedly succeeded");
+            reentryRevert = ret;
         }
         allowance[f][msg.sender] -= a;
         balanceOf[f] -= a;

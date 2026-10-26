@@ -203,9 +203,11 @@ contract FisikaExecutorTest is Test {
         );
         vm.startPrank(user);
         re.approve(address(ex), 1e18);
-        vm.expectRevert(FisikaExecutor.Reentrancy.selector);
         ex.execute(bytes32(0), none, address(re), 1e18, address(re), 0, user, block.timestamp, 0, feeTo);
         vm.stopPrank();
+        assertTrue(re.reentered(), "token attempted reentry");
+        assertEq(re.reentryRevert(), abi.encodeWithSelector(FisikaExecutor.Reentrancy.selector), "reentry blocked by the lock");
+        assertEq(re.balanceOf(user), 1e18, "outer call completed normally");
     }
 
     function test_ownershipTwoStep() public {

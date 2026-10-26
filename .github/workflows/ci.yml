@@ -59,6 +59,35 @@ jobs:
           git commit -qm "on-chain verification for ${GITHUB_SHA}"
           git push -fq origin HEAD:verification
 
+  paper-run:
+    runs-on: ubuntu-latest
+    needs: verify-onchain
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --no-frozen-lockfile
+      - name: Live PAPER run (graph, FX board, arb scan; nothing signed)
+        env:
+          CELO_RPC_URLS: ${{ secrets.CELO_RPC_URLS || 'https://forno.celo.org' }}
+        run: node scripts/paper-run.ts
+      - name: Publish
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          test -f verification/paper-run.md || exit 0
+          cp verification/paper-run.md /tmp/paper-run.md
+          cat /tmp/paper-run.md >> "$GITHUB_STEP_SUMMARY"
+          git config user.name "fisika-ci"
+          git config user.email "fisika-ci@users.noreply.github.com"
+          git fetch -q origin verification
+          git checkout -q -B pub origin/verification
+          cp /tmp/paper-run.md paper-run.md
+          git add paper-run.md
+          git commit -qm "paper run for ${GITHUB_SHA}"
+          git push -q origin HEAD:verification
+
   contracts:
     runs-on: ubuntu-latest
     defaults:
