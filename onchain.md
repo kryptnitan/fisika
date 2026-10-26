@@ -1,6 +1,6 @@
 # On-chain verification
 
-Block 81099983 · 2026-10-26T07:45:44.305Z
+Block 81100149 · 2026-10-26T07:48:28.465Z
 
 All hard checks passed.
 
@@ -28,7 +28,7 @@ All hard checks passed.
 ## Uniswap v3 pools
 | Pair | Fee | Pool | Balances |
 |---|---|---|---|
-| USDT/USDC | 100 | `0x1a810e0B6c2dd5629AFa2f0c898b9512C6F78846` | 162346.15 USDT / 25620.02 USDC |
+| USDT/USDC | 100 | `0x1a810e0B6c2dd5629AFa2f0c898b9512C6F78846` | 162113.18 USDT / 25852.76 USDC |
 | USDT/USDC | 500 | `0x2392AE4Ba6Daf181CE7343d237b695CdF525E233` | 0.00 USDT / 0.00 USDC |
 | USDT/USDC | 3000 | `0x9AfAc41cbd701a184a74475Aa8BDcda6a1a564a1` | 3.50 USDT / 3.50 USDC |
 | USDT/USDm | 100 | `0x5dC631aD6C26BEA1a59fBF2C2680CF3df43d249f` | 610382.66 USDT / 33885.18 USDm |
@@ -91,7 +91,7 @@ All hard checks passed.
     "pool": "0x8C0014afe032E4574481D8934504100bF23fCB56",
     "token0": "USDm",
     "token1": "0xCCF663b1fF11028f0b19058d0f7B674004a40746",
-    "quote": "1 USDm -> 0.746346867888369864 0xCCF663b1fF11028f0b19058d0f7B674004a40746"
+    "quote": "1 USDm -> 0.746445213766336443 0xCCF663b1fF11028f0b19058d0f7B674004a40746"
   },
   "USDm->NGNm": "not routable via default factory: The contract function \"getAmountsOut\" reverted with the following signature:",
   "USDm->KESm": "not routable via default factory: The contract function \"getAmountsOut\" reverted with the following signature:",
@@ -110,42 +110,42 @@ All hard checks passed.
   {
     "pair": "cNGN->USDT",
     "min": "1379.458",
-    "max": "125620579.207073",
+    "max": "125612258.196825",
     "points": 9
   },
   {
     "pair": "USDT->cNGN",
     "min": "1",
-    "max": "24.999385",
+    "max": "25.001006",
     "points": 7
   },
   {
     "pair": "wARS->USDT",
-    "min": "1640.96",
-    "max": "149149757.802611295255638023",
+    "min": "1641.02",
+    "max": "149102514.823178777514458835",
     "points": 9
   },
   {
     "pair": "USDT->wARS",
     "min": "1",
-    "max": "4.126502",
+    "max": "4.1264",
     "points": 5
   },
   {
     "pair": "wBRL->USDT",
-    "min": "5.3603",
-    "max": "487238.89567801379948766",
+    "min": "5.3605",
+    "max": "487247.986829227346753561",
     "points": 9
   },
   {
     "pair": "USDT->wBRL",
     "min": "1",
-    "max": "46149.98272",
+    "max": "46149.121765",
     "points": 9
   },
   {
     "pair": "USDC->USDT",
-    "min": "0.998781",
+    "min": "0.998761",
     "max": "0",
     "points": 0
   },
@@ -157,14 +157,14 @@ All hard checks passed.
   },
   {
     "pair": "0x471ece3750da237f93b8e339c536989b8978a438->USDT",
-    "min": "1.300728407908",
-    "max": "1182310.040582205775103993",
+    "min": "1.299207483435",
+    "max": "1180927.581134987397557424",
     "points": 9
   },
   {
     "pair": "USDT->0x471ece3750da237f93b8e339c536989b8978a438",
     "min": "0.1",
-    "max": "553.608264",
+    "max": "554.256349",
     "points": 9
   },
   {
@@ -181,14 +181,14 @@ All hard checks passed.
   },
   {
     "pair": "0x18bc5bcc660cf2b9ce3cd51a404afe1a0cbd3c22->USDT",
-    "min": "18116",
-    "max": "13722525606.56",
+    "min": "18111",
+    "max": "13718766851.94",
     "points": 9
   },
   {
     "pair": "USDT->0x18bc5bcc660cf2b9ce3cd51a404afe1a0cbd3c22",
     "min": "1",
-    "max": "27679.34559",
+    "max": "27687.364666",
     "points": 9
   },
   {
@@ -205,19 +205,19 @@ All hard checks passed.
   },
   {
     "pair": "0xd221812de1bd094f35587ee8e174b07b6167d9af->USDT",
-    "min": "0.000430566798",
-    "max": "0.670690102474143517",
+    "min": "0.000430683624",
+    "max": "0.670927084209917826",
     "points": 9
   },
   {
     "pair": "USDT->0xd221812de1bd094f35587ee8e174b07b6167d9af",
     "min": "1",
-    "max": "56.214599",
+    "max": "56.194743",
     "points": 8
   },
   {
     "pair": "0x337e7456b420bd3481e7fa61fa9850343d610d34->USDT",
-    "min": "18.684",
+    "min": "18.67",
     "max": "0",
     "points": 0
   },
@@ -241,7 +241,7 @@ All hard checks passed.
   },
   {
     "pair": "0x62b8b11039fcfe5ab0c56e502b1c372a3d2a9c7a->USDT",
-    "min": "8759.692531601759",
+    "min": "8759.981591449794",
     "max": "0",
     "points": 0
   },
