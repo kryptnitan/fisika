@@ -82,6 +82,7 @@ async function main() {
   for (let i = 0; i < r2.length; i++) log(`| ${r2[i]!.venue} | ${r1[i]!.ok ? `${r1[i]!.edges} edges` : `ERR ${r1[i]!.error}`} | ${r2[i]!.ok ? `${r2[i]!.edges} edges, ${r2[i]!.ms} ms` : `ERR ${r2[i]!.error}`} |`);
   log('');
 
+  const details: string[] = [];
   log('## FX board');
   log('');
   log('Rate = output per 1 unit of input at that size, after venue fees, before the fisika service fee. "—" = no route has the depth.');
@@ -107,6 +108,15 @@ async function main() {
       }
       const rate = Number(formatUnits(r.amountOut, tokens.decimals(tout))) / Number(formatUnits(amountIn, tokens.decimals(tin)));
       cells.push(rate >= 100 ? rate.toFixed(2) : rate.toFixed(6));
+      details.push(
+        `- ${a}→${b} $${usd}: ` +
+          r.paths
+            .map((p) => {
+              const hops = p.edges.map((e, i) => `${e.venue}[${tokens.get(e.tokenIn)?.symbol}→${tokens.get(e.tokenOut)?.symbol} ${formatUnits(p.hopAmounts[i]!, tokens.decimals(e.tokenIn))}→${formatUnits(p.hopAmounts[i + 1]!, tokens.decimals(e.tokenOut))}]`);
+              return hops.join(' ');
+            })
+            .join(' + '),
+      );
       if (usd === 100) {
         venues = r.paths.map((p) => p.edges.map((e) => e.venue).join('→')).join(' + ');
         exec = `${r.execution}${r.txCount > 1 ? ` (${r.txCount} tx)` : ''}`;
@@ -114,6 +124,12 @@ async function main() {
     }
     log(`| ${a}→${b} | ${cells.join(' | ')} | ${venues} | ${exec} |`);
   }
+  log('');
+  log('<details><summary>Route breakdown per corridor and size</summary>');
+  log('');
+  for (const d of details) log(d);
+  log('');
+  log('</details>');
   log('');
 
   const cfg: ArbConfig = {
