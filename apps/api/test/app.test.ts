@@ -144,4 +144,17 @@ describe('api', () => {
     const other = await (await post(app, '/v1/quote', { tokenIn: 'USDT', tokenOut: 'USDm', amount: '100' }, h)).json();
     assert.equal((await post(app, '/v1/receipts', { quoteId: other.quoteId, txHash: `0x${'11'.repeat(32)}` })).status, 422);
   });
+
+  it('internal web keys skip payment; admin kill switch needs the bearer token', async () => {
+    const internal = 'internal-key-0123456789abcdef';
+    const admin = 'admin-token-0123456789abcdef';
+    const gate = { n: 0 };
+    const { app } = mk({ INTERNAL_API_KEYS: internal, ADMIN_TOKEN: admin }, gate);
+    assert.equal((await post(app, '/v1/quote', { tokenIn: 'USDT', tokenOut: 'USDC', amount: '5' }, { 'x-api-key': internal })).status, 200);
+    assert.equal(gate.n, 0);
+    assert.equal((await post(app, '/v1/admin/kill', { on: true })).status, 401);
+    assert.equal((await post(app, '/v1/admin/kill', { on: true }, { authorization: 'Bearer wrong-token-0123456789abcd' })).status, 401);
+    // No arb runner in this test app: authorized but 404.
+    assert.equal((await post(app, '/v1/admin/kill', { on: true }, { authorization: `Bearer ${admin}` })).status, 404);
+  });
 });

@@ -10,6 +10,12 @@ export interface ApiConfig {
   /** x402: when facilitator key or payTo is missing, paid routes answer 503 instead of serving for free. */
   x402: { facilitatorUrl: string; apiKey: string | null; payTo: Address | null; quotePriceAtomic: string; buildPriceAtomic: string };
   freeTierKeys: Set<string>;
+  /** Keys for fisika's own web app (server-side proxy only): no payment, no daily cap. Never ship to browsers. */
+  internalKeys: Set<string>;
+  /** Bearer token for /v1/admin/* (kill switch). */
+  adminToken: string | null;
+  arbPaper: boolean;
+  arb: { maxTradeUsd: number; minEdgeBps: number; minEdgeUsd: number; slippageBps: number; dailyLossLimitUsd: number; maxTokenExposureUsd: number };
   freeTierDailyLimit: number;
   /** Building client transactions is off until legal scope is settled and an executor is deployed. */
   executionEnabled: boolean;
@@ -60,6 +66,17 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     },
     freeTierKeys: new Set((env.FREE_TIER_KEYS ?? '').split(',').map((s) => s.trim()).filter(Boolean)),
     freeTierDailyLimit: num('FREE_TIER_DAILY_LIMIT', 100),
+    internalKeys: new Set((env.INTERNAL_API_KEYS ?? '').split(',').map((s) => s.trim()).filter((s) => s.length >= 24)),
+    adminToken: env.ADMIN_TOKEN && env.ADMIN_TOKEN.length >= 24 ? env.ADMIN_TOKEN : null,
+    arbPaper: env.ARB_PAPER !== 'false',
+    arb: {
+      maxTradeUsd: num('MAX_TRADE_USD', 1_000),
+      minEdgeBps: num('MIN_EDGE_BPS', 5),
+      minEdgeUsd: num('MIN_EDGE_USD', 0.05),
+      slippageBps: num('SLIPPAGE_BPS', 30),
+      dailyLossLimitUsd: num('DAILY_LOSS_LIMIT_USD', 25),
+      maxTokenExposureUsd: num('MAX_TOKEN_EXPOSURE_USD', 200),
+    },
     executionEnabled,
     executor,
     serviceFeeBps: feeBps,

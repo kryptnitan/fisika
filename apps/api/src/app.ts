@@ -6,6 +6,8 @@ import type { Hex } from 'viem';
 import type { ApiConfig } from './config.ts';
 import { QuoteBook, QuoteError, quoteView, type QuoteRequest } from './quotes.ts';
 import { makeReceipt, ReceiptStore, type TxReceiptLike } from './receipts.ts';
+import type { PaperArbRunner } from './arb.ts';
+import type { Heatmap } from './heatmap.ts';
 import { registrationFile } from './registration.ts';
 
 export const CORRIDORS: [string, string][] = [
@@ -22,6 +24,8 @@ export interface AppDeps {
   state: () => GraphState;
   paymentGate: MiddlewareHandler;
   getTxReceipt: (hash: Hex) => Promise<TxReceiptLike | null>;
+  arb?: PaperArbRunner;
+  heatmap?: Heatmap;
   quotes?: QuoteBook;
   receipts?: ReceiptStore;
   now?: () => number;
@@ -44,6 +48,12 @@ export function decodeSettlement(header: string | null | undefined): { payer?: s
   } catch {
     return null;
   }
+}
+
+function timingSafeEqualStr(a: string, b: string): boolean {
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 const json = (v: unknown) => JSON.parse(JSON.stringify(v, (_k, x) => (typeof x === 'bigint' ? x.toString() : x)));
@@ -147,7 +157,13 @@ export function createApp(d: AppDeps) {
   });
 
   // ---- paid: quote. Free-tier API keys skip payment (quotes only).
+  const isInternal = (c: { req: { header: (k: string) => string | undefined } }) => {
+    const k = c.req.header('x-api-key');
+    return !!k && d.cfg.internalKeys.has(k);
+  };
+
   app.use('/v1/quote', async (c, next) => {
+    if (isInternal(c)) return next();
     const key = c.req.header('x-api-key');
     if (key && d.cfg.freeTierKeys.has(key)) {
       const day = new Date(now()).toISOString().slice(0, 10);
@@ -171,6 +187,7 @@ export function createApp(d: AppDeps) {
   // ---- paid: build. Gate on configuration BEFORE payment, so nobody pays for a 503.
   app.use('/v1/build', async (c, next) => {
     if (!d.cfg.executionEnabled || !d.cfg.executor) return c.json({ error: 'transaction building is disabled on this deployment (quote-only mode)' }, 503);
+    if (isInternal(c)) return next();
     return d.paymentGate(c, next);
   });
 
@@ -233,6 +250,26 @@ export function createApp(d: AppDeps) {
       topPayers: [...stats.payers.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([payer, calls]) => ({ payer, calls })),
     }),
   );
+
+  app.get('/v1/arb', (c) => (d.arb ? c.json(json(d.arb.status())) : c.json({ error: 'arb engine not running' }, 404)));
+  app.get('/v1/heatmap', (c) => c.json(d.heatmap ? { samples: d.heatmap.samples.slice(-Number(c.req.query('limit') ?? 240)) } : { samples: [] }));
+
+  // ---- admin (kill switch). Constant-time-ish bearer check; disabled entirely without ADMIN_TOKEN.
+  app.use('/v1/admin/*', async (c, next) => {
+    const auth = c.req.header('authorization') ?? '';
+    const want = d.cfg.adminToken ? `Bearer ${d.cfg.adminToken}` : null;
+    if (!want || auth.length !== want.length || !timingSafeEqualStr(auth, want)) return c.json({ error: 'unauthorized' }, 401);
+    return next();
+  });
+  app.get('/v1/admin/state', (c) => c.json({ arbKilled: d.arb?.killed ?? null, executionEnabled: d.cfg.executionEnabled }));
+  app.post('/v1/admin/kill', async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as { on?: boolean; clearHalt?: boolean };
+    if (!d.arb) return c.json({ error: 'arb engine not running' }, 404);
+    d.arb.killed = body.on !== false;
+    if (body.clearHalt) d.arb.clearHalt();
+    console.warn(`[admin] arb kill switch ${d.arb.killed ? 'ON' : 'off'}${body.clearHalt ? ', halt cleared' : ''}`);
+    return c.json({ arbKilled: d.arb.killed, note: 'LIVE executor pause is a separate on-chain call from the guardian key' });
+  });
 
   app.get('/openapi.json', (c) => c.json(openapi(d.cfg)));
 
