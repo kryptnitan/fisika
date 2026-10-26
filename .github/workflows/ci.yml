@@ -74,9 +74,9 @@ jobs:
         if: always() && github.ref == 'refs/heads/main'
         run: |
           test -f verification/paper-run.md || exit 0
-          cp verification/paper-run.md /tmp/paper-run.md
+          cp verification/paper-run.md verification/graph-snapshot.json /tmp/
           cat /tmp/paper-run.md >> "$GITHUB_STEP_SUMMARY"
-          bash .github/publish.sh verification "paper run for ${GITHUB_SHA}" /tmp/paper-run.md
+          bash .github/publish.sh verification "paper run for ${GITHUB_SHA}" /tmp/paper-run.md /tmp/graph-snapshot.json
 
   contracts:
     runs-on: ubuntu-latest

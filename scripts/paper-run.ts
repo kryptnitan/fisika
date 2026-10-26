@@ -169,6 +169,8 @@ async function main() {
 
   await mkdir('verification', { recursive: true });
   await writeFile('verification/paper-run.md', lines.join('\n'));
+  // Full graph at board time, so any routing decision can be replayed offline exactly.
+  await writeFile('verification/graph-snapshot.json', JSON.stringify({ now, gasPrice: gasPrice.toString(), celoUsd, edges: graph.snapshot() }));
 }
 
 main().catch((e) => {
