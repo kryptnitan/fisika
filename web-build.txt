@@ -1,0 +1,40 @@
+
+> @fisika/web@0.1.0 build /home/runner/work/fisika/fisika/apps/web
+> next build
+
+⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+   ▲ Next.js 15.5.28
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 5.0s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/7) ...
+   Generating static pages (1/7) 
+   Generating static pages (3/7) 
+   Generating static pages (5/7) 
+ ✓ Generating static pages (7/7)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    4.13 kB         107 kB
+├ ○ /_not-found                            988 B         104 kB
+├ ○ /agents                              2.25 kB         105 kB
+├ ƒ /api/proxy/[...path]                   123 B         103 kB
+├ ○ /arb                                 2.97 kB         106 kB
+└ ○ /trades                              1.68 kB         104 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/372-a3acc2614ebe8471.js       46.5 kB
+  ├ chunks/d02de58d-4922b2630c75b8c8.js  54.2 kB
+  └ other shared chunks (total)           1.9 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

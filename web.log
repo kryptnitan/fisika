@@ -1,0 +1,10 @@
+
+> @fisika/web@0.1.0 start /home/runner/work/fisika/fisika/apps/web
+> next start -p 3000
+
+   ▲ Next.js 15.5.28
+   - Local:        http://localhost:3000
+   - Network:      http://10.1.0.51:3000
+
+ ✓ Starting...
+ ✓ Ready in 355ms
