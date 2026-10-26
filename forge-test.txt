@@ -1,7 +1,7 @@
 No files changed, compilation skipped
 
 Ran 14 tests for test/FisikaExecutor.t.sol:FisikaExecutorTest
-[PASS] testFuzz_feeNeverExceedsCap(uint96,uint16) (runs: 512, μ: 288701, ~: 290377)
+[PASS] testFuzz_feeNeverExceedsCap(uint96,uint16) (runs: 512, μ: 288888, ~: 290179)
 [PASS] test_badPatchOffset() (gas: 154660)
 [PASS] test_deadline() (gas: 48922)
 [PASS] test_feeCap() (gas: 48820)
@@ -15,23 +15,27 @@ Ran 14 tests for test/FisikaExecutor.t.sol:FisikaExecutorTest
 [PASS] test_reentrancyBlocked() (gas: 1305013)
 [PASS] test_singleLeg() (gas: 281130)
 [PASS] test_targetMustBeAllowlisted() (gas: 68110)
-Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 58.47ms (61.06ms CPU time)
+Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 66.74ms (69.58ms CPU time)
 
-Ran 4 tests for test/FisikaExecutor.fork.t.sol:FisikaExecutorForkTest
-[PASS] test_fork_crossVenueTwoHopAtomic() (gas: 929473)
+Ran 5 tests for test/FisikaExecutor.fork.t.sol:FisikaExecutorForkTest
+[PASS] test_fork_crossVenueTwoHopAtomic() (gas: 929627)
 Logs:
-  USDT->USDC->USDm out 99744176890915718522
+  USDT->USDC->USDm out 99747777728777247390
 
-[PASS] test_fork_mentoQuoteMatchesExecution() (gas: 818370)
+[PASS] test_fork_mentoQuoteMatchesExecution() (gas: 818358)
 Logs:
-  USDC->USDm mento quoted 99956205759800000000 executed 99956205759800000000
+  USDC->USDm mento quoted 99958476305600000000 executed 99958476305600000000
 
-[PASS] test_fork_slippageGuardRevertsWholeRoute() (gas: 962781)
-[PASS] test_fork_uniswapSingleLeg() (gas: 636886)
+[PASS] test_fork_mentoV3ThenV2BrokerAtomic() (gas: 1073145)
 Logs:
-  USDT->USDC uni fee 100 out 99887766
+  USDC->USDm->KESm out 6422565650476635514018
 
-Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 14.34s (46.07s CPU time)
+[PASS] test_fork_slippageGuardRevertsWholeRoute() (gas: 962935)
+[PASS] test_fork_uniswapSingleLeg() (gas: 637046)
+Logs:
+  USDT->USDC uni fee 100 out 99889103
+
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 26.18s (66.88s CPU time)
 
 ╭------------------------------------------------+-----------------+--------+--------+--------+---------╮
 | src/FisikaExecutor.sol:FisikaExecutor Contract |                 |        |        |        |         |
@@ -46,7 +50,7 @@ Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 14.34s (46.07s CPU 
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | acceptOwnership                                |           33065 |  33065 |  33065 |  33065 |       1 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
-| execute                                        |           31306 | 224995 | 226742 | 630141 |     273 |
+| execute                                        |           31306 | 227879 | 226742 | 747223 |     274 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | owner                                          |            2391 |   2391 |   2391 |   2391 |       2 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
@@ -54,9 +58,9 @@ Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 14.34s (46.07s CPU 
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | paused                                         |            2343 |   2343 |   2343 |   2343 |       1 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
-| setSpender                                     |           47823 |  47831 |  47835 |  47835 |      51 |
+| setSpender                                     |           47823 |  47832 |  47835 |  47835 |      58 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
-| setTarget                                      |           47874 |  47882 |  47886 |  47886 |      51 |
+| setTarget                                      |           47874 |  47883 |  47886 |  47886 |      58 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | transferOwnership                              |           47528 |  47528 |  47528 |  47528 |       1 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
@@ -106,7 +110,7 @@ Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 14.34s (46.07s CPU 
 |----------------------------------+-----------------+-------+--------+-------+---------|
 | allowance                        |            2732 |  2732 |   2732 |  2732 |       1 |
 |----------------------------------+-----------------+-------+--------+-------+---------|
-| approve                          |           24267 | 34379 |  44356 | 44380 |     525 |
+| approve                          |           24267 | 34378 |  44356 | 44380 |     525 |
 |----------------------------------+-----------------+-------+--------+-------+---------|
 | balanceOf                        |             529 |   555 |    529 |  2529 |     530 |
 |----------------------------------+-----------------+-------+--------+-------+---------|
@@ -138,4 +142,4 @@ Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 14.34s (46.07s CPU 
 ╰----------------------------------------+-----------------+--------+--------+--------+---------╯
 
 
-Ran 2 test suites in 14.34s (14.39s CPU time): 18 tests passed, 0 failed, 0 skipped (18 total tests)
+Ran 2 test suites in 26.19s (26.25s CPU time): 19 tests passed, 0 failed, 0 skipped (19 total tests)
