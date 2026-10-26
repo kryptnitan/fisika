@@ -112,7 +112,7 @@ describe('api', () => {
     assert.equal(built.txs[1].to, EXECUTOR);
     const dec = decodeFunctionData({ abi: fisikaExecutorAbi, data: built.txs[1].data });
     assert.equal(dec.functionName, 'execute');
-    const [routeId, steps, tin, amountIn, tout, minOut, recipient, , feeBps] = dec.args as any[];
+    const [routeId, steps, tin, amountIn, tout, minOut, recipient, , feeBps] = dec.args as unknown as any[];
     assert.equal(routeId, routeIdFor(q.quoteId));
     assert.ok(steps.length >= 1);
     assert.equal(tin.toLowerCase(), USDT);

@@ -136,7 +136,8 @@ export function createApp(d: AppDeps) {
         };
       });
       const r100 = sizes[1];
-      const rates = (r100 && 'directByVenue' in r100 ? r100.directByVenue : []).map((x) => x.rate as number);
+      const direct: { rate: number }[] = r100 && 'directByVenue' in r100 && r100.directByVenue ? r100.directByVenue : [];
+      const rates = direct.map((x) => x.rate);
       const spreadBps = rates.length > 1 ? ((Math.max(...rates) - Math.min(...rates)) / Math.max(...rates)) * 10_000 : null;
       return { corridor: `${a}-${b}`, from: a, to: b, sizes, spreadBps };
     });
