@@ -89,6 +89,47 @@ jobs:
           cat /tmp/paper-run.md >> "$GITHUB_STEP_SUMMARY"
           bash .github/publish.sh verification "paper run for ${GITHUB_SHA}" /tmp/paper-run.md /tmp/graph-snapshot.json
 
+  web:
+    runs-on: ubuntu-latest
+    needs: core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --no-frozen-lockfile
+      - name: Build web
+        shell: bash
+        run: pnpm --filter @fisika/web build 2>&1 | tee web-build.txt
+      - name: Run API + web against Celo and screenshot every page
+        shell: bash
+        env:
+          CELO_RPC_URLS: ${{ secrets.CELO_RPC_URLS || 'https://forno.celo.org' }}
+          INTERNAL_API_KEYS: ci-internal-key-0123456789abcdef
+          INTERNAL_API_KEY: ci-internal-key-0123456789abcdef
+          API_URL: http://localhost:8787
+        run: |
+          (cd apps/api && node src/server.ts > /tmp/api.log 2>&1 &)
+          (cd apps/web && pnpm start > /tmp/web.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf localhost:8787/health >/dev/null && curl -sf localhost:3000 >/dev/null && break; sleep 3; done
+          sleep 20
+          npx -y playwright@1.49.0 install --with-deps chromium > /dev/null
+          npx -y playwright@1.49.0 screenshot --full-page --wait-for-timeout 6000 --viewport-size 1360,900 http://localhost:3000/ shot-rates.png
+          npx -y playwright@1.49.0 screenshot --full-page --wait-for-timeout 4000 --viewport-size 390,844 http://localhost:3000/ shot-rates-mobile.png
+          npx -y playwright@1.49.0 screenshot --full-page --wait-for-timeout 4000 --viewport-size 1360,900 http://localhost:3000/arb shot-arb.png
+          npx -y playwright@1.49.0 screenshot --full-page --wait-for-timeout 4000 --viewport-size 1360,900 http://localhost:3000/agents shot-agents.png
+          curl -s -X POST localhost:8787/v1/quote -H 'content-type: application/json' -H 'x-api-key: ci-internal-key-0123456789abcdef' -d '{"tokenIn":"cNGN","tokenOut":"USDT","amount":"50000"}' > quote-sample.json || true
+          curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:8787/v1/quote -H 'content-type: application/json' -d '{"tokenIn":"cNGN","tokenOut":"USDT","amount":"50000"}' > x402-unpaid-status.txt || true
+          tail -50 /tmp/api.log > api.log; tail -50 /tmp/web.log > web.log
+      - name: Publish build log and screenshots
+        if: always() && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          files=""
+          for f in web-build.txt shot-rates.png shot-rates-mobile.png shot-arb.png shot-agents.png quote-sample.json x402-unpaid-status.txt api.log web.log; do test -f "$f" && cp "$f" /tmp/ && files="$files /tmp/$f"; done
+          test -n "$files" && bash .github/publish.sh verification "web build + screenshots for ${GITHUB_SHA}" $files || true
+
   contracts:
     runs-on: ubuntu-latest
     defaults:

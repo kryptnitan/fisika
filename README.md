@@ -26,7 +26,7 @@ Default mode is `PAPER`: everything live except signing. `LIVE` requires `MODE=L
 - [ ] 3. Venue adapters + price graph + router (done; CI green, on-chain checks pass)
 - [x] 4. Executor contract (14 unit + 4 Celo-fork tests)
 - [x] 5. Arb engine (PAPER) — live scan runs in CI, results on the `verification` branch
-- [ ] 6. Paid API + ERC-8004 (apps/api: Hono + x402, quote/build/receipts; scripts/register-8004.ts)
-- [ ] 7. Web swap app (replaces the Telegram bot)
-- [ ] 8. Dashboard
+- [x] 6. Paid API + ERC-8004 (apps/api: Hono + x402, quote/build/receipts; scripts/register-8004.ts)
+- [x] 7. Web swap app (apps/web, replaces the Telegram bot)
+- [x] 8. Dashboard (rates board, liquidity heatmap, arb panel, agent API panel, trade log, kill switch)
 - [ ] 9. Go-live checklist + threat model
