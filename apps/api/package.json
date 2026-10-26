@@ -1,0 +1,21 @@
+{
+  "name": "@fisika/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@fisika/core": "workspace:*",
+    "@hono/node-server": "^1.13.0",
+    "@x402/core": "^2.16.0",
+    "@x402/evm": "^2.16.0",
+    "@x402/hono": "^2.16.0",
+    "hono": "^4.6.0",
+    "viem": "^2.21.0"
+  },
+  "devDependencies": { "@types/node": "^22.10.0", "typescript": "^6.0.3" }
+}

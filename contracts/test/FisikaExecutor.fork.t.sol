@@ -35,6 +35,25 @@ interface IMentoRouter {
         returns (uint256[] memory);
 }
 
+interface IBiPoolManager {
+    struct Exchange {
+        bytes32 exchangeId;
+        address[] assets;
+    }
+
+    function getExchanges() external view returns (Exchange[] memory);
+}
+
+interface IBroker {
+    function getAmountOut(address provider, bytes32 exchangeId, address tokenIn, address tokenOut, uint256 amountIn)
+        external
+        view
+        returns (uint256);
+    function swapIn(address provider, bytes32 exchangeId, address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin)
+        external
+        returns (uint256);
+}
+
 /// @notice Runs against a Celo mainnet fork. Skipped unless CELO_RPC_URL is set.
 contract FisikaExecutorForkTest is Test {
     // Celo mainnet (42220) — sources in packages/core/src/addresses.ts, verified by scripts/verify-onchain.ts
@@ -44,6 +63,9 @@ contract FisikaExecutorForkTest is Test {
     address constant UNI_FACTORY = 0xAfE208a311B21f13EF87E33A90049fC17A7acDEc;
     address constant SWAP_ROUTER_02 = 0x5615CDAb10dc425a742d643d949a7F474C01abc4;
     address constant MENTO_ROUTER = 0x4861840C2EfB2b98312B0aE34d86fD73E8f9B6f6;
+    address constant MENTO_BROKER = 0x777A8255cA72412f0d706dc03C9D1987306B4CaD;
+    address constant BIPOOL_MANAGER = 0x22d9db95E6Ae61c104A7B6F6C78D7993B94ec901;
+    address constant KESM = 0x456a3D042C0DbD3db53D5489e98dFb038553B0d0;
 
     uint16 constant NP = type(uint16).max;
     // SwapRouter02.exactInputSingle: selector(4) + tokenIn, tokenOut, fee, recipient (4 words) -> amountIn at 132
@@ -65,6 +87,8 @@ contract FisikaExecutorForkTest is Test {
         ex.setSpender(SWAP_ROUTER_02, true);
         ex.setTarget(MENTO_ROUTER, true);
         ex.setSpender(MENTO_ROUTER, true);
+        ex.setTarget(MENTO_BROKER, true);
+        ex.setSpender(MENTO_BROKER, true);
     }
 
     function _deepestUniFee(address a, address b) internal view returns (uint24 best) {
@@ -172,5 +196,39 @@ contract FisikaExecutorForkTest is Test {
         ex.execute(bytes32("fork4"), s, USDT, 100e6, USDM, 101e18, user, block.timestamp + 60, 0, address(0));
         vm.stopPrank();
         assertEq(IERC20Min(USDT).balanceOf(user), 100e6, "first leg rolled back");
+    }
+
+    function _exchangeId(address a, address b) internal view returns (bytes32) {
+        IBiPoolManager.Exchange[] memory xs = IBiPoolManager(BIPOOL_MANAGER).getExchanges();
+        for (uint256 i; i < xs.length; i++) {
+            if (xs[i].assets.length != 2) continue;
+            if ((xs[i].assets[0] == a && xs[i].assets[1] == b) || (xs[i].assets[0] == b && xs[i].assets[1] == a)) return xs[i].exchangeId;
+        }
+        return bytes32(0);
+    }
+
+    /// Two-hop route through both Mento generations: USDC -> USDm (v3 Router) -> KESm (v2 Broker), amount patched.
+    function test_fork_mentoV3ThenV2BrokerAtomic() public {
+        if (!forked) return;
+        bytes32 xid = _exchangeId(USDM, KESM);
+        assertTrue(xid != bytes32(0), "no USDm/KESm exchange");
+        deal(USDC, user, 50e6);
+        FisikaExecutor.Step[] memory s = new FisikaExecutor.Step[](2);
+        s[0] = _mentoStep(USDC, USDM, 50e6);
+        s[1] = FisikaExecutor.Step({
+            target: MENTO_BROKER,
+            spender: MENTO_BROKER,
+            tokenIn: USDM,
+            amountIn: 0,
+            amountOffset: 132, // selector + provider, exchangeId, tokenIn, tokenOut
+            data: abi.encodeCall(IBroker.swapIn, (BIPOOL_MANAGER, xid, USDM, KESM, 0, 0))
+        });
+        vm.startPrank(user);
+        IERC20Min(USDC).approve(address(ex), 50e6);
+        uint256 out = ex.execute(bytes32("fork5"), s, USDC, 50e6, KESM, 1, user, block.timestamp + 60, 0, address(0));
+        vm.stopPrank();
+        console2.log("USDC->USDm->KESm out", out);
+        assertGt(out, 50e18 * 100, "expected > 100 KESm per USD");
+        assertEq(IERC20Min(USDM).balanceOf(address(ex)), 0);
     }
 }

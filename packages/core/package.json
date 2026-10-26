@@ -3,7 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts", "./viem": "./src/chain/viem.ts" },
+  "exports": {
+    ".": "./src/index.ts",
+    "./viem": "./src/chain/viem.ts",
+    "./build": "./src/chain/build.ts",
+    "./setup": "./src/chain/setup.ts"
+  },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "node --test test/*.test.ts"
