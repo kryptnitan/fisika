@@ -1,0 +1,30 @@
+Scope: all 3 workspace projects
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Progress: resolved 34, reused 0, downloaded 17, added 0
+Packages: +34
+++++++++++++++++++++++++++++++++++
+Progress: resolved 34, reused 0, downloaded 33, added 33
+Progress: resolved 34, reused 0, downloaded 34, added 34, done
+
+devDependencies:
++ @types/node 22.20.5 (26.6.5 is available)
++ typescript 6.0.3 (7.0.2 is available)
++ viem 2.57.11
+
+Done in 3s
+
+> fisika@ typecheck /home/runner/work/fisika/fisika
+> pnpm -r typecheck
+
+Scope: 2 of 3 workspace projects
+packages/core typecheck$ tsc -p tsconfig.json
+packages/core typecheck: Done
+apps/api typecheck$ tsc -p tsconfig.json
+apps/api typecheck: src/app.ts(139,21): error TS2532: Object is possibly 'undefined'.
+apps/api typecheck: test/app.test.ts(115,80): error TS2352: Conversion of type 'readonly [`0x${string}`, readonly { target: `0x${string}`; spender: `0x${string}`; tokenIn: `0x${string}`; amountIn: bigint; amountOffset: number; data: `0x${string}`; }[], tokenIn: `0x${string}`, amountIn: bigint, tokenOut: `0x${string}`, minOut: bigint, recipient: `0x${string}`, deadline: bigint, feeBps: number, `...' to type 'any[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+apps/api typecheck:   The type 'readonly [`0x${string}`, readonly { target: `0x${string}`; spender: `0x${string}`; tokenIn: `0x${string}`; amountIn: bigint; amountOffset: number; data: `0x${string}`; }[], tokenIn: `0x${string}`, amountIn: bigint, tokenOut: `0x${string}`, minOut: bigint, recipient: `0x${string}`, deadline: bigint, feeBps: number, `...' is 'readonly' and cannot be assigned to the mutable type 'any[]'.
+apps/api typecheck: Failed
+/home/runner/work/fisika/fisika/apps/api:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @fisika/api@0.1.0 typecheck: `tsc -p tsconfig.json`
+Exit status 2
+ ELIFECYCLE  Command failed with exit code 2.
