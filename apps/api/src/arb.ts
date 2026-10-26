@@ -51,11 +51,14 @@ export class PaperArbRunner {
       if (!st.updatedMs) return;
       const cfg: ArbConfig = { ...this.baseCfg, gasPriceWei: st.gasPriceWei, celoUsd: st.celoUsd || 0.08 };
       const risk = this.engine?.risk ?? new RiskGate(cfg, st.pricer, () => this.killed);
+      const consumed = this.engine?.consumed;
       this.engine = new ArbEngine(st.graph, st.pricer, this.adapters, risk, cfg, 'PAPER');
+      if (consumed) this.engine.consumed = consumed;
       const decisions = await this.engine.tick(nowMs);
       this.detected += decisions.length;
       for (const d of decisions) {
         const o = d.opportunity;
+
         const path = [o.cycle[0]!.tokenIn, ...o.cycle.map((e) => e.tokenOut)].map((t) => this.tokens.get(t)?.symbol ?? t.slice(0, 8)).join('→');
         this.events.unshift({ atMs: nowMs, action: d.action, reason: d.reason, path, venues: o.cycle.map((e) => e.venue), sizeUsd: o.sizeUsd, netBps: o.netBps, netUsd: o.netUsd, txCount: o.txCount, indicativeLegs: o.indicativeLegs });
         if (d.action === 'filled' && d.fill) {
@@ -65,6 +68,7 @@ export class PaperArbRunner {
         }
       }
       if (this.events.length > 500) this.events.length = 500;
+
       const last = this.equity.at(-1);
       if (!last || nowMs - last.atMs >= 60_000 || decisions.some((d) => d.action === 'filled')) {
         this.equity.push({ atMs: nowMs, equityUsd: this.startCapitalUsd + this.realizedUsd, baselineUsd: this.startCapitalUsd });

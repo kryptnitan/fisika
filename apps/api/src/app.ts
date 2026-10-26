@@ -146,8 +146,12 @@ export function createApp(d: AppDeps) {
         };
       });
       const r100 = sizes[1];
-      const direct: { rate: number }[] = r100 && 'directByVenue' in r100 && r100.directByVenue ? r100.directByVenue : [];
-      const rates = direct.map((x) => x.rate);
+      // Spread between venues = best direct rate per venue, compared across at least two different venues.
+      // (Several pools of one venue are not a venue spread, and a dust pool is not a price.)
+      const direct: { venue: string; rate: number }[] = r100 && 'directByVenue' in r100 && r100.directByVenue ? r100.directByVenue : [];
+      const bestPerVenue = new Map<string, number>();
+      for (const x of direct) bestPerVenue.set(x.venue, Math.max(bestPerVenue.get(x.venue) ?? 0, x.rate));
+      const rates = [...bestPerVenue.values()];
       const spreadBps = rates.length > 1 ? ((Math.max(...rates) - Math.min(...rates)) / Math.max(...rates)) * 10_000 : null;
       return { corridor: `${a}-${b}`, from: a, to: b, sizes, spreadBps };
     });

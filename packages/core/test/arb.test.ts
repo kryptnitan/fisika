@@ -81,6 +81,10 @@ describe('arb engine (PAPER)', () => {
     assert.ok(f.realizedProfit > 0n);
     assert.equal(f.opportunity.sizeUsd, 100, 'price impact makes $1k worse than $100 on these pools');
     assert.ok(f.minOut > f.opportunity.amountIn, 'minOut enforces profit on-chain');
+    // Same prices on the next tick: the opportunity was consumed by the paper fill and must not count twice.
+    const again = await eng.tick(NOW + 5_000);
+    assert.equal(again.filter((d) => d.action === 'filled').length, 0);
+    assert.equal(again[0]!.reason, 'already_filled_prices_unchanged');
   });
 
   it('skips when the edge vanishes on re-quote', async () => {

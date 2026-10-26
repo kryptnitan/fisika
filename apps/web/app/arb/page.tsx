@@ -25,6 +25,7 @@ const REASON: Record<string, string> = {
   stale_edge: 'price too old',
   kill_switch: 'kill switch on',
   requote_failed: 'a leg could not be re-quoted',
+  already_filled_prices_unchanged: 'already filled; prices unchanged since',
 };
 
 export default function ArbPage() {

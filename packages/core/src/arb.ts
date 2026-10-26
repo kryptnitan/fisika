@@ -294,6 +294,11 @@ export class ArbEngine {
   readonly risk: RiskGate;
   readonly cfg: ArbConfig;
   private readonly mode: 'PAPER' | 'LIVE';
+  /**
+   * PAPER only: fingerprints (cycle + every leg's price curve) of opportunities already paper-filled. A real fill
+   * consumes the liquidity it trades against; until a curve changes, the same opportunity is not there again.
+   */
+  consumed = new Map<string, number>();
 
   constructor(graph: PriceGraph, pricer: Pricer, adapters: ReadonlyMap<VenueId, VenueAdapter>, risk: RiskGate, cfg: ArbConfig, mode: 'PAPER' | 'LIVE' = 'PAPER') {
     this.graph = graph;
@@ -332,7 +337,13 @@ export class ArbEngine {
   /** One engine tick: scan, confirm the best few with live quotes, gate, and fill (paper or live). */
   async tick(nowMs: number, maxConfirm = 3): Promise<ArbDecision[]> {
     const out: ArbDecision[] = [];
+    for (const [k, t] of this.consumed) if (nowMs - t > 3_600_000) this.consumed.delete(k);
     for (const o of this.scan(nowMs).slice(0, maxConfirm)) {
+      const fp = `${o.id}|${o.cycle.map((e) => e.points.map((p) => `${p.amountIn}:${p.amountOut}`).join(',')).join('|')}`;
+      if (this.consumed.has(fp)) {
+        out.push({ opportunity: o, action: 'skipped', reason: 'already_filled_prices_unchanged' });
+        continue;
+      }
       const pre = this.risk.check(o, nowMs);
       if (!pre.ok) {
         out.push({ opportunity: o, action: 'skipped', reason: pre.reason });
@@ -361,6 +372,7 @@ export class ArbEngine {
         atMs: nowMs,
       };
       this.risk.record(fill.realizedUsd, nowMs);
+      this.consumed.set(fp, nowMs);
       out.push({ opportunity: realized, action: 'filled', fill });
     }
     return out;

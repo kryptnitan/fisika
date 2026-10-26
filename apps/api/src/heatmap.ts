@@ -6,6 +6,8 @@ export interface HeatSample {
   atMs: number;
   /** corridor "A-B" → venue → depth USD (deepest sampled size the venue could fill) */
   depth: Record<string, Record<string, number>>;
+  /** Largest size sampled, in USD: a depth equal to this means "at least this much". */
+  maxSampledUsd: number;
 }
 
 export class Heatmap {
@@ -29,7 +31,7 @@ export class Heatmap {
       }
       depth[`${a}-${b}`] = row;
     }
-    this.samples.push({ atMs: nowMs, depth });
+    this.samples.push({ atMs: nowMs, depth, maxSampledUsd: 10_000 });
     if (this.samples.length > this.maxSamples) this.samples.shift();
   }
 }

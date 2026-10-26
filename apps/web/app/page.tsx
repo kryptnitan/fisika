@@ -6,7 +6,7 @@ import { connect, sendTx, waitForTx } from '@/lib/wallet';
 type Size = { usd: number; rate: number | null; venues?: string[]; hops?: number; split?: boolean; execution?: string; firm?: boolean; directByVenue?: { venue: string; rate: number }[] };
 type Row = { corridor: string; from: string; to: string; sizes: Size[]; spreadBps: number | null };
 type Board = { asOf: string; block: string; rows: Row[] };
-type Heat = { samples: { atMs: number; depth: Record<string, Record<string, number>> }[] };
+type Heat = { samples: { atMs: number; depth: Record<string, Record<string, number>>; maxSampledUsd?: number }[] };
 
 export default function RatesPage() {
   const board = usePoll<Board>('v1/board', 5_000);
@@ -21,7 +21,7 @@ export default function RatesPage() {
       </p>
       <div className="grid">
         <section aria-label="Live rates">
-          <BoardTable board={board.data} error={board.error} onPick={setPick} />
+          <BoardTable board={board.data} error={board.error} onPick={setPick} selected={`${pick.from}-${pick.to}`} />
           <Heatmap data={heat.data} />
         </section>
         <Ticket key={`${pick.from}-${pick.to}`} initial={pick} tokens={board.data ? [...new Set(board.data.rows.flatMap((r) => [r.from, r.to]))] : []} />
@@ -30,13 +30,13 @@ export default function RatesPage() {
   );
 }
 
-function BoardTable({ board, error, onPick }: { board: Board | null; error: string | null; onPick: (p: { from: string; to: string }) => void }) {
+function BoardTable({ board, error, onPick, selected }: { board: Board | null; error: string | null; onPick: (p: { from: string; to: string }) => void; selected: string }) {
   if (error && !board) return <p className="err">{error}</p>;
   if (!board) return <p className="muted">Loading live rates from Celo…</p>;
   return (
     <div className="scroll">
       <table className="board">
-        <caption className="muted" style={{ textAlign: 'left', padding: '0 0 8px' }}>
+        <caption className="muted" style={{ textAlign: 'left', padding: '0 0 8px', fontFamily: 'var(--sans)' }}>
           Output per 1 unit sold, after venue fees. Updated {ago(board.asOf)}. Select a pair to quote it.
         </caption>
         <thead>
@@ -53,7 +53,7 @@ function BoardTable({ board, error, onPick }: { board: Board | null; error: stri
           {board.rows.map((r) => {
             const s100 = r.sizes[1];
             return (
-              <tr key={r.corridor}>
+              <tr key={r.corridor} className={r.corridor === selected ? 'selected' : undefined}>
                 <td>
                   <button className="pair" style={{ all: 'unset', cursor: 'pointer' }} onClick={() => onPick({ from: r.from, to: r.to })} aria-label={`Quote ${r.from} to ${r.to}`}>
                     <span className="pair">
@@ -63,10 +63,8 @@ function BoardTable({ board, error, onPick }: { board: Board | null; error: stri
                     </span>
                   </button>
                 </td>
-                {r.sizes.map((s, i) => (
-                  <td key={s.usd}>
-                    <span className={i === 1 && s.rate ? 'best' : undefined}>{fmtRate(s.rate)}</span>
-                  </td>
+                {r.sizes.map((s) => (
+                  <td key={s.usd}>{fmtRate(s.rate)}</td>
                 ))}
                 <td className="venues">
                   {s100?.venues?.map((v) => VENUE_LABEL[v] ?? v).join(' + ') ?? '—'}
@@ -96,7 +94,7 @@ function Heatmap({ data }: { data: Heat | null }) {
   return (
     <>
       <h2>Where the liquidity sits</h2>
-      <p className="muted">Deepest order each venue can fill directly for a pair, in dollars. Brighter means deeper. Sampled every minute.</p>
+      <p className="muted">Largest order each venue can fill directly for a pair, in dollars; $10k+ means at least the largest size fisika tests. Brighter means deeper. Sampled every minute.</p>
       <div className="scroll">
         <table className="board heat">
           <thead>
@@ -121,7 +119,7 @@ function Heatmap({ data }: { data: Heat | null }) {
                     return (
                       <td key={v} className="cell">
                         <span className="swatch" style={{ background: d ? `rgba(233,185,73,${a.toFixed(2)})` : 'transparent', color: a > 0.55 ? 'var(--amber-ink)' : undefined }}>
-                          {d ? `$${d >= 1000 ? `${Math.round(d / 1000)}k` : d}` : ''}
+                          {d ? `$${d >= 1000 ? `${Math.round(d / 1000)}k` : d}${d >= (latest.maxSampledUsd ?? Infinity) ? '+' : ''}` : ''}
                         </span>
                       </td>
                     );
