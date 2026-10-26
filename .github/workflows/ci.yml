@@ -22,9 +22,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: pnpm install --no-frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm test
+      - name: Install
+        shell: bash
+        run: pnpm install --no-frozen-lockfile 2>&1 | tail -40 | tee install.txt
+      - name: Typecheck
+        shell: bash
+        run: pnpm typecheck 2>&1 | tee typecheck.txt
+      - name: Unit tests
+        shell: bash
+        run: pnpm test 2>&1 | tee test.txt
+      - name: Publish logs to the verification branch
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          cat install.txt typecheck.txt test.txt > /tmp/core-ci.txt 2>/dev/null || true
+          bash .github/publish.sh verification "core ci log for ${GITHUB_SHA}" /tmp/core-ci.txt
 
   verify-onchain:
     runs-on: ubuntu-latest
