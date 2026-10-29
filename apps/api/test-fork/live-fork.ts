@@ -18,9 +18,10 @@ import { join } from 'node:path';
 import { createWalletClient, http, parseEther, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { celo } from 'viem/chains';
-import { TokenRegistry, type Edge, type Opportunity } from '@fisika/core';
-import { createVenues, LiveGraph } from '@fisika/core/setup';
-import { erc20Abi, makeClient } from '@fisika/core/viem';
+import { MentoAdapter, PriceGraph, Pricer, TokenRegistry, UniswapV3Adapter, type Edge, type Opportunity, type VenueAdapter, type VenueId } from '@fisika/core';
+import type { GraphState } from '@fisika/core/setup';
+import { BatchReader } from '@fisika/core/batch';
+import { discoverMentoV2Exchanges, erc20Abi, makeClient, viemMentoReader, viemMentoV2Reader, viemUniV3Reader } from '@fisika/core/viem';
 import { balanceOf, executeLeg, LegError, registerTokens } from '../src/live/legs.ts';
 import { LiveTrader } from '../src/live/trader.ts';
 
@@ -57,21 +58,28 @@ await rpc('anvil_stopImpersonatingAccount', [USDT_SOURCE]);
 assert.equal(await pub.readContract({ address: USDT, abi: erc20Abi, functionName: 'balanceOf', args: [account.address] }), 300_000_000n);
 ok('funded test wallet with 300 USDT from the fork');
 
-const venues = await createVenues(pub, tokens);
-const live = new LiveGraph(pub, tokens, venues, 600_000);
-await live.refresh();
-await live.refresh();
-const st = live.state;
-const edge = (venue: Edge['venue'], a: string, b: string, pool?: string) => {
-  const e = st.graph.all().find((x) => x.venue === venue && x.tokenIn === a && x.tokenOut === b && (!pool || x.poolId === pool));
-  assert.ok(e, `no ${venue} edge ${tokens.get(a)?.symbol}->${tokens.get(b)?.symbol} in the fork graph`);
-  return e!;
-};
+// Only the venues this test trades through. A full graph refresh on a fork is very slow (anvil fetches every
+// storage slot it touches from the upstream RPC), and the test does not need prices for anything else.
+const reader = new BatchReader(pub);
+const uni = new UniswapV3Adapter(viemUniV3Reader(pub, reader));
+await uni.discover([[USDT, USDm]]);
+const mento = new MentoAdapter(viemMentoReader(pub, reader), [{ tokenA: USDT, tokenB: USDm, poolId: 'USDT/USDm' }]);
+const v2 = (await discoverMentoV2Exchanges(pub)).filter((x) => x.assets.includes(USDm) && x.assets.includes(KESm));
+assert.equal(v2.length, 1, 'USDm/KESm exchange on Mento v2');
+const mentoV2 = new MentoAdapter(viemMentoV2Reader(pub, v2, undefined, reader), [{ tokenA: USDm, tokenB: KESm, poolId: v2[0]!.exchangeId }], 'mento-v2');
+const adapters = new Map<VenueId, VenueAdapter>([['uniswap-v3', uni], ['mento', mento], ['mento-v2', mentoV2]]);
+const graph = new PriceGraph();
+const st: GraphState = { graph, pricer: new Pricer(tokens, graph), gasPriceWei: 0n, celoUsd: 0.08, block: 0n, updatedMs: Date.now(), lastRefresh: [], rpc: { checkedMs: 0, degraded: false, vetting: null } };
 const uniPool = '0x5dc631ad6c26bea1a59fbf2c2680cf3df43d249f';
+const edge = (venue: Edge['venue'], a: string, b: string, poolId: string, meta?: Edge['meta']): Edge => ({
+  venue, poolId, tokenIn: a as Hex, tokenOut: b as Hex, points: [], gasUnits: 0n, feeBps: 0, firm: true, asOfMs: Date.now(), meta,
+});
+const uniEdge = () => edge('uniswap-v3', USDT, USDm, uniPool, { fee: 100 });
+const xid = v2[0]!.exchangeId;
 
 const dir = await mkdtemp(join(tmpdir(), 'fisika-live-'));
 const chain = { pub, wallet, account: account.address.toLowerCase() as Hex, receiptTimeoutSec: 60 };
-const trader = new LiveTrader(chain, () => live.state, tokens, venues.byId, null, {
+const trader = new LiveTrader(chain, () => st, tokens, adapters, null, {
   startTokens: [USDT],
   sizesUsd: [20],
   maxLen: 4,
@@ -110,7 +118,7 @@ const force = (cycle: Edge[], amountIn: bigint): Opportunity => ({
 
 // A. two legs
 const before = await balanceOf(chain, USDT);
-const a = await trader.run(force([edge('uniswap-v3', USDT, USDm, uniPool), edge('mento', USDm, USDT)], 20_000_000n), st);
+const a = await trader.run(force([uniEdge(), edge('mento', USDm, USDT, 'USDT/USDm')], 20_000_000n), st);
 assert.equal(a.status, 'completed', a.note);
 const lossA = Number(before - (await balanceOf(chain, USDT))) / 1e6;
 assert.ok(lossA >= 0 && lossA < 0.2, `cycle A lost ${lossA} USDT`);
@@ -118,7 +126,7 @@ assert.equal(await balanceOf(chain, USDm), 0n, 'no USDm left behind');
 ok(`2-leg cycle USDT→USDm→USDT completed in ${a.txs.length} txs, cost ${lossA.toFixed(4)} USDT, ledger P&L $${a.realizedUsd.toFixed(4)}`);
 
 // B. four legs through Mento v2
-const b = await trader.run(force([edge('uniswap-v3', USDT, USDm, uniPool), edge('mento-v2', USDm, KESm), edge('mento-v2', KESm, USDm), edge('mento', USDm, USDT)], 20_000_000n), st);
+const b = await trader.run(force([uniEdge(), edge('mento-v2', USDm, KESm, xid), edge('mento-v2', KESm, USDm, xid), edge('mento', USDm, USDT, 'USDT/USDm')], 20_000_000n), st);
 assert.equal(b.status, 'completed', b.note);
 assert.ok((await balanceOf(chain, KESm)) === 0n, 'no KESm left behind');
 ok(`4-leg cycle via Mento v2 completed in ${b.txs.length} txs, ledger P&L $${b.realizedUsd.toFixed(4)}`);
@@ -134,12 +142,12 @@ ok('ledger and status file written');
 
 // A minimum the market cannot meet reverts on-chain and spends nothing but gas.
 const bal = await balanceOf(chain, USDT);
-await assert.rejects(executeLeg(chain, edge('uniswap-v3', USDT, USDm, uniPool), 5_000_000n, 10n ** 30n, null, Math.floor(Date.now() / 1000) + 60), LegError);
+await assert.rejects(executeLeg(chain, uniEdge(), 5_000_000n, 10n ** 30n, null, Math.floor(Date.now() / 1000) + 60), LegError);
 assert.equal(await balanceOf(chain, USDT), bal, 'reverted swap moved no USDT');
 ok('impossible minimum output reverts and moves no funds');
 
 // Textile legs need the API key; without it the leg is refused before anything is sent.
-await assert.rejects(executeLeg(chain, { ...edge('uniswap-v3', USDT, USDm, uniPool), venue: 'textile' }, 1_000_000n, 1n, null, 0), /TEXTILE_API_KEY/);
+await assert.rejects(executeLeg(chain, { ...uniEdge(), venue: 'textile' }, 1_000_000n, 1n, null, 0), /TEXTILE_API_KEY/);
 ok('Textile leg without a key is refused');
 
 console.log(`\n${results.length} checks passed`);
