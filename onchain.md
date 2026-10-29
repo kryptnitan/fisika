@@ -1,6 +1,6 @@
 # On-chain verification — Celo
 
-Block 81355053 · 2026-10-29T06:36:53.437Z
+Block 81355189 · 2026-10-29T06:39:09.240Z
 
 All hard checks passed.
 
@@ -73,7 +73,7 @@ All hard checks passed.
     "pool": "0x0FEBa760d93423D127DE1B6ABECdB60E5253228D",
     "token0": "USDT",
     "token1": "USDm",
-    "quote": "1 USDT -> 0.998537492552 USDm"
+    "quote": "1 USDT -> 0.998510258 USDm"
   },
   "USDC/USDm": {
     "pool": "0x462fe04b4FD719Cbd04C0310365D421D02AaA19E",
@@ -110,7 +110,7 @@ All hard checks passed.
   {
     "pair": "cNGN->USDT",
     "min": "1381.574",
-    "max": "70950063.256813",
+    "max": "70950063.256866",
     "sellDecimals": 6,
     "buyDecimals": 6,
     "points": 9
@@ -118,7 +118,7 @@ All hard checks passed.
   {
     "pair": "USDT->cNGN",
     "min": "1",
-    "max": "40658.798359",
+    "max": "40658.797964",
     "sellDecimals": 6,
     "buyDecimals": 6,
     "points": 9
@@ -142,7 +142,7 @@ All hard checks passed.
   {
     "pair": "wBRL->USDT",
     "min": "5.3594",
-    "max": "666046.903495860461038342",
+    "max": "666034.475036495934863552",
     "sellDecimals": 18,
     "buyDecimals": 6,
     "points": 9
@@ -150,7 +150,7 @@ All hard checks passed.
   {
     "pair": "USDT->wBRL",
     "min": "1",
-    "max": "49240.672945",
+    "max": "49241.591677",
     "sellDecimals": 6,
     "buyDecimals": 18,
     "points": 9
@@ -158,7 +158,7 @@ All hard checks passed.
   {
     "pair": "USDC->USDT",
     "min": "0.998971",
-    "max": "707.287731",
+    "max": "707.282061",
     "sellDecimals": 6,
     "buyDecimals": 6,
     "points": 9
@@ -166,15 +166,15 @@ All hard checks passed.
   {
     "pair": "USDT->USDC",
     "min": "1",
-    "max": "205.455489",
+    "max": "205.457441",
     "sellDecimals": 6,
     "buyDecimals": 6,
     "points": 9
   },
   {
     "pair": "0x471ece3750da237f93b8e339c536989b8978a438->USDT",
-    "min": "1.269841269841",
-    "max": "1573767.206269801567450391",
+    "min": "1.270486596366",
+    "max": "1574566.98632634828403911",
     "sellDecimals": 18,
     "buyDecimals": 6,
     "points": 9
@@ -182,7 +182,7 @@ All hard checks passed.
   {
     "pair": "USDT->0x471ece3750da237f93b8e339c536989b8978a438",
     "min": "0.1",
-    "max": "582.030456",
+    "max": "581.734822",
     "sellDecimals": 6,
     "buyDecimals": 18,
     "points": 9
@@ -206,7 +206,7 @@ All hard checks passed.
   {
     "pair": "0x18bc5bcc660cf2b9ce3cd51a404afe1a0cbd3c22->USDT",
     "min": "18087.5",
-    "max": "9907796669.56",
+    "max": "9907781596.32",
     "sellDecimals": 2,
     "buyDecimals": 6,
     "points": 9
@@ -221,8 +221,8 @@ All hard checks passed.
   },
   {
     "pair": "0x8a1d45e102e886510e891d2ec656a708991e2d76->USDT",
-    "min": "3137",
-    "max": "392476155.374495700848258798",
+    "min": "3136.000000000001",
+    "max": "392351770.67683520722650578",
     "sellDecimals": 18,
     "buyDecimals": 6,
     "points": 9
@@ -230,15 +230,15 @@ All hard checks passed.
   {
     "pair": "USDT->0x8a1d45e102e886510e891d2ec656a708991e2d76",
     "min": "1",
-    "max": "5037.322396",
+    "max": "5038.93337",
     "sellDecimals": 6,
     "buyDecimals": 18,
     "points": 9
   },
   {
     "pair": "0xd221812de1bd094f35587ee8e174b07b6167d9af->USDT",
-    "min": "0.00043223991",
-    "max": "0.918242449611695067",
+    "min": "0.000432198811",
+    "max": "0.918047770533927107",
     "sellDecimals": 18,
     "buyDecimals": 6,
     "points": 9
@@ -246,15 +246,15 @@ All hard checks passed.
   {
     "pair": "USDT->0xd221812de1bd094f35587ee8e174b07b6167d9af",
     "min": "1",
-    "max": "603.771826",
+    "max": "603.93158",
     "sellDecimals": 6,
     "buyDecimals": 18,
     "points": 9
   },
   {
     "pair": "0x337e7456b420bd3481e7fa61fa9850343d610d34->USDT",
-    "min": "18.687",
-    "max": "4111.3673700064103015",
+    "min": "18.681",
+    "max": "4110.16713110555070753",
     "sellDecimals": 18,
     "buyDecimals": 6,
     "points": 9
@@ -285,7 +285,7 @@ All hard checks passed.
   },
   {
     "pair": "0x62b8b11039fcfe5ab0c56e502b1c372a3d2a9c7a->USDT",
-    "min": "8727.093509047651",
+    "min": "8726.855482449997",
     "max": "0",
     "sellDecimals": 18,
     "buyDecimals": 6,
