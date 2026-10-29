@@ -1,0 +1,1 @@
+PASS funded test wallet with 300 USDT from the fork
