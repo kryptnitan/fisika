@@ -44,10 +44,10 @@ LIVE_ACK=i-accept-risk
 ARB_PRIVATE_KEY=$KEY
 # Paste your Textile live key (app.textilecredit.com -> profile -> API keys):
 TEXTILE_API_KEY=
-# Limits for the \$250 test. All required; the trader refuses to start without them.
-MAX_TRADE_USD=100
-DAILY_LOSS_LIMIT_USD=10
-MAX_TOKEN_EXPOSURE_USD=110
+# Limits for the \$100 test. All required; the trader refuses to start without them.
+MAX_TRADE_USD=40
+DAILY_LOSS_LIMIT_USD=4
+MAX_TOKEN_EXPOSURE_USD=45
 MIN_EDGE_BPS=5
 MIN_EDGE_USD=0.05
 SLIPPAGE_BPS=30
@@ -206,7 +206,7 @@ Bot wallets (new, generated on this server, one per chain):
   BNB Chain  $ADDR_BSC
 
 Celo:
-  1. Send the Celo wallet 250 USDT and 20 CELO (about \$2, for gas) on Celo (chain 42220).
+  1. Send the Celo wallet 100 USDT and 20 CELO (about \$2, for gas) on Celo (chain 42220).
   2. sudo nano /etc/fisika/live.env       -> paste TEXTILE_API_KEY
   3. sudo fisika-start-live
 BNB Chain (optional, separate capital):

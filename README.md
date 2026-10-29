@@ -50,19 +50,19 @@ On BNB Chain the naira depth is on Textile; the cNGN AMM pools are dust. Textile
    curl -fsSL https://raw.githubusercontent.com/kryptnitan/fisika/main/deploy/setup.sh | sudo bash
    ```
    This sets up a new bot wallet that exists only on that server, plus the price API, the dashboard and the live trader. All of them listen on localhost only, and the firewall allows SSH only.
-2. Send the bot wallet the amount printed at the end: 250 USDT and 20 CELO for gas.
+2. Send the bot wallet the amount printed at the end: 100 USDT and 20 CELO for gas.
 3. Add your Textile live key with `sudo nano /etc/fisika/live.env`, then run `sudo fisika-start-live`.
 4. To see the dashboard, run `ssh -L 3000:localhost:3000 you@server` on your computer, then open http://localhost:3000/arb.
 5. To stop new trades, run `sudo fisika-stop-live`, or press Stop on the dashboard.
 6. BNB Chain (optional, separate capital): fund the second wallet printed at the end with USDT (BEP-20) and 0.02 BNB, add the Textile key with `sudo nano /etc/fisika/live-bsc.env`, then run `sudo fisika-start-live bsc`. `sudo fisika-stop-live all` stops both.
 
-Limits for the $250 test are in `/etc/fisika/live.env`:
+Limits for the $100 test are in `/etc/fisika/live.env`:
 
 | Limit | Value |
 |---|---|
-| Largest trade | $100 |
-| Daily loss before halting | $10 |
-| Most held of one token between transactions | $110 |
+| Largest trade | $40 |
+| Daily loss before halting | $4 |
+| Most held of one token between transactions | $45 |
 | Minimum edge | 5 bps and $0.05 |
 | Slippage | 0.3% per leg |
 
