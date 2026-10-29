@@ -1,1 +1,10 @@
 PASS funded test wallet with 300 USDT from the fork
+[live] completed USDT→USDm→USDT uniswap-v3,mento realized $-0.0066
+PASS 2-leg cycle USDT→USDm→USDT completed in 4 txs, cost 0.0013 USDT, ledger P&L $-0.0066
+[live] completed USDT→USDm→KESm→USDm→USDT uniswap-v3,mento-v2,mento-v2,mento realized $-0.4047
+PASS 4-leg cycle via Mento v2 completed in 8 txs, ledger P&L $-0.4047
+PASS ledger and status file written
+PASS impossible minimum output reverts and moves no funds
+PASS Textile leg without a key is refused
+
+6 checks passed
