@@ -1,12 +1,13 @@
 {
-  "at": "2026-10-29T05:44:22.498Z",
+  "at": "2026-10-29T05:47:05.200Z",
   "chainId": 42220,
-  "block": "81351902",
+  "block": "81352065",
   "codeBytes": {
     "uniswap.factory": 24535,
     "uniswap.quoterV2": 8273,
     "uniswap.swapRouter02": 24497,
     "uniswap.multicall2": 1383,
+    "multicall3": 3808,
     "permit2": 9152,
     "textile.reactor": 6888,
     "textile.feeController": 1983,
@@ -137,8 +138,8 @@
       "fee": 100,
       "pool": "0x1a810e0B6c2dd5629AFa2f0c898b9512C6F78846",
       "balances": {
-        "USDT": "160269.308389",
-        "USDC": "27768.257852"
+        "USDT": "163303.174951",
+        "USDC": "24737.771055"
       }
     },
     {
@@ -164,8 +165,8 @@
       "fee": 100,
       "pool": "0x5dC631aD6C26BEA1a59fBF2C2680CF3df43d249f",
       "balances": {
-        "USDT": "584166.417206",
-        "USDm": "60104.569267948894161863"
+        "USDT": "584156.394045",
+        "USDm": "60114.582876680436464677"
       }
     },
     {
@@ -254,8 +255,8 @@
       "fee": 100,
       "pool": "0x5D8ef8B839be522b9E3d60a51EDB5837CD0b2391",
       "balances": {
-        "USDT": "30011.990418",
-        "wARS": "126331195.046055511234345473"
+        "USDT": "30329.588388",
+        "wARS": "125805946.814360197869062213"
       }
     },
     {
@@ -471,19 +472,19 @@
       "pool": "0x0FEBa760d93423D127DE1B6ABECdB60E5253228D",
       "token0": "USDT",
       "token1": "USDm",
-      "quote": "1 USDT -> 0.998480264 USDm"
+      "quote": "1 USDT -> 0.998479084236 USDm"
     },
     "USDC/USDm": {
       "pool": "0x462fe04b4FD719Cbd04C0310365D421D02AaA19E",
       "token0": "USDm",
       "token1": "USDC",
-      "quote": "1 USDm -> 1.000076 USDC"
+      "quote": "1 USDm -> 1.00009 USDC"
     },
     "axlUSDC/USDm": {
       "pool": "0xb285d4C7133d6f27BfB29224fb0D22E7EC3ddD2D",
       "token0": "USDm",
       "token1": "0xEB466342C4d449BC9f53A865D5Cb90586f405215",
-      "quote": "1 USDm -> 0.000000000001000076 0xEB466342C4d449BC9f53A865D5Cb90586f405215"
+      "quote": "1 USDm -> 0.00000000000100009 0xEB466342C4d449BC9f53A865D5Cb90586f405215"
     },
     "GBPm/USDm": {
       "pool": "0x8C0014afe032E4574481D8934504100bF23fCB56",
@@ -498,37 +499,37 @@
     "USDm->ZARm": "not routable via default factory: The contract function \"getAmountsOut\" reverted with the following signature:",
     "USDm->BRLm": "not routable via default factory: The contract function \"getAmountsOut\" reverted with the following signature:",
     "USDm->COPm": "not routable via default factory: The contract function \"getAmountsOut\" reverted with the following signature:",
-    "USDm->EURm": "1 USDm -> 0.89529331514324693 EURm"
+    "USDm->EURm": "1 USDm -> 0.895437979137866029 EURm"
   },
   "textileLevels": [
     {
       "pair": "cNGN->USDT",
       "min": "1381.081",
-      "max": "70894941.549911",
+      "max": "70913391.356821",
       "points": 9
     },
     {
       "pair": "USDT->cNGN",
       "min": "1",
-      "max": "40670.546372",
+      "max": "40659.978373",
       "points": 9
     },
     {
       "pair": "wARS->USDT",
-      "min": "1654.48",
-      "max": "206258104.218291403381458487",
+      "min": "1652.315",
+      "max": "205622165.173944515460990321",
       "points": 9
     },
     {
       "pair": "USDT->wARS",
       "min": "1",
-      "max": "2294.063372",
+      "max": "2612.905642",
       "points": 9
     },
     {
       "pair": "wBRL->USDT",
       "min": "5.3619",
-      "max": "666778.258632710333040911",
+      "max": "665072.881328882097534322",
       "points": 9
     },
     {
@@ -540,31 +541,31 @@
     {
       "pair": "USDC->USDT",
       "min": "0.998961",
-      "max": "682.234954",
+      "max": "682.259694",
       "points": 9
     },
     {
       "pair": "USDT->USDC",
       "min": "1",
-      "max": "205.459494",
+      "max": "205.462169",
       "points": 9
     },
     {
       "pair": "0x471ece3750da237f93b8e339c536989b8978a438->USDT",
-      "min": "1.258494840171",
-      "max": "1560722.471215471818466494",
+      "min": "1.25928724342",
+      "max": "1557699.397652484471677974",
       "points": 9
     },
     {
       "pair": "USDT->0x471ece3750da237f93b8e339c536989b8978a438",
       "min": "0.1",
-      "max": "587.277969",
+      "max": "586.908426",
       "points": 9
     },
     {
       "pair": "USAT->USDT",
       "min": "0.99985",
-      "max": "123996.405372",
+      "max": "123678.354692",
       "points": 9
     },
     {
@@ -575,20 +576,20 @@
     },
     {
       "pair": "0x18bc5bcc660cf2b9ce3cd51a404afe1a0cbd3c22->USDT",
-      "min": "18093.5",
-      "max": "9894298199.78",
+      "min": "18092.5",
+      "max": "9888020790.03",
       "points": 9
     },
     {
       "pair": "USDT->0x18bc5bcc660cf2b9ce3cd51a404afe1a0cbd3c22",
       "min": "1",
-      "max": "118416.27989",
+      "max": "118422.704384",
       "points": 9
     },
     {
       "pair": "0x8a1d45e102e886510e891d2ec656a708991e2d76->USDT",
       "min": "3145",
-      "max": "390656376.19165657284682461",
+      "max": "389655956.608640519027828115",
       "points": 9
     },
     {
@@ -599,20 +600,20 @@
     },
     {
       "pair": "0xd221812de1bd094f35587ee8e174b07b6167d9af->USDT",
-      "min": "0.00042967508",
-      "max": "0.233385398185823246",
+      "min": "0.000429667695",
+      "max": "0.233430528402221034",
       "points": 9
     },
     {
       "pair": "USDT->0xd221812de1bd094f35587ee8e174b07b6167d9af",
       "min": "1",
-      "max": "550.857826",
+      "max": "550.751326",
       "points": 9
     },
     {
       "pair": "0x337e7456b420bd3481e7fa61fa9850343d610d34->USDT",
-      "min": "18.666",
-      "max": "4107.166556975411065671",
+      "min": "18.667",
+      "max": "4107.366570825100339482",
       "points": 9
     },
     {
@@ -635,7 +636,7 @@
     },
     {
       "pair": "0x62b8b11039fcfe5ab0c56e502b1c372a3d2a9c7a->USDT",
-      "min": "8726.585837199525",
+      "min": "8726.575526217741",
       "max": "0",
       "points": 0
     },
