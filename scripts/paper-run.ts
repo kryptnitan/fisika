@@ -57,7 +57,8 @@ async function main() {
   log('');
   log(`${new Date(now).toISOString()} · block ${await client.getBlockNumber()} · gas ${formatUnits(gasPrice, 9)} gwei · CELO $${celoUsd.toFixed(4)}`);
   log('');
-  log(`RPC requests (pool discovery + two full refreshes, batched): ${venues.reader.requests}.`);
+  const bs = (venues.reader as { stats?: object }).stats;
+  log(`RPC requests (pool discovery + two full refreshes, batched): ${venues.reader.requests}. Batch stats: ${JSON.stringify(bs)}`);
   log('');
   log(`Uniswap v3 pools discovered: ${pools.length}. Mento v2 exchanges between tracked tokens: ${v2ex.join(', ') || 'none'}. Graph edges: ${graph.size()}.`);
   log('');

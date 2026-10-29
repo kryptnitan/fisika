@@ -84,6 +84,8 @@ interface Pending {
 
 export class BatchReader implements Reader {
   requests = 0;
+  /** Diagnostics: aggregates that succeeded / fell back, sizes, and the last failure reason. */
+  stats = { aggregates: 0, fallbacks: 0, reads: 0, lastError: '' as string };
   private queue: Pending[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
   private readonly client: PublicClient;
@@ -125,6 +127,7 @@ export class BatchReader implements Reader {
 
   private async send(chunk: Pending[]): Promise<void> {
     this.requests += 1;
+    this.stats.reads += chunk.length;
     try {
       const res = await this.client.call({
         to: this.multicall,
@@ -132,6 +135,7 @@ export class BatchReader implements Reader {
       });
       if (!res.data) throw new Error('empty multicall result');
       const out = decodeFunctionResult({ abi: multicall2Abi, functionName: 'tryAggregate', data: res.data });
+      this.stats.aggregates += 1;
       chunk.forEach((p, i) => {
         const o = out[i];
         if (!o?.success || o.returnData === '0x') return p.resolve(null);
@@ -141,7 +145,9 @@ export class BatchReader implements Reader {
           p.resolve(null);
         }
       });
-    } catch {
+    } catch (e) {
+      this.stats.fallbacks += 1;
+      this.stats.lastError = ((e as Error).message ?? String(e)).split('\n')[0]!.slice(0, 200);
       // Whole aggregate failed: retry each read directly so no pool silently disappears.
       await Promise.all(chunk.map(async (p) => p.resolve(await this.direct.read(p.r))));
       this.requests += this.direct.requests;
