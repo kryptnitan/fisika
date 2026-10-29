@@ -29,7 +29,7 @@ function state(): GraphState {
   graph.upsert(edge('uniswap-v3', '0x1a810e0b6c2dd5629afa2f0c898b9512c6f78846', USDT, USDC, 6, 6, 0.9989, { fee: 100 }));
   graph.upsert(edge('mento', '0x462fe04b4fd719cbd04c0310365d421d02aaa19e', USDC, USDm, 6, 18, 0.9996));
   graph.upsert(edge('uniswap-v3', '0x5dc631ad6c26bea1a59fbf2c2680cf3df43d249f', USDT, USDm, 6, 18, 0.9987, { fee: 100 }));
-  return { graph, pricer: new Pricer(tokens, graph, 60_000), gasPriceWei: 25_000_000_000n, celoUsd: 0.077, block: 1n, updatedMs: NOW, lastRefresh: [] };
+  return { graph, pricer: new Pricer(tokens, graph, 60_000), gasPriceWei: 25_000_000_000n, celoUsd: 0.077, block: 1n, updatedMs: NOW, lastRefresh: [], rpc: { checkedMs: NOW, degraded: false, vetting: null } };
 }
 
 /** Stand-in for the x402 middleware: 402 without a payment header; with one, serve and attach a settlement header. */
