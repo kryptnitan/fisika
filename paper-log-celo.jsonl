@@ -1,0 +1,1 @@
+{"start":"2026-10-29T12:56:17.084Z","end":"2026-10-29T13:51:27.543Z","minutes":55,"rpcs":["https://forno.celo.org","https://celo-rpc.publicnode.com"],"rpcRejected":[],"rpcRequests":4865,"refreshes":220,"refreshFailures":{"textile":89},"graphEdges":93,"opportunities":36,"fills":0,"skipped":{"edge_bps_below_min":28,"inventory_exposure":8},"pnlUsd":0,"fillsDetail":[]}
