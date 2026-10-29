@@ -54,7 +54,15 @@ export async function balanceOf(c: Chain, token: Address): Promise<bigint> {
 
 async function send(c: Chain, to: Address, data: Hex): Promise<TxCost> {
   if (!ALLOWED_TARGETS.has(lc(to)) && !(await isTokenCall(c, to))) throw new LegError(`refusing to call unknown contract ${to}`, false);
-  const hash = await c.wallet.sendTransaction({ account: c.wallet.account!, chain: c.wallet.chain, to, data, value: 0n });
+  let hash: Hex;
+  try {
+    hash = await c.wallet.sendTransaction({ account: c.wallet.account!, chain: c.wallet.chain, to, data, value: 0n });
+  } catch (e) {
+    // Gas estimation simulates the call first: a swap that would miss its minimum fails here, before anything is
+    // sent and without spending gas. That is the market moving, so it is retryable after a fresh quote.
+    const msg = (e as { shortMessage?: string }).shortMessage ?? (e as Error).message.split('\n')[0]!;
+    throw new LegError(`not sent: ${msg}`, true);
+  }
   const r = await c.pub.waitForTransactionReceipt({ hash, timeout: (c.receiptTimeoutSec ?? 90) * 1000 });
   const cost = { hash, gasUsed: r.gasUsed, effectiveGasPrice: r.effectiveGasPrice };
   if (r.status !== 'success') throw Object.assign(new LegError(`transaction reverted: ${hash}`, true), { cost });
