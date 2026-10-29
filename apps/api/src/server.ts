@@ -1,7 +1,7 @@
 import { serve } from '@hono/node-server';
 import { TokenRegistry } from '@fisika/core';
 import { createVenues, LiveGraph } from '@fisika/core/setup';
-import { makeClient } from '@fisika/core/viem';
+import { makeClient, redactRpc, vetRpcs } from '@fisika/core/viem';
 import { PaperArbRunner } from './arb.ts';
 import { CORRIDORS, createApp } from './app.ts';
 import { Heatmap } from './heatmap.ts';
@@ -9,11 +9,14 @@ import { loadConfig } from './config.ts';
 import { makePaymentGate } from './x402.ts';
 
 const cfg = loadConfig();
-const client = makeClient(cfg.rpcUrls);
+const vetting = await vetRpcs(cfg.rpcUrls);
+if (!vetting.ok.length) throw new Error(`no usable Celo RPC: ${JSON.stringify(vetting.rejected)}`);
+if (vetting.rejected.length) console.warn('[rpc] rejected:', vetting.rejected);
+const client = makeClient(vetting.ok);
 const tokens = new TokenRegistry();
 
 const venues = await createVenues(client, tokens, { apiKey: cfg.textileApiKey ?? undefined });
-const live = new LiveGraph(client, tokens, venues, cfg.edgeMaxAgeMs);
+const live = new LiveGraph(client, tokens, venues, cfg.edgeMaxAgeMs, vetting.ok);
 await live.start(cfg.graphRefreshMs);
 
 const { gate, server } = makePaymentGate(cfg);
@@ -41,5 +44,5 @@ const { app } = createApp({
 
 serve({ fetch: app.fetch, port: cfg.port });
 console.log(
-  `fisika api on :${cfg.port} · ${venues.uniswapPools} uniswap pools · mento v2: ${venues.mentoV2Pairs.join(', ')} · x402 ${server ? 'on' : 'OFF'} · execution ${cfg.executionEnabled ? 'on' : 'off'}`,
+  `fisika api on :${cfg.port} · rpc ${vetting.ok.map(redactRpc).join(', ')} · ${venues.uniswapPools} uniswap pools · mento v2: ${venues.mentoV2Pairs.join(', ')} · x402 ${server ? 'on' : 'OFF'} · execution ${cfg.executionEnabled ? 'on' : 'off'}`,
 );

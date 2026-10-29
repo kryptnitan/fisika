@@ -28,6 +28,8 @@ export class PaperArbRunner {
   realizedUsd = 0;
   killed = false;
   private engine: ArbEngine | null = null;
+  /** Opportunities already paper-filled at their current prices; shared across ticks and (via export/import) sessions. */
+  consumed = new Map<string, number>();
   private readonly startCapitalUsd: number;
   private readonly state: () => GraphState;
   private readonly tokens: TokenRegistry;
@@ -51,14 +53,13 @@ export class PaperArbRunner {
       if (!st.updatedMs) return;
       const cfg: ArbConfig = { ...this.baseCfg, gasPriceWei: st.gasPriceWei, celoUsd: st.celoUsd || 0.08 };
       const risk = this.engine?.risk ?? new RiskGate(cfg, st.pricer, () => this.killed);
-      const consumed = this.engine?.consumed;
       this.engine = new ArbEngine(st.graph, st.pricer, this.adapters, risk, cfg, 'PAPER');
-      if (consumed) this.engine.consumed = consumed;
+      this.engine.consumed = this.consumed;
       const decisions = await this.engine.tick(nowMs);
-      this.detected += decisions.length;
       for (const d of decisions) {
         const o = d.opportunity;
-        if (d.reason === 'already_filled_prices_unchanged') continue; // not a new decision; keep the log readable
+        if (d.reason === 'already_filled_prices_unchanged') continue; // not a new opportunity; keep the log readable
+        this.detected += 1;
 
         const path = [o.cycle[0]!.tokenIn, ...o.cycle.map((e) => e.tokenOut)].map((t) => this.tokens.get(t)?.symbol ?? t.slice(0, 8)).join('→');
         this.events.unshift({ atMs: nowMs, action: d.action, reason: d.reason, path, venues: o.cycle.map((e) => e.venue), sizeUsd: o.sizeUsd, netBps: o.netBps, netUsd: o.netUsd, txCount: o.txCount, indicativeLegs: o.indicativeLegs });

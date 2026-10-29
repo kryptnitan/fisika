@@ -7,3 +7,4 @@ contracts/out/
 contracts/cache/
 .next/
 *.log
+apps/api/paper/

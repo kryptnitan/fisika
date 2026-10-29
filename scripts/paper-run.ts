@@ -16,7 +16,7 @@ import { TokenRegistry } from '../packages/core/src/tokens.ts';
 import type { Address, VenueAdapter, VenueId } from '../packages/core/src/types.ts';
 
 const CELO: Address = '0x471ece3750da237f93b8e339c536989b8978a438';
-const rpcs = (process.env.CELO_RPC_URLS ?? 'https://forno.celo.org').split(',').map((s) => s.trim()).filter(Boolean);
+const rpcs = (process.env.CELO_RPC_URLS || 'https://forno.celo.org,https://celo-rpc.publicnode.com').split(',').map((s) => s.trim()).filter(Boolean);
 const client = makeClient(rpcs);
 const tokens = new TokenRegistry();
 const T = (s: string) => tokens.bySymbol(s).address;
@@ -56,6 +56,8 @@ async function main() {
   log(`# fisika PAPER run`);
   log('');
   log(`${new Date(now).toISOString()} · block ${await client.getBlockNumber()} · gas ${formatUnits(gasPrice, 9)} gwei · CELO $${celoUsd.toFixed(4)}`);
+  log('');
+  log(`RPC requests (pool discovery + two full refreshes, batched): ${venues.reader.requests}.`);
   log('');
   log(`Uniswap v3 pools discovered: ${pools.length}. Mento v2 exchanges between tracked tokens: ${v2ex.join(', ') || 'none'}. Graph edges: ${graph.size()}.`);
   log('');

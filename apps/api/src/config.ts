@@ -54,9 +54,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     port: num('PORT', 8787),
     publicUrl,
     webUrl: (env.WEB_URL ?? publicUrl).replace(/\/$/, ''),
-    rpcUrls: (env.CELO_RPC_URLS ?? 'https://forno.celo.org').split(',').map((s) => s.trim()).filter(Boolean),
-    graphRefreshMs: num('GRAPH_REFRESH_MS', 3_000),
-    edgeMaxAgeMs: num('EDGE_MAX_AGE_MS', 15_000),
+    rpcUrls: (env.CELO_RPC_URLS || 'https://forno.celo.org,https://celo-rpc.publicnode.com').split(',').map((s) => s.trim()).filter(Boolean),
+    graphRefreshMs: num('GRAPH_REFRESH_MS', 10_000),
+    edgeMaxAgeMs: num('EDGE_MAX_AGE_MS', Math.max(15_000, num('GRAPH_REFRESH_MS', 10_000) * 2.5)),
     x402: {
       facilitatorUrl: env.X402_FACILITATOR_URL ?? 'https://api.x402.celo.org',
       apiKey: env.X402_API_KEY || null,

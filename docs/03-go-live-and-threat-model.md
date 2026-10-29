@@ -16,7 +16,8 @@ Work top to bottom. Each stage needs every item ticked before moving on. **LIVE 
 ### Stage 0 — Decisions only you can make
 
 - [ ] **Legal scope for the paid API and client swaps.** Nigeria's SEC VASP rules, and any other jurisdiction you serve, decide whether charging per quote and taking an in-swap fee needs registration. Until this is settled, `EXECUTION_ENABLED=false` keeps the deployment quote-only.
-- [ ] **Paid Celo RPC** (two providers for failover). Public Forno is fine for paper mode but not for live trading.
+- [x] **RPC for paper mode:** two free endpoints, Forno (run by cLabs) then PublicNode, each vetted for chain id, reachability and lag at start and every 10 minutes. Reads are batched through Multicall2, so a full price refresh costs about 15–20 requests instead of ~400.
+- [ ] **Paid Celo RPC before LIVE** (two providers for failover). Free endpoints have no uptime guarantee.
 - [ ] **Key custody plan:**
   - executor owner: hardware wallet or Safe
   - guardian: hot, pause-only
@@ -33,7 +34,7 @@ Work top to bottom. Each stage needs every item ticked before moving on. **LIVE 
 - [x] Every address, decimals value and venue ABI is verified on-chain (`scripts/verify-onchain.ts`, published on the `verification` branch).
 - [x] The executor passes unit tests plus Celo-fork tests on Uniswap, Mento v3, Mento v2 and cross-venue routes, including a rollback when a later leg fails.
 - [x] A live paper run publishes the FX board, arb scan and a graph snapshot on every push.
-- [ ] Run the API with `ARB_PAPER=true` for **at least 7 days**. Record:
+- [ ] Let the `paper` workflow run for **at least 7 days** (a 25-minute session every hour; the record builds up in `paper-summary.md` on the `verification` branch). It records:
   - how many cycles the engine detects
   - how many survive the live re-quote
   - median edge after re-quote
@@ -107,7 +108,7 @@ Assets at risk:
 | 10 | Forged receipts | API | A receipt is only issued if the transaction carries the executor's `Executed` event with this quote's routeId; the receipt body is hashed (keccak256 of canonical JSON) | Receipts are held in memory today; persist them, and optionally commit a daily Merkle root on-chain |
 | 11 | Key leak through logs or the repo | All | Keys only come from env or a secret manager; `.env` is gitignored; no code path logs a key | Add a redacting logger before LIVE |
 | 12 | Address or token spoofing (wrong naira, wrong USDT) | Registry | Tokens are keyed by address; decimals are asserted at boot; symbol lookup is case-exact first (COPM vs COPm) and ambiguity is an error | — |
-| 13 | RPC outage or a dishonest RPC | Graph / execution | viem failover across RPCs; a stale graph returns 503 rather than old quotes | A paid RPC is required before LIVE; cross-check block heights between providers |
+| 13 | RPC outage or a dishonest RPC | Graph / execution | Every endpoint is vetted (chain 42220, reachable, within 20 blocks of the others) at start and every 10 minutes; a primary that fails vetting pauses price updates so quotes go stale (503) instead of wrong; viem failover; RPC URLs are redacted in logs because paid ones carry API keys | A paid RPC is required before LIVE |
 | 14 | Dependency or supply-chain compromise | Build | Code is written in-repo, small dependency set, CI runs on every push | Commit a lockfile from CI and enable Dependabot |
 | 15 | ERC-8004 reputation spam | Reputation | Read feedback only from trusted client addresses (`getSummary` requires them) | — |
 

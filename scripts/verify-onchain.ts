@@ -9,7 +9,7 @@ import { ERC8004, FEE_CURRENCY_ADAPTERS, MENTO, PERMIT2, TEXTILE, UNISWAP_V3 } f
 import { erc20Abi, makeClient, mentoRouterAbi, uniV3FactoryAbi } from '../packages/core/src/chain/viem.ts';
 import { CELO_TOKENS } from '../packages/core/src/tokens.ts';
 
-const rpcs = (process.env.CELO_RPC_URLS ?? 'https://forno.celo.org').split(',').map((s) => s.trim()).filter(Boolean);
+const rpcs = (process.env.CELO_RPC_URLS || 'https://forno.celo.org,https://celo-rpc.publicnode.com').split(',').map((s) => s.trim()).filter(Boolean);
 const client = makeClient(rpcs);
 const failures: string[] = [];
 const report: Record<string, unknown> = { at: new Date().toISOString() };

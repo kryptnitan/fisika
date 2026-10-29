@@ -50,7 +50,7 @@ jobs:
       - name: Verify addresses, decimals, pools, Mento routes, Textile ladder
         env:
           # Add a CELO_RPC_URLS repo secret (comma-separated) once you have a paid RPC; public endpoint otherwise.
-          CELO_RPC_URLS: ${{ secrets.CELO_RPC_URLS || 'https://forno.celo.org' }}
+          CELO_RPC_URLS: ${{ secrets.CELO_RPC_URLS || 'https://forno.celo.org,https://celo-rpc.publicnode.com' }}
         run: node scripts/verify-onchain.ts
       - uses: actions/upload-artifact@v4
         if: always()
@@ -79,7 +79,7 @@ jobs:
       - run: pnpm install --no-frozen-lockfile
       - name: Live PAPER run (graph, FX board, arb scan; nothing signed)
         env:
-          CELO_RPC_URLS: ${{ secrets.CELO_RPC_URLS || 'https://forno.celo.org' }}
+          CELO_RPC_URLS: ${{ secrets.CELO_RPC_URLS || 'https://forno.celo.org,https://celo-rpc.publicnode.com' }}
         run: node scripts/paper-run.ts
       - name: Publish
         if: always() && github.ref == 'refs/heads/main'
@@ -106,7 +106,7 @@ jobs:
       - name: Run API + web against Celo and screenshot every page
         shell: bash
         env:
-          CELO_RPC_URLS: ${{ secrets.CELO_RPC_URLS || 'https://forno.celo.org' }}
+          CELO_RPC_URLS: ${{ secrets.CELO_RPC_URLS || 'https://forno.celo.org,https://celo-rpc.publicnode.com' }}
           INTERNAL_API_KEYS: ci-internal-key-0123456789abcdef
           INTERNAL_API_KEY: ci-internal-key-0123456789abcdef
           API_URL: http://localhost:8787

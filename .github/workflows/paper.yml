@@ -1,0 +1,55 @@
+name: paper
+
+# Unattended PAPER trading on live Celo prices, free RPCs, nothing signed.
+# Every hour: one 25-minute session. Results accumulate on the `verification` branch:
+#   paper-summary.md (readable record), paper-log.jsonl (one line per session), paper-state.json.
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: Session length in minutes
+        default: '25'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paper
+  cancel-in-progress: false
+
+jobs:
+  session:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --no-frozen-lockfile
+      - name: Load the paper record so far
+        shell: bash
+        run: |
+          mkdir -p apps/api/paper
+          if git fetch -q --depth 1 origin verification; then
+            for f in paper-log.jsonl paper-state.json; do git show FETCH_HEAD:$f > apps/api/paper/$f 2>/dev/null || rm -f apps/api/paper/$f; done
+          fi
+      - name: Paper session
+        working-directory: apps/api
+        env:
+          # Free by default (Forno, then PublicNode), vetted at start. A CELO_RPC_URLS secret overrides it.
+          CELO_RPC_URLS: ${{ secrets.CELO_RPC_URLS }}
+          SESSION_MINUTES: ${{ github.event.inputs.minutes || '25' }}
+          OUT_DIR: paper
+        run: node src/paper-session.ts
+      - name: Publish the record
+        if: always()
+        shell: bash
+        run: |
+          files=""
+          for f in paper-log.jsonl paper-state.json paper-summary.md; do test -f apps/api/paper/$f && cp apps/api/paper/$f /tmp/ && files="$files /tmp/$f"; done
+          test -n "$files" && bash .github/publish.sh verification "paper session $(date -u +%FT%H:%MZ)" $files
+          test -f apps/api/paper/paper-summary.md && cat apps/api/paper/paper-summary.md >> "$GITHUB_STEP_SUMMARY" || true

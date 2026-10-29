@@ -14,6 +14,7 @@ import { MENTO, UNISWAP_V3 } from '../addresses.ts';
 import type { MentoReader } from '../adapters/mento.ts';
 import type { UniV3Reader } from '../adapters/uniswapV3.ts';
 import type { Address } from '../types.ts';
+import { DirectReader, type Reader } from './batch.ts';
 
 export const uniV3FactoryAbi = [
   {
@@ -95,60 +96,132 @@ export const erc20Abi = [
   { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'uint256' }] },
 ] as const;
 
-/** Public client over an RPC failover list. A paid RPC goes first once configured. */
+/**
+ * Free Celo mainnet endpoints, in trust order:
+ * 1. Forno — run by cLabs, the team that builds Celo (docs.celo.org/build/tools/nodes/forno). Best-effort,
+ *    rate limited, no SLA.
+ * 2. PublicNode — Allnodes' free endpoint, which describes itself as privacy-first (no API key, no account).
+ * Both are read-only for fisika in PAPER mode: nothing is signed, so an RPC can at worst feed wrong prices, and
+ * vetRpcs() plus the cross-check in LiveGraph guard against that.
+ */
+export const FREE_CELO_RPCS = ['https://forno.celo.org', 'https://celo-rpc.publicnode.com'] as const;
+
+/** Never log a full RPC URL: paid providers put the API key in the path or query. */
+export function redactRpc(url: string): string {
+  try {
+    const u = new URL(url);
+    return u.pathname.length > 1 || u.search ? `${u.protocol}//${u.host}/…` : `${u.protocol}//${u.host}`;
+  } catch {
+    return '(invalid url)';
+  }
+}
+
+export interface RpcVetting {
+  ok: string[];
+  rejected: { rpc: string; reason: string }[];
+  blocks: Record<string, number>;
+}
+
+/**
+ * Check every configured RPC before use: it must answer, report Celo mainnet (chain 42220), and be within
+ * `maxLagBlocks` of the highest block any of them reports. A lying or stale endpoint is dropped, not trusted.
+ */
+export async function vetRpcs(urls: readonly string[], maxLagBlocks = 20, fetchImpl: typeof fetch = fetch): Promise<RpcVetting> {
+  const probe = async (url: string) => {
+    const rpc = async (method: string) => {
+      const res = await fetchImpl(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: [] }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      const body = (await res.json()) as { result?: string; error?: { message?: string } };
+      if (!body.result) throw new Error(body.error?.message ?? `HTTP ${res.status}`);
+      return body.result;
+    };
+    const [chainId, block] = await Promise.all([rpc('eth_chainId'), rpc('eth_blockNumber')]);
+    return { chainId: Number(BigInt(chainId)), block: Number(BigInt(block)) };
+  };
+  const results = await Promise.all(urls.map(async (url) => ({ url, r: await probe(url).catch((e: Error) => e) })));
+  const out: RpcVetting = { ok: [], rejected: [], blocks: {} };
+  const heads = results.flatMap((x) => (x.r instanceof Error || x.r.chainId !== 42220 ? [] : [x.r.block]));
+  const top = heads.length ? Math.max(...heads) : 0;
+  for (const { url, r } of results) {
+    const name = redactRpc(url);
+    if (r instanceof Error) out.rejected.push({ rpc: name, reason: `unreachable: ${r.message}` });
+    else if (r.chainId !== 42220) out.rejected.push({ rpc: name, reason: `wrong chain ${r.chainId}` });
+    else if (top - r.block > maxLagBlocks) out.rejected.push({ rpc: name, reason: `${top - r.block} blocks behind` });
+    else {
+      out.ok.push(url);
+      out.blocks[name] = r.block;
+    }
+  }
+  return out;
+}
+
+/** Public client over an RPC failover list: the first healthy endpoint serves, the rest take over on failure. */
 export function makeClient(rpcUrls: readonly string[]): PublicClient {
   if (!rpcUrls.length) throw new Error('no RPC URLs configured');
   return createPublicClient({
     chain: celo,
-    transport: fallback(rpcUrls.map((u) => http(u, { timeout: 15_000, retryCount: 2, batch: { batchSize: 50, wait: 20 } })), { rank: false }),
+    transport: fallback(rpcUrls.map((u) => http(u, { timeout: 15_000, retryCount: 2 })), { rank: false }),
   }) as PublicClient;
 }
 
-export function viemUniV3Reader(client: PublicClient): UniV3Reader {
+export function viemUniV3Reader(client: PublicClient, reader: Reader = new DirectReader(client)): UniV3Reader {
   return {
     async getPool(a, b, fee) {
-      const pool = await client.readContract({ address: UNISWAP_V3.factory, abi: uniV3FactoryAbi, functionName: 'getPool', args: [a, b, fee] });
-      return pool === zeroAddress ? null : (pool.toLowerCase() as Address);
+      const pool = await reader.read<Address>({ address: UNISWAP_V3.factory, abi: uniV3FactoryAbi, functionName: 'getPool', args: [a, b, fee] });
+      return !pool || pool === zeroAddress ? null : (pool.toLowerCase() as Address);
     },
     async quoteExactInputSingle({ tokenIn, tokenOut, amountIn, fee }) {
-      try {
-        const { result } = await client.simulateContract({
-          address: UNISWAP_V3.quoterV2,
-          abi: quoterV2Abi,
-          functionName: 'quoteExactInputSingle',
-          args: [{ tokenIn, tokenOut, amountIn, fee, sqrtPriceLimitX96: 0n }],
-        });
-        return { amountOut: result[0], gasEstimate: result[3] };
-      } catch {
-        return null;
-      }
+      // QuoterV2 is not a view function, but it returns its result from a static call, so it batches like one.
+      const r = await reader.read<readonly [bigint, bigint, number, bigint]>({
+        address: UNISWAP_V3.quoterV2,
+        abi: quoterV2Abi,
+        functionName: 'quoteExactInputSingle',
+        args: [{ tokenIn, tokenOut, amountIn, fee, sqrtPriceLimitX96: 0n }],
+      });
+      return r ? { amountOut: r[0], gasEstimate: r[3] } : null;
     },
     blockNumber: () => client.getBlockNumber(),
   };
 }
 
-/** Mento's FPMM docs build routes with `factory: address(0)`, meaning the router's default factory. */
-export function viemMentoReader(client: PublicClient, factory: Address = zeroAddress): MentoReader {
-  const amountOut = async (tokenIn: Address, tokenOut: Address, amountIn: bigint) => {
-    try {
-      const amounts = await client.readContract({
-        address: MENTO.router,
-        abi: mentoRouterAbi,
-        functionName: 'getAmountsOut',
-        args: [amountIn, [{ from: tokenIn, to: tokenOut, factory }]],
-      });
-      const out = amounts[amounts.length - 1];
-      return out && out > 0n ? out : null;
-    } catch {
-      return null;
+/** Token decimals never change; cache them so tradability probes cost one read, not two. */
+function decimalsCache(reader: Reader) {
+  const cache = new Map<string, Promise<number | null>>();
+  return (token: Address) => {
+    const k = token.toLowerCase();
+    let p = cache.get(k);
+    if (!p) {
+      p = reader.read<number>({ address: token, abi: erc20Abi, functionName: 'decimals' }).then((d) => (d === null ? null : Number(d)));
+      cache.set(k, p);
+      void p.then((d) => d === null && cache.delete(k)); // retry failures next time
     }
+    return p;
+  };
+}
+
+/** Mento's FPMM docs build routes with `factory: address(0)`, meaning the router's default factory. */
+export function viemMentoReader(client: PublicClient, reader: Reader = new DirectReader(client), factory: Address = zeroAddress): MentoReader {
+  const decimals = decimalsCache(reader);
+  const amountOut = async (tokenIn: Address, tokenOut: Address, amountIn: bigint) => {
+    const amounts = await reader.read<readonly bigint[]>({
+      address: MENTO.router,
+      abi: mentoRouterAbi,
+      functionName: 'getAmountsOut',
+      args: [amountIn, [{ from: tokenIn, to: tokenOut, factory }]],
+    });
+    const out = amounts?.[amounts.length - 1];
+    return out && out > 0n ? out : null;
   };
   return {
     getAmountOut: amountOut,
     // Breakers, market hours and trading limits all make the router revert. A tiny probe is the cheapest
     // check that covers all three; the SDK's trading-status call can replace it once verified.
     async isTradable(tokenIn, tokenOut) {
-      const dec = await client.readContract({ address: tokenIn, abi: erc20Abi, functionName: 'decimals' }).catch(() => null);
+      const dec = await decimals(tokenIn);
       if (dec === null) return false;
       return (await amountOut(tokenIn, tokenOut, 10n ** BigInt(dec))) !== null;
     },
@@ -221,28 +294,25 @@ export async function discoverMentoV2Exchanges(client: PublicClient, manager: Ad
 }
 
 /** MentoReader over the v2 Broker for a known set of exchanges. A breaker or limit makes getAmountOut revert. */
-export function viemMentoV2Reader(client: PublicClient, exchanges: readonly MentoV2Exchange[], manager: Address = MENTO.biPoolManagerV2): MentoReader {
+export function viemMentoV2Reader(client: PublicClient, exchanges: readonly MentoV2Exchange[], manager: Address = MENTO.biPoolManagerV2, reader: Reader = new DirectReader(client)): MentoReader {
+  const decimals = decimalsCache(reader);
   const find = (i: Address, o: Address) =>
     exchanges.find((e) => e.assets.includes(i.toLowerCase() as Address) && e.assets.includes(o.toLowerCase() as Address));
   const amountOut = async (tokenIn: Address, tokenOut: Address, amountIn: bigint) => {
     const ex = find(tokenIn, tokenOut);
     if (!ex) return null;
-    try {
-      const out = await client.readContract({
-        address: MENTO.brokerV2,
-        abi: brokerAbi,
-        functionName: 'getAmountOut',
-        args: [manager, ex.exchangeId, tokenIn, tokenOut, amountIn],
-      });
-      return out > 0n ? out : null;
-    } catch {
-      return null;
-    }
+    const out = await reader.read<bigint>({
+      address: MENTO.brokerV2,
+      abi: brokerAbi,
+      functionName: 'getAmountOut',
+      args: [manager, ex.exchangeId, tokenIn, tokenOut, amountIn],
+    });
+    return out && out > 0n ? out : null;
   };
   return {
     getAmountOut: amountOut,
     async isTradable(tokenIn, tokenOut) {
-      const dec = await client.readContract({ address: tokenIn, abi: erc20Abi, functionName: 'decimals' }).catch(() => null);
+      const dec = await decimals(tokenIn);
       if (dec === null) return false;
       return (await amountOut(tokenIn, tokenOut, 10n ** BigInt(dec))) !== null;
     },

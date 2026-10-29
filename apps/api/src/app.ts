@@ -94,13 +94,14 @@ export function createApp(d: AppDeps) {
     const st = s();
     return c.json(
       json({
-        ok: st.updatedMs > 0 && now() - st.updatedMs < d.cfg.edgeMaxAgeMs * 2,
+        ok: st.updatedMs > 0 && now() - st.updatedMs < d.cfg.edgeMaxAgeMs * 2 && !st.rpc?.degraded,
         block: st.block,
         graphAgeMs: st.updatedMs ? now() - st.updatedMs : null,
         edges: st.graph.size(),
         venues: st.lastRefresh,
         executionEnabled: d.cfg.executionEnabled,
         serviceFeeBps: d.cfg.serviceFeeBps,
+        rpcDegraded: st.rpc?.degraded ?? false,
       }),
     );
   });
