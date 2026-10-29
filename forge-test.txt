@@ -1,7 +1,7 @@
 No files changed, compilation skipped
 
 Ran 14 tests for test/FisikaExecutor.t.sol:FisikaExecutorTest
-[PASS] testFuzz_feeNeverExceedsCap(uint96,uint16) (runs: 512, μ: 288418, ~: 290377)
+[PASS] testFuzz_feeNeverExceedsCap(uint96,uint16) (runs: 512, μ: 288702, ~: 290377)
 [PASS] test_badPatchOffset() (gas: 154660)
 [PASS] test_deadline() (gas: 48922)
 [PASS] test_feeCap() (gas: 48820)
@@ -15,27 +15,27 @@ Ran 14 tests for test/FisikaExecutor.t.sol:FisikaExecutorTest
 [PASS] test_reentrancyBlocked() (gas: 1305013)
 [PASS] test_singleLeg() (gas: 281130)
 [PASS] test_targetMustBeAllowlisted() (gas: 68110)
-Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 101.92ms (106.32ms CPU time)
+Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 101.10ms (104.81ms CPU time)
 
 Ran 5 tests for test/FisikaExecutor.fork.t.sol:FisikaExecutorForkTest
-[PASS] test_fork_crossVenueTwoHopAtomic() (gas: 929646)
+[PASS] test_fork_crossVenueTwoHopAtomic() (gas: 929590)
 Logs:
-  USDT->USDC->USDm out 99747356767154253282
+  USDT->USDC->USDm out 99748057331026272477
 
-[PASS] test_fork_mentoQuoteMatchesExecution() (gas: 818358)
+[PASS] test_fork_mentoQuoteMatchesExecution() (gas: 818302)
 Logs:
-  USDC->USDm mento quoted 99953224356200000000 executed 99953224356200000000
+  USDC->USDm mento quoted 99953738253400000000 executed 99953738253400000000
 
-[PASS] test_fork_mentoV3ThenV2BrokerAtomic() (gas: 1073145)
+[PASS] test_fork_mentoV3ThenV2BrokerAtomic() (gas: 1073089)
 Logs:
-  USDC->USDm->KESm out 6426399020173918690739
+  USDC->USDm->KESm out 6426432060713469281724
 
-[PASS] test_fork_slippageGuardRevertsWholeRoute() (gas: 962954)
+[PASS] test_fork_slippageGuardRevertsWholeRoute() (gas: 962898)
 [PASS] test_fork_uniswapSingleLeg() (gas: 637061)
 Logs:
-  USDT->USDC uni fee 100 out 99893930
+  USDT->USDC uni fee 100 out 99894118
 
-Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 17.72s (47.45s CPU time)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 17.64s (44.72s CPU time)
 
 ╭------------------------------------------------+-----------------+--------+--------+--------+---------╮
 | src/FisikaExecutor.sol:FisikaExecutor Contract |                 |        |        |        |         |
@@ -50,7 +50,7 @@ Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 17.72s (47.45s CPU 
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | acceptOwnership                                |           33065 |  33065 |  33065 |  33065 |       1 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
-| execute                                        |           31306 | 226901 | 226742 | 747223 |     274 |
+| execute                                        |           31306 | 227168 | 226742 | 747167 |     274 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | owner                                          |            2391 |   2391 |   2391 |   2391 |       2 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
@@ -142,4 +142,4 @@ Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 17.72s (47.45s CPU 
 ╰----------------------------------------+-----------------+--------+--------+--------+---------╯
 
 
-Ran 2 test suites in 17.73s (17.82s CPU time): 19 tests passed, 0 failed, 0 skipped (19 total tests)
+Ran 2 test suites in 17.65s (17.74s CPU time): 19 tests passed, 0 failed, 0 skipped (19 total tests)
