@@ -1,4 +1,4 @@
-import { curveCapacity, type TokenRegistry } from '@fisika/core';
+import { curveCapacity, curveOut, type TokenRegistry } from '@fisika/core';
 import type { GraphState } from '@fisika/core/setup';
 
 /** Where liquidity sits per corridor over time: direct-edge depth per venue, in USD of input, sampled every minute. */
@@ -25,7 +25,18 @@ export class Heatmap {
       const tin = tokens.bySymbol(a).address;
       const tout = tokens.bySymbol(b).address;
       const row: Record<string, number> = {};
-      for (const e of st.graph.between(tin, tout, nowMs, 60_000)) {
+      const edges = st.graph.between(tin, tout, nowMs, 60_000);
+      // Depth only counts at a real price: a pool paying >20% less than the best venue is dust or broken
+      // (same rule as the board's venue spread), however much it could technically absorb.
+      const probe = st.pricer.amountForUsd(tin, 10, nowMs);
+      const outAt = (pts: (typeof edges)[number]['points']) => (probe ? curveOut(pts, probe) : null);
+      const best = edges.reduce((m, e) => {
+        const o = outAt(e.points);
+        return o !== null && o > m ? o : m;
+      }, 0n);
+      for (const e of edges) {
+        const o = outAt(e.points);
+        if (best > 0n && o !== null && o * 10n < best * 8n) continue;
         const usd = st.pricer.usdValue(tin, curveCapacity(e.points), nowMs);
         if (usd !== null) row[e.venue] = Math.max(row[e.venue] ?? 0, Math.round(usd));
       }
