@@ -1,7 +1,7 @@
 No files changed, compilation skipped
 
 Ran 14 tests for test/FisikaExecutor.t.sol:FisikaExecutorTest
-[PASS] testFuzz_feeNeverExceedsCap(uint96,uint16) (runs: 512, μ: 288751, ~: 290377)
+[PASS] testFuzz_feeNeverExceedsCap(uint96,uint16) (runs: 512, μ: 288357, ~: 290377)
 [PASS] test_badPatchOffset() (gas: 154660)
 [PASS] test_deadline() (gas: 48922)
 [PASS] test_feeCap() (gas: 48820)
@@ -15,27 +15,27 @@ Ran 14 tests for test/FisikaExecutor.t.sol:FisikaExecutorTest
 [PASS] test_reentrancyBlocked() (gas: 1305013)
 [PASS] test_singleLeg() (gas: 281130)
 [PASS] test_targetMustBeAllowlisted() (gas: 68110)
-Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 85.23ms (89.21ms CPU time)
+Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 66.81ms (69.90ms CPU time)
 
 Ran 5 tests for test/FisikaExecutor.fork.t.sol:FisikaExecutorForkTest
 [PASS] test_fork_crossVenueTwoHopAtomic() (gas: 929646)
 Logs:
-  USDT->USDC->USDm out 99746011628044927385
+  USDT->USDC->USDm out 99745933803439633470
 
 [PASS] test_fork_mentoQuoteMatchesExecution() (gas: 818358)
 Logs:
-  USDC->USDm mento quoted 99950816837800000000 executed 99950816837800000000
+  USDC->USDm mento quoted 99950738853400000000 executed 99950738853400000000
 
 [PASS] test_fork_mentoV3ThenV2BrokerAtomic() (gas: 1073145)
 Logs:
-  USDC->USDm->KESm out 6427877011165652667477
+  USDC->USDm->KESm out 6427871995957694907477
 
 [PASS] test_fork_slippageGuardRevertsWholeRoute() (gas: 962954)
 [PASS] test_fork_uniswapSingleLeg() (gas: 637061)
 Logs:
   USDT->USDC uni fee 100 out 99894989
 
-Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 18.88s (48.34s CPU time)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 18.39s (46.40s CPU time)
 
 ╭------------------------------------------------+-----------------+--------+--------+--------+---------╮
 | src/FisikaExecutor.sol:FisikaExecutor Contract |                 |        |        |        |         |
@@ -50,7 +50,7 @@ Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 18.88s (48.34s CPU 
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | acceptOwnership                                |           33065 |  33065 |  33065 |  33065 |       1 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
-| execute                                        |           31306 | 227701 | 226742 | 747223 |     274 |
+| execute                                        |           31306 | 227168 | 226742 | 747223 |     274 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | owner                                          |            2391 |   2391 |   2391 |   2391 |       2 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
@@ -110,7 +110,7 @@ Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 18.88s (48.34s CPU 
 |----------------------------------+-----------------+-------+--------+-------+---------|
 | allowance                        |            2732 |  2732 |   2732 |  2732 |       1 |
 |----------------------------------+-----------------+-------+--------+-------+---------|
-| approve                          |           24267 | 34378 |  44356 | 44380 |     525 |
+| approve                          |           24267 | 34379 |  44356 | 44380 |     525 |
 |----------------------------------+-----------------+-------+--------+-------+---------|
 | balanceOf                        |             529 |   555 |    529 |  2529 |     530 |
 |----------------------------------+-----------------+-------+--------+-------+---------|
@@ -142,4 +142,4 @@ Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 18.88s (48.34s CPU 
 ╰----------------------------------------+-----------------+--------+--------+--------+---------╯
 
 
-Ran 2 test suites in 18.89s (18.97s CPU time): 19 tests passed, 0 failed, 0 skipped (19 total tests)
+Ran 2 test suites in 18.40s (18.46s CPU time): 19 tests passed, 0 failed, 0 skipped (19 total tests)
