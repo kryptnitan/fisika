@@ -4,6 +4,9 @@ import { api, fmtUsd, usePoll, VENUE_LABEL, ago } from '@/lib/api';
 
 type ArbStatus = {
   mode: string;
+  wallet?: string;
+  balances?: Record<string, number | null>;
+  lastSkip?: Record<string, number>;
   killed: boolean;
   halted: boolean;
   haltReason: string | null;
@@ -13,7 +16,7 @@ type ArbStatus = {
   realizedUsd: number;
   todayUsd: number;
   limits: { maxTradeUsd: number; minEdgeBps: number; minEdgeUsd: number; dailyLossLimitUsd: number; maxTokenExposureUsd: number };
-  events: { atMs: number; action: string; reason?: string; path: string; venues: string[]; sizeUsd: number; netBps: number; netUsd: number; txCount: number; indicativeLegs: number }[];
+  events: { atMs: number; action: string; reason?: string; path: string; venues: string[]; sizeUsd: number; netBps: number; netUsd: number; txCount: number; indicativeLegs: number; txs?: string[] }[];
   equity: { atMs: number; equityUsd: number; baselineUsd: number }[];
 };
 
@@ -34,19 +37,24 @@ export default function ArbPage() {
     <>
       <h1>Arbitrage engine</h1>
       <p className="lede">
-        Scans every venue for loops that end with more dollars than they started with, re-quotes each leg live, then applies the risk limits. This deployment runs in paper mode: nothing is signed or sent.
+        Scans every venue for loops that end with more dollars than they started with, re-quotes each leg live, then applies the risk limits.{' '}
+        {data?.mode === 'LIVE' ? 'This engine trades real money from its own wallet. Profit and loss are measured from the wallet balance.' : 'This deployment runs in paper mode: nothing is signed or sent.'}
       </p>
       {error && !data ? <p className="err">{error}</p> : null}
       {data ? (
         <>
           <div className="stats">
             <div className="stat"><b>{data.mode === 'PAPER' ? 'Paper' : 'Live'}</b><span>{data.killed ? 'Kill switch on' : data.halted ? `Halted: ${data.haltReason}` : 'Running'}</span></div>
-            <div className="stat"><b className="num">{data.detected}</b><span>Cycles evaluated</span></div>
-            <div className="stat"><b className="num">{data.filled}</b><span>Paper fills</span></div>
+            {data.mode === 'LIVE' ? (
+              <div className="stat"><b className="num">{data.balances ? Object.entries(data.balances).map(([k, v]) => `${v === null ? '—' : v.toFixed(k === 'CELO' ? 2 : 2)} ${k}`).join(' · ') : '—'}</b><span>Wallet <a href={`https://celoscan.io/address/${data.wallet}`} target="_blank" rel="noreferrer">{data.wallet?.slice(0, 8)}…</a></span></div>
+            ) : (
+              <div className="stat"><b className="num">{data.detected}</b><span>Cycles evaluated</span></div>
+            )}
+            <div className="stat"><b className="num">{data.filled}</b><span>{data.mode === 'LIVE' ? 'Trades' : 'Paper fills'}</span></div>
             <div className="stat"><b className="num">{data.winRate === null ? '—' : `${Math.round(data.winRate * 100)}%`}</b><span>Win rate</span></div>
-            <div className="stat"><b className={`num ${data.realizedUsd >= 0 ? 'ok' : ''}`}>{fmtUsd(data.realizedUsd, 4)}</b><span>P&amp;L since start</span></div>
+            <div className="stat"><b className={`num ${data.realizedUsd >= 0 ? 'ok' : ''}`}>{fmtUsd(data.realizedUsd, 4)}</b><span>{data.mode === 'LIVE' ? 'Realized P&L' : 'P&L since start'}</span></div>
           </div>
-          <Equity points={data.equity} />
+          <Equity points={data.equity} live={data.mode === 'LIVE'} />
           <KillSwitch killed={data.killed} onChange={reload} />
           <h2>Recent decisions</h2>
           <div className="scroll">
@@ -78,7 +86,8 @@ export default function ArbPage() {
                       <td>{e.netBps.toFixed(1)} bps</td>
                       <td>{fmtUsd(e.netUsd, 4)}</td>
                       <td style={{ textAlign: 'left' }} className={e.action === 'filled' ? 'ok' : 'muted'}>
-                        {e.action === 'filled' ? 'Paper fill' : `Skipped: ${REASON[e.reason ?? ''] ?? e.reason}`}
+                        {e.action === 'filled' ? (data.mode === 'LIVE' ? 'Traded' : 'Paper fill') : `${data.mode === 'LIVE' ? 'Not traded' : 'Skipped'}: ${REASON[e.reason ?? ''] ?? e.reason}`}
+                        {e.txs?.length ? <> · <a href={`https://celoscan.io/tx/${e.txs.at(-1)}`} target="_blank" rel="noreferrer">tx</a></> : null}
                       </td>
                     </tr>
                   ))
@@ -99,8 +108,8 @@ export default function ArbPage() {
   );
 }
 
-function Equity({ points }: { points: ArbStatus['equity'] }) {
-  if (points.length < 2) return <p className="muted">The equity curve appears after the first minute of running.</p>;
+function Equity({ points, live }: { points: ArbStatus['equity']; live?: boolean }) {
+  if (points.length < 2) return <p className="muted">{live ? 'The profit curve appears after the second trade.' : 'The equity curve appears after the first minute of running.'}</p>;
   const W = 760, H = 140, pad = 6;
   const ys = points.flatMap((p) => [p.equityUsd, p.baselineUsd]);
   const lo = Math.min(...ys), hi = Math.max(...ys), span = hi - lo || 1;
@@ -114,7 +123,7 @@ function Equity({ points }: { points: ArbStatus['equity'] }) {
         <path d={line('baselineUsd')} fill="none" stroke="var(--dim)" strokeDasharray="4 4" />
         <path d={line('equityUsd')} fill="none" stroke="var(--amber)" strokeWidth="2" />
       </svg>
-      <figcaption className="muted">Paper equity (amber) against simply holding the starting dollars (dashed).</figcaption>
+      <figcaption className="muted">{live ? 'Cumulative realized profit after gas (amber) against zero (dashed).' : 'Paper equity (amber) against simply holding the starting dollars (dashed).'}</figcaption>
     </figure>
   );
 }

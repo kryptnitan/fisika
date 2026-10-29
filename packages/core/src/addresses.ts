@@ -39,6 +39,8 @@ export const TEXTILE = {
   apiBase: 'https://api.textilecredit.com',
   reactor: '0xa9AA0a64769cBed4d3B1Ceb4Df01CdE915C235b3',
   feeController: '0x7b005466F905DD882A959888154587fA76cd3Ea7',
+  // Spender for single vault-order quotes (aggregator docs: read `spender` per quote). Address book, Celo section.
+  vaultOrderExecutor: '0x01b006d5c687bde182aa36F542f1f014144742e2',
   takerFeeBps: 1,
 } as const;
 

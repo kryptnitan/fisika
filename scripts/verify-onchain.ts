@@ -36,6 +36,7 @@ async function main() {
     permit2: PERMIT2,
     'textile.reactor': TEXTILE.reactor,
     'textile.feeController': TEXTILE.feeController,
+    'textile.vaultOrderExecutor': TEXTILE.vaultOrderExecutor,
     'erc8004.identity': ERC8004.identityRegistry,
     'erc8004.reputation': ERC8004.reputationRegistry,
     'feeAdapter.USDC': FEE_CURRENCY_ADAPTERS.USDC,

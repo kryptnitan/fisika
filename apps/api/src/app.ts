@@ -2,6 +2,8 @@ import { buildClientTxs, routeIdFor } from '@fisika/core/build';
 import type { GraphState } from '@fisika/core/setup';
 import { bestRoute, curveOut, SAMPLE_USD, type TokenRegistry } from '@fisika/core';
 import { Hono, type MiddlewareHandler } from 'hono';
+import { existsSync } from 'node:fs';
+import { readFile, unlink, writeFile } from 'node:fs/promises';
 import type { Hex } from 'viem';
 import type { ApiConfig } from './config.ts';
 import { QuoteBook, QuoteError, quoteView, type QuoteRequest } from './quotes.ts';
@@ -48,6 +50,47 @@ export function decodeSettlement(header: string | null | undefined): { payer?: s
   } catch {
     return null;
   }
+}
+
+/** Map the live trader's status file onto the shape the dashboard's arb panel reads. */
+function liveView(s: any, killFile: string | null) {
+  const recent: any[] = s.recent ?? [];
+  let equity = 0;
+  const eq = recent
+    .filter((r) => r.status === 'completed')
+    .slice()
+    .reverse()
+    .map((r) => ({ atMs: Date.parse(r.at), equityUsd: (equity += r.realizedUsd), baselineUsd: 0 }));
+  return {
+    mode: 'LIVE',
+    wallet: s.wallet,
+    balances: s.balances,
+    killed: killFile ? existsSync(killFile) : s.killed,
+    halted: s.halted,
+    haltReason: s.haltReason,
+    detected: recent.length,
+    filled: s.trades,
+    winRate: s.trades ? s.wins / s.trades : null,
+    realizedUsd: s.realizedUsd,
+    todayUsd: s.todayUsd,
+    limits: s.limits,
+    lastSkip: s.lastSkip,
+    updatedAt: s.updatedAt,
+    events: recent.map((r) => ({
+      atMs: Date.parse(r.at),
+      action: r.status === 'completed' ? 'filled' : 'skipped',
+      reason: r.status === 'completed' ? undefined : r.note ?? r.status,
+      path: r.path,
+      venues: r.venues,
+      sizeUsd: 0,
+      netBps: r.expectedNetBps,
+      netUsd: r.realizedUsd,
+      txCount: r.txs.length,
+      indicativeLegs: 0,
+      txs: r.txs,
+    })),
+    equity: eq,
+  };
 }
 
 function timingSafeEqualStr(a: string, b: string): boolean {
@@ -259,7 +302,14 @@ export function createApp(d: AppDeps) {
     }),
   );
 
-  app.get('/v1/arb', (c) => (d.arb ? c.json(json(d.arb.status())) : c.json({ error: 'arb engine not running' }, 404)));
+  app.get('/v1/arb', async (c) => {
+    if (d.cfg.live.statusFile) {
+      const raw = await readFile(d.cfg.live.statusFile, 'utf8').catch(() => null);
+      if (!raw) return c.json({ error: 'live trader has not written a status yet' }, 503);
+      return c.json(liveView(JSON.parse(raw), d.cfg.live.killFile));
+    }
+    return d.arb ? c.json(json(d.arb.status())) : c.json({ error: 'arb engine not running' }, 404);
+  });
   app.get('/v1/heatmap', (c) => c.json(d.heatmap ? { samples: d.heatmap.samples.slice(-Number(c.req.query('limit') ?? 240)) } : { samples: [] }));
 
   // ---- admin (kill switch). Constant-time-ish bearer check; disabled entirely without ADMIN_TOKEN.
@@ -269,9 +319,16 @@ export function createApp(d: AppDeps) {
     if (!want || auth.length !== want.length || !timingSafeEqualStr(auth, want)) return c.json({ error: 'unauthorized' }, 401);
     return next();
   });
-  app.get('/v1/admin/state', (c) => c.json({ arbKilled: d.arb?.killed ?? null, executionEnabled: d.cfg.executionEnabled }));
+  app.get('/v1/admin/state', (c) => c.json({ arbKilled: d.cfg.live.killFile ? existsSync(d.cfg.live.killFile) : (d.arb?.killed ?? null), executionEnabled: d.cfg.executionEnabled }));
   app.post('/v1/admin/kill', async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as { on?: boolean; clearHalt?: boolean };
+    if (d.cfg.live.killFile) {
+      // LIVE: the trader stops starting new cycles as soon as this file exists.
+      if (body.on !== false) await writeFile(d.cfg.live.killFile, `stopped from dashboard ${new Date().toISOString()}\n`);
+      else await unlink(d.cfg.live.killFile).catch(() => undefined);
+      console.warn(`[admin] LIVE kill switch ${body.on !== false ? 'ON' : 'off'}`);
+      return c.json({ arbKilled: body.on !== false, note: 'Live trader stops starting new cycles; a cycle in progress finishes first.' });
+    }
     if (!d.arb) return c.json({ error: 'arb engine not running' }, 404);
     d.arb.killed = body.on !== false;
     if (body.clearHalt) d.arb.clearHalt();

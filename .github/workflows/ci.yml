@@ -131,6 +131,31 @@ jobs:
           for f in web-build.txt shot-rates.png shot-rates-mobile.png shot-arb.png shot-agents.png quote-sample.json x402-unpaid-status.txt api.log web.log; do test -f "$f" && cp "$f" /tmp/ && files="$files /tmp/$f"; done
           test -n "$files" && bash .github/publish.sh verification "web build + screenshots for ${GITHUB_SHA}" $files || true
 
+  live-fork:
+    runs-on: ubuntu-latest
+    needs: core
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: pnpm install --no-frozen-lockfile
+      - name: Live trader end-to-end on an anvil fork of Celo
+        shell: bash
+        env:
+          FORK_UPSTREAM: ${{ secrets.CELO_RPC_URL || 'https://forno.celo.org' }}
+        run: |
+          anvil --fork-url "$FORK_UPSTREAM" --port 8545 --silent &
+          for i in $(seq 1 30); do curl -sf -X POST localhost:8545 -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' >/dev/null && break; sleep 1; done
+          cd apps/api && node test-fork/live-fork.ts 2>&1 | tee ../../live-fork.txt; exit ${PIPESTATUS[0]}
+      - name: Publish
+        if: always() && github.ref == 'refs/heads/main'
+        shell: bash
+        run: test -f live-fork.txt && cp live-fork.txt /tmp/ && bash .github/publish.sh verification "live fork test for ${GITHUB_SHA}" /tmp/live-fork.txt || true
+
   contracts:
     runs-on: ubuntu-latest
     defaults:

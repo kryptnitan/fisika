@@ -2,6 +2,8 @@ import type { Address } from '@fisika/core';
 
 export interface ApiConfig {
   port: number;
+  /** Bind address. 127.0.0.1 on the VPS so the API (and its admin routes) is only reachable through SSH or a proxy. */
+  host: string;
   publicUrl: string;
   webUrl: string;
   rpcUrls: string[];
@@ -15,6 +17,8 @@ export interface ApiConfig {
   /** Bearer token for /v1/admin/* (kill switch). */
   adminToken: string | null;
   arbPaper: boolean;
+  /** Set on the VPS: the live trader's status file and kill file, so the dashboard shows LIVE and its Stop button works. */
+  live: { statusFile: string | null; killFile: string | null };
   arb: { maxTradeUsd: number; minEdgeBps: number; minEdgeUsd: number; slippageBps: number; dailyLossLimitUsd: number; maxTokenExposureUsd: number };
   freeTierDailyLimit: number;
   /** Building client transactions is off until legal scope is settled and an executor is deployed. */
@@ -52,6 +56,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
   const publicUrl = (env.PUBLIC_URL ?? `http://localhost:${num('PORT', 8787)}`).replace(/\/$/, '');
   return {
     port: num('PORT', 8787),
+    host: env.HOST || '0.0.0.0',
     publicUrl,
     webUrl: (env.WEB_URL ?? publicUrl).replace(/\/$/, ''),
     rpcUrls: (env.CELO_RPC_URLS || 'https://forno.celo.org,https://celo-rpc.publicnode.com').split(',').map((s) => s.trim()).filter(Boolean),
@@ -69,6 +74,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     internalKeys: new Set((env.INTERNAL_API_KEYS ?? '').split(',').map((s) => s.trim()).filter((s) => s.length >= 24)),
     adminToken: env.ADMIN_TOKEN && env.ADMIN_TOKEN.length >= 24 ? env.ADMIN_TOKEN : null,
     arbPaper: env.ARB_PAPER !== 'false',
+    live: { statusFile: env.LIVE_STATUS_FILE || null, killFile: env.KILL_FILE || null },
     arb: {
       maxTradeUsd: num('MAX_TRADE_USD', 1_000),
       minEdgeBps: num('MIN_EDGE_BPS', 5),

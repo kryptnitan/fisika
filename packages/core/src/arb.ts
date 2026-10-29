@@ -267,7 +267,8 @@ export interface ArbFill {
 
 export interface ArbDecision {
   opportunity: Opportunity;
-  action: 'filled' | 'skipped';
+  /** PAPER: filled | skipped. LIVE: ready (confirmed, passed every gate, caller executes) | skipped. */
+  action: 'filled' | 'skipped' | 'ready';
   reason?: string;
   fill?: ArbFill;
 }
@@ -360,7 +361,12 @@ export class ArbEngine {
         out.push({ opportunity: realized, action: 'skipped', reason: `after_requote: ${post.reason}` });
         continue;
       }
-      if (this.mode === 'LIVE') throw new Error('LIVE execution is wired in services/arb, not in core');
+      if (this.mode === 'LIVE') {
+        // LIVE: hand the confirmed opportunity to the caller's executor; P&L is recorded from real balances.
+        out.push({ opportunity: realized, action: 'ready' });
+        this.consumed.set(fp, nowMs);
+        continue;
+      }
       const minOut = o.amountIn + o.gasInStart + (o.amountIn * BigInt(Math.ceil(this.cfg.minEdgeBps))) / 10_000n;
       const fill: ArbFill = {
         opportunity: realized,

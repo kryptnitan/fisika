@@ -42,7 +42,7 @@ const { app } = createApp({
   getTxReceipt: async (hash) => client.getTransactionReceipt({ hash }).catch(() => null),
 });
 
-serve({ fetch: app.fetch, port: cfg.port });
+serve({ fetch: app.fetch, port: cfg.port, hostname: cfg.host });
 console.log(
   `fisika api on :${cfg.port} · rpc ${vetting.ok.map(redactRpc).join(', ')} · ${venues.uniswapPools} uniswap pools · mento v2: ${venues.mentoV2Pairs.join(', ')} · x402 ${server ? 'on' : 'OFF'} · execution ${cfg.executionEnabled ? 'on' : 'off'}`,
 );
