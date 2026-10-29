@@ -1,9 +1,9 @@
 PASS funded test wallet with 300 USDT on the BNB Chain fork
-PASS graph built from PancakeSwap + Uniswap on the fork (BNB $752.82)
-[live] completed USDT→WBNB→USDT pancake-v3,uniswap-v3 realized $-0.2743
-PASS 2-leg cycle USDT→WBNB (PancakeSwap)→USDT (Uniswap) completed in 4 txs, cost 0.0110 USDT
+PASS graph built from PancakeSwap + Uniswap on the fork (BNB $752.41)
+[live] completed USDT→WBNB→USDT pancake-v3,uniswap-v3 realized $-0.2738
+PASS 2-leg cycle USDT→WBNB (PancakeSwap)→USDT (Uniswap) completed in 4 txs, cost 0.0105 USDT
 PASS impossible minimum output reverts and moves no funds
 PASS a Celo-only venue is refused on BNB Chain
-PASS dashboard swap 25 USDT → 0.033208414088287808 WBNB via pancake-v3 (direct router build, receipt verified)
+PASS dashboard swap 25 USDT → 0.033226365830342849 WBNB via pancake-v3 (direct router build, receipt verified)
 
 6 checks passed
