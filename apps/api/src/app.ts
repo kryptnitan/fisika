@@ -100,6 +100,7 @@ export function createApp(d: AppDeps) {
         edges: st.graph.size(),
         venues: st.lastRefresh,
         executionEnabled: d.cfg.executionEnabled,
+        serviceFeeBps: d.cfg.serviceFeeBps,
       }),
     );
   });

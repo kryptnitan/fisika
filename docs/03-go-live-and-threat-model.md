@@ -61,7 +61,7 @@ Work top to bottom. Each stage needs every item ticked before moving on. **LIVE 
   - `OWNER` = hardware wallet or Safe, which then calls `acceptOwnership`
   - `GUARDIAN` = the hot pause key
 - [ ] Verify the contract on Celoscan. Confirm the allowlist holds exactly SwapRouter02, the Mento Router and the Mento Broker, and **never a token**.
-- [ ] Set `EXECUTOR_ADDRESS`, `FEE_TO`, `SERVICE_FEE_BPS` (the contract caps it at 100 = 1%), then `EXECUTION_ENABLED=true`.
+- [ ] Set `EXECUTOR_ADDRESS`, then `EXECUTION_ENABLED=true`. Swaps carry **no fisika fee** (`SERVICE_FEE_BPS=0`) until the legal review clears one; switching it on later needs only `FEE_TO` and the new value (the contract caps it at 100 = 1%).
 - [ ] **Smoke test from a fresh wallet with $5:** quote, build, sign both transactions, then post the receipt. Confirm:
   - `realizedOut ≥ minOut`
   - the fee arrived at `FEE_TO`

@@ -43,7 +43,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     if (!isAddr(v)) throw new Error(`${k} is not an address`);
     return v.toLowerCase() as Address;
   };
-  const feeBps = num('SERVICE_FEE_BPS', 10);
+  const feeBps = num('SERVICE_FEE_BPS', 0); // no cut of swaps until the legal review clears it
   if (feeBps < 0 || feeBps > 100) throw new Error('SERVICE_FEE_BPS must be 0..100 (the executor caps it at 100)');
   const executionEnabled = env.EXECUTION_ENABLED === 'true';
   const executor = addr('EXECUTOR_ADDRESS');

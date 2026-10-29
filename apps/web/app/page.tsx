@@ -241,7 +241,7 @@ function Ticket({ initial, tokens }: { initial: { from: string; to: string }; to
               {Number(quote.minOut).toLocaleString('en-US', { maximumFractionDigits: 6 })} {quote.tokenOut.symbol}
             </dd>
             <dt>fisika fee</dt>
-            <dd>{quote.serviceFeeBps / 100}%</dd>
+            <dd>{quote.serviceFeeBps ? `${quote.serviceFeeBps / 100}%` : 'None'}</dd>
             <dt>Network gas</dt>
             <dd>{quote.gasUsd < 0.01 ? '< $0.01' : `$${quote.gasUsd.toFixed(2)}`}</dd>
             <dt>Transactions</dt>

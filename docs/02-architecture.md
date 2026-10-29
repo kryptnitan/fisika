@@ -214,7 +214,7 @@ Every one of these is enforced in code, and the code refuses to start if a value
 |---|---|---|
 | `GET /v1/pairs`, `/v1/board` | free | Public FX board |
 | `POST /v1/quote` | **$0.001** via x402 (USDC/USDT, Celo) | Best route at size, with the route breakdown |
-| `POST /v1/build` | **$0.001** via x402 | Returns unsigned transaction(s) for the client's wallet. Includes the FisikaExecutor fee (default **10 bps**, paid in-swap) |
+| `POST /v1/build` | **$0.001** via x402 | Returns unsigned transaction(s) for the client's wallet. Can include a FisikaExecutor fee paid in-swap (`SERVICE_FEE_BPS`, **0 by default**; the contract caps it at 100 bps) |
 | `GET /v1/receipts/:id` | free | Public, verifiable receipt |
 | `/.well-known/agent-registration.json` | free | ERC-8004 registration file |
 

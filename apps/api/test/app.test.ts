@@ -157,4 +157,17 @@ describe('api', () => {
     // No arb runner in this test app: authorized but 404.
     assert.equal((await post(app, '/v1/admin/kill', { on: true }, { authorization: `Bearer ${admin}` })).status, 404);
   });
+
+  it('charges no swap fee by default', async () => {
+    const env = { EXECUTION_ENABLED: 'true', EXECUTOR_ADDRESS: EXECUTOR };
+    const { app } = mk(env);
+    const h = { 'payment-signature': 'x' };
+    const q = await (await post(app, '/v1/quote', { tokenIn: 'USDT', tokenOut: 'USDm', amount: '100' }, h)).json();
+    assert.equal(q.serviceFeeBps, 0);
+    assert.equal(q.serviceFee, '0');
+    const built = await (await post(app, '/v1/build', { quoteId: q.quoteId, taker: TAKER }, h)).json();
+    const [, , , , , , , , feeBps] = decodeFunctionData({ abi: fisikaExecutorAbi, data: built.txs[1].data }).args as unknown as any[];
+    assert.equal(feeBps, 0);
+  });
 });
+

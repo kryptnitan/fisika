@@ -5,7 +5,7 @@ type Stats = { uptimeSec: number; calls: Record<string, number>; paidCalls: numb
 
 export default function AgentsPage() {
   const stats = usePoll<Stats>('v1/stats', 10_000);
-  const health = usePoll<{ executionEnabled: boolean }>('health', 30_000);
+  const health = usePoll<{ executionEnabled: boolean; serviceFeeBps?: number }>('health', 30_000);
   const s = stats.data;
   const served = s ? Object.entries(s.calls).filter(([k]) => k.includes('/v1/')).reduce((a, [, n]) => a + n, 0) : 0;
   return (
@@ -58,7 +58,7 @@ const quote = await pay('<API>/v1/quote', {
 // quote.quoteId, quote.amountOut, quote.minOut, quote.paths …`}</pre>
       <dl className="kv" style={{ maxWidth: 560 }}>
         <dt>Quote</dt><dd>POST /v1/quote · 0.001 USDC</dd>
-        <dt>Swap transactions</dt><dd>POST /v1/build · 0.001 USDC + 0.1% in-swap</dd>
+        <dt>Swap transactions</dt><dd>POST /v1/build · 0.001 USDC{health.data?.serviceFeeBps ? ` + ${health.data.serviceFeeBps / 100}% of the swap` : ', no cut of the swap'}</dd>
         <dt>Free</dt><dd>/v1/board, /v1/pairs, /v1/receipts</dd>
         <dt>Registration file</dt><dd>/.well-known/agent-registration.json</dd>
         <dt>Spec</dt><dd>/openapi.json</dd>
