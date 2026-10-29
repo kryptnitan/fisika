@@ -45,9 +45,10 @@ ARB_PRIVATE_KEY=$KEY
 # Paste your Textile live key (app.textilecredit.com -> profile -> API keys):
 TEXTILE_API_KEY=
 # Limits for the \$100 test. All required; the trader refuses to start without them.
-MAX_TRADE_USD=40
+# A trade can use the whole wallet (it never spends more than 98% of the USDT it actually holds).
+MAX_TRADE_USD=100
 DAILY_LOSS_LIMIT_USD=4
-MAX_TOKEN_EXPOSURE_USD=45
+MAX_TOKEN_EXPOSURE_USD=105
 MIN_EDGE_BPS=5
 MIN_EDGE_USD=0.05
 SLIPPAGE_BPS=30

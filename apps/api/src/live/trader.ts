@@ -46,6 +46,12 @@ export interface LedgerEntry {
   note?: string;
 }
 
+/** The configured sizes that fit, plus the cap itself, so a wallet sized for one full trade can make it. */
+export function sizesUpTo(sizes: readonly number[], maxTrade: number): number[] {
+  const cap = Math.floor(maxTrade);
+  return [...new Set([...sizes.filter((x) => x <= maxTrade), ...(cap >= Math.min(...sizes) ? [cap] : [])])].sort((a, b) => a - b);
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export class LiveTrader {
@@ -129,7 +135,7 @@ export class LiveTrader {
         return;
       }
 
-      this.engine = new ArbEngine(st.graph, st.pricer, this.adapters, this.risk, { ...cfg, maxTradeUsd: maxTrade, sizesUsd: this.cfg.sizesUsd.filter((s) => s <= maxTrade) }, 'LIVE');
+      this.engine = new ArbEngine(st.graph, st.pricer, this.adapters, this.risk, { ...cfg, maxTradeUsd: maxTrade, sizesUsd: sizesUpTo(this.cfg.sizesUsd, maxTrade) }, 'LIVE');
       const decisions = await this.engine.tick(nowMs);
       this.lastSkip = {};
       for (const d of decisions) if (d.action === 'skipped') this.lastSkip[d.reason ?? 'unknown'] = (this.lastSkip[d.reason ?? 'unknown'] ?? 0) + 1;

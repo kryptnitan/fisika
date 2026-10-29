@@ -60,9 +60,9 @@ Limits for the $100 test are in `/etc/fisika/live.env`:
 
 | Limit | Value |
 |---|---|
-| Largest trade | $40 |
+| Largest trade | $100 (up to 98% of the USDT the wallet holds) |
 | Daily loss before halting | $4 |
-| Most held of one token between transactions | $45 |
+| Most held of one token between transactions | $105 |
 | Minimum edge | 5 bps and $0.05 |
 | Slippage | 0.3% per leg |
 
