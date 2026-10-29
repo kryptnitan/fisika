@@ -84,7 +84,7 @@ export class QuoteBook {
       nowMs: now,
       maxAgeMs: opts.maxAgeMs,
       gasPriceWei: state.gasPriceWei,
-      celoUsd: state.celoUsd,
+      nativeUsd: state.nativeUsd,
       feeBps: opts.feeBps,
       slippageBps,
     });

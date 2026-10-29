@@ -29,7 +29,7 @@ const LABEL: Record<string, string> = { 'uniswap-v3': 'Uniswap', mento: 'Mento',
 
 const [file, outFile] = process.argv.slice(2);
 if (!file) throw new Error('usage: fee-headroom.ts <graph-snapshot.json> [out.md]');
-const snap = JSON.parse(await readFile(file, 'utf8')) as { now: number; gasPrice: string; celoUsd: number; edges: EdgeSnapshot[] };
+const snap = JSON.parse(await readFile(file, 'utf8')) as { now: number; gasPrice: string; nativeUsd: number; edges: EdgeSnapshot[] };
 const tokens = new TokenRegistry();
 const full = PriceGraph.fromSnapshot(snap.edges);
 const pricer = new Pricer(tokens, full, 600_000);
@@ -48,7 +48,7 @@ for (const [a, b] of CORRIDORS) {
       cells.push({ usd, gainBps: null, fisikaVenues: '—', baselineVenue: null, onlyFisika: false });
       continue;
     }
-    const req: RouteRequest = { tokenIn: tin, tokenOut: tout, amountIn, nowMs: snap.now, maxAgeMs: 600_000, gasPriceWei: BigInt(snap.gasPrice), celoUsd: snap.celoUsd };
+    const req: RouteRequest = { tokenIn: tin, tokenOut: tout, amountIn, nowMs: snap.now, maxAgeMs: 600_000, gasPriceWei: BigInt(snap.gasPrice), nativeUsd: snap.nativeUsd ?? (snap as { celoUsd?: number }).celoUsd ?? 0.08 };
     const fisika = bestRoute(full, pricer, req);
     let base: { v: string; net: bigint } | null = null;
     for (const [v, g] of perApp) {

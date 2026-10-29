@@ -9,7 +9,7 @@
  *   against the live USDC/USDm FPMM before any adapter is enabled. If that check fails, Mento stays off.
  */
 import { createPublicClient, fallback, http, zeroAddress, type PublicClient } from 'viem';
-import { celo } from 'viem/chains';
+import { celo, type Chain } from 'viem/chains';
 import { MENTO, UNISWAP_V3 } from '../addresses.ts';
 import type { MentoReader } from '../adapters/mento.ts';
 import type { UniV3Reader } from '../adapters/uniswapV3.ts';
@@ -123,10 +123,10 @@ export interface RpcVetting {
 }
 
 /**
- * Check every configured RPC before use: it must answer, report Celo mainnet (chain 42220), and be within
+ * Check every configured RPC before use: it must answer, report the expected chain (default Celo, 42220), and be within
  * `maxLagBlocks` of the highest block any of them reports. A lying or stale endpoint is dropped, not trusted.
  */
-export async function vetRpcs(urls: readonly string[], maxLagBlocks = 20, fetchImpl: typeof fetch = fetch): Promise<RpcVetting> {
+export async function vetRpcs(urls: readonly string[], maxLagBlocks = 20, fetchImpl: typeof fetch = fetch, chainId = 42220): Promise<RpcVetting> {
   const probe = async (url: string) => {
     const rpc = async (method: string) => {
       const res = await fetchImpl(url, {
@@ -144,12 +144,12 @@ export async function vetRpcs(urls: readonly string[], maxLagBlocks = 20, fetchI
   };
   const results = await Promise.all(urls.map(async (url) => ({ url, r: await probe(url).catch((e: Error) => e) })));
   const out: RpcVetting = { ok: [], rejected: [], blocks: {} };
-  const heads = results.flatMap((x) => (x.r instanceof Error || x.r.chainId !== 42220 ? [] : [x.r.block]));
+  const heads = results.flatMap((x) => (x.r instanceof Error || x.r.chainId !== chainId ? [] : [x.r.block]));
   const top = heads.length ? Math.max(...heads) : 0;
   for (const { url, r } of results) {
     const name = redactRpc(url);
     if (r instanceof Error) out.rejected.push({ rpc: name, reason: `unreachable: ${r.message}` });
-    else if (r.chainId !== 42220) out.rejected.push({ rpc: name, reason: `wrong chain ${r.chainId}` });
+    else if (r.chainId !== chainId) out.rejected.push({ rpc: name, reason: `wrong chain ${r.chainId}` });
     else if (top - r.block > maxLagBlocks) out.rejected.push({ rpc: name, reason: `${top - r.block} blocks behind` });
     else {
       out.ok.push(url);
@@ -160,24 +160,28 @@ export async function vetRpcs(urls: readonly string[], maxLagBlocks = 20, fetchI
 }
 
 /** Public client over an RPC failover list: the first healthy endpoint serves, the rest take over on failure. */
-export function makeClient(rpcUrls: readonly string[]): PublicClient {
+export function makeClient(rpcUrls: readonly string[], chain: Chain = celo): PublicClient {
   if (!rpcUrls.length) throw new Error('no RPC URLs configured');
   return createPublicClient({
-    chain: celo,
+    chain,
     transport: fallback(rpcUrls.map((u) => http(u, { timeout: 15_000, retryCount: 2 })), { rank: false }),
   }) as PublicClient;
 }
 
-export function viemUniV3Reader(client: PublicClient, reader: Reader = new DirectReader(client)): UniV3Reader {
+export function viemUniV3Reader(
+  client: PublicClient,
+  reader: Reader = new DirectReader(client),
+  dex: { factory: Address; quoterV2: Address } = { factory: UNISWAP_V3.factory, quoterV2: UNISWAP_V3.quoterV2 },
+): UniV3Reader {
   return {
     async getPool(a, b, fee) {
-      const pool = await reader.read<Address>({ address: UNISWAP_V3.factory, abi: uniV3FactoryAbi, functionName: 'getPool', args: [a, b, fee] });
+      const pool = await reader.read<Address>({ address: dex.factory, abi: uniV3FactoryAbi, functionName: 'getPool', args: [a, b, fee] });
       return !pool || pool === zeroAddress ? null : (pool.toLowerCase() as Address);
     },
     async quoteExactInputSingle({ tokenIn, tokenOut, amountIn, fee }) {
       // QuoterV2 is not a view function, but it returns its result from a static call, so it batches like one.
       const r = await reader.read<readonly [bigint, bigint, number, bigint]>({
-        address: UNISWAP_V3.quoterV2,
+        address: dex.quoterV2,
         abi: quoterV2Abi,
         functionName: 'quoteExactInputSingle',
         args: [{ tokenIn, tokenOut, amountIn, fee, sqrtPriceLimitX96: 0n }],

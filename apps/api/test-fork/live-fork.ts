@@ -69,7 +69,7 @@ assert.equal(v2.length, 1, 'USDm/KESm exchange on Mento v2');
 const mentoV2 = new MentoAdapter(viemMentoV2Reader(pub, v2, undefined, reader), [{ tokenA: USDm, tokenB: KESm, poolId: v2[0]!.exchangeId }], 'mento-v2');
 const adapters = new Map<VenueId, VenueAdapter>([['uniswap-v3', uni], ['mento', mento], ['mento-v2', mentoV2]]);
 const graph = new PriceGraph();
-const st: GraphState = { graph, pricer: new Pricer(tokens, graph), gasPriceWei: 0n, celoUsd: 0.08, block: 0n, updatedMs: Date.now(), lastRefresh: [], rpc: { checkedMs: 0, degraded: false, vetting: null } };
+const st: GraphState = { graph, pricer: new Pricer(tokens, graph), gasPriceWei: 0n, nativeUsd: 0.08, block: 0n, updatedMs: Date.now(), lastRefresh: [], rpc: { checkedMs: 0, degraded: false, vetting: null } };
 const uniPool = '0x5dc631ad6c26bea1a59fbf2c2680cf3df43d249f';
 const edge = (venue: Edge['venue'], a: string, b: string, poolId: string, meta?: Edge['meta']): Edge => ({
   venue, poolId, tokenIn: a as Hex, tokenOut: b as Hex, points: [], gasUnits: 0n, feeBps: 0, firm: true, asOfMs: Date.now(), meta,

@@ -24,7 +24,7 @@ export interface RouteRequest {
   feeBps?: number;
   gasPriceWei: bigint;
   /** USD per CELO, for converting gas into output-token units. */
-  celoUsd: number;
+  nativeUsd: number;
   /** Whether Textile legs can settle inside the executor (requires the rfq:aggregator key). */
   textileAtomic?: boolean;
 }
@@ -159,7 +159,7 @@ export function bestRoute(graph: PriceGraph, pricer: Pricer, req: RouteRequest):
   const K = Math.max(1, req.splitCandidates ?? 4);
 
   const gasToOut = (gas: bigint): bigint => {
-    const usd = (Number(gas * req.gasPriceWei) / 1e18) * req.celoUsd;
+    const usd = (Number(gas * req.gasPriceWei) / 1e18) * req.nativeUsd;
     return pricer.amountForUsd(req.tokenOut, usd, req.nowMs) ?? 0n;
   };
 
@@ -256,7 +256,7 @@ function assemble(
   const grossOut = fills.reduce((s, f) => s + f.amountOut, 0n);
   const serviceFee = (grossOut * feeBps) / 10_000n;
   const amountOut = grossOut - serviceFee;
-  const gasUsd = (Number(gasUnits * req.gasPriceWei) / 1e18) * req.celoUsd;
+  const gasUsd = (Number(gasUnits * req.gasPriceWei) / 1e18) * req.nativeUsd;
   const gasInOut = gasToOut(gasUnits);
   const edges = fills.flatMap((f) => f.edges);
 

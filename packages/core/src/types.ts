@@ -1,6 +1,6 @@
 export type Address = `0x${string}`;
 
-export type VenueId = 'mento' | 'mento-v2' | 'uniswap-v3' | 'textile';
+export type VenueId = 'mento' | 'mento-v2' | 'uniswap-v3' | 'pancake-v3' | 'textile';
 
 /** One sampled point of a liquidity curve, in atomic units. amountOut is net of the venue fee. */
 export interface CurvePoint {

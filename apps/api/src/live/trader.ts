@@ -23,7 +23,7 @@ import { ArbEngine, RiskGate, type Address, type ArbConfig, type Edge, type Oppo
 import type { GraphState } from '@fisika/core/setup';
 import { balanceOf, executeLeg, LegError, type Chain, type TxCost } from './legs.ts';
 
-export interface LiveConfig extends Omit<ArbConfig, 'gasPriceWei' | 'celoUsd'> {
+export interface LiveConfig extends Omit<ArbConfig, 'gasPriceWei' | 'nativeUsd'> {
   ledgerPath: string;
   statusPath: string;
   killFile: string;
@@ -99,7 +99,7 @@ export class LiveTrader {
     try {
       const st = this.state();
       if (!st.updatedMs || st.rpc?.degraded) return;
-      const cfg: ArbConfig = { ...this.cfg, gasPriceWei: st.gasPriceWei, celoUsd: st.celoUsd || 0.08 };
+      const cfg: ArbConfig = { ...this.cfg, gasPriceWei: st.gasPriceWei, nativeUsd: st.nativeUsd || 0.08 };
       if (!this.risk) {
         this.risk = new RiskGate(cfg, st.pricer, () => this.killed());
         if (this.pendingRestore) {
@@ -162,7 +162,7 @@ export class LiveTrader {
     const startBal = await balanceOf(this.chain, start);
     const entry = (status: LedgerEntry['status'], realizedStart: bigint | null, note?: string): LedgerEntry => {
       const gasCelo = txs.reduce((s, t) => s + t.gasUsed * t.effectiveGasPrice, 0n);
-      const gasUsd = (Number(gasCelo) / 1e18) * (st.celoUsd || 0.08);
+      const gasUsd = (Number(gasCelo) / 1e18) * (st.nativeUsd || 0.08);
       const startUsd = realizedStart === null ? 0 : (st.pricer.usdValue(start, realizedStart < 0n ? -realizedStart : realizedStart, Date.now()) ?? 0) * (realizedStart < 0n ? -1 : 1);
       return {
         at: new Date().toISOString(),

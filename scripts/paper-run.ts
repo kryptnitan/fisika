@@ -1,33 +1,31 @@
 /**
- * Live PAPER run against Celo mainnet: build the price graph from all three venues, print the FX board for every
+ * Live PAPER run for one chain: build the price graph from every venue the chain has, print the FX board for each
  * corridor at $10 / $100 / $1,000, and run one arbitrage engine tick (nothing is signed).
- * Run: CELO_RPC_URLS=https://... node scripts/paper-run.ts   → writes verification/paper-run.md
+ * Run: CHAIN=celo|bsc [RPC_URLS=https://...] node scripts/paper-run.ts   → writes verification/paper-run[-bsc].md
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { formatUnits } from 'viem';
 import { ArbEngine, RiskGate, type ArbConfig } from '../packages/core/src/arb.ts';
-import { makeClient } from '../packages/core/src/chain/viem.ts';
-import { createVenues } from '../packages/core/src/chain/setup.ts';
+import { chainByKey } from '../packages/core/src/chains.ts';
+import { makeClient, vetRpcs } from '../packages/core/src/chain/viem.ts';
+import { createVenues, nativeUsdFromGraph } from '../packages/core/src/chain/setup.ts';
 import { PriceGraph } from '../packages/core/src/graph.ts';
 import { Pricer, SAMPLE_USD } from '../packages/core/src/pricer.ts';
 import { refreshGraph } from '../packages/core/src/refresh.ts';
 import { bestRoute } from '../packages/core/src/router.ts';
 import { TokenRegistry } from '../packages/core/src/tokens.ts';
-import type { Address, VenueAdapter, VenueId } from '../packages/core/src/types.ts';
+import type { VenueAdapter, VenueId } from '../packages/core/src/types.ts';
 
-const CELO: Address = '0x471ece3750da237f93b8e339c536989b8978a438';
-const rpcs = (process.env.CELO_RPC_URLS || 'https://forno.celo.org,https://celo-rpc.publicnode.com').split(',').map((s) => s.trim()).filter(Boolean);
-const client = makeClient(rpcs);
-const tokens = new TokenRegistry();
+const chain = chainByKey(process.env.CHAIN);
+const suffix = chain.key === 'celo' ? '' : `-${chain.key}`;
+const rpcEnv = chain.key === 'celo' ? process.env.CELO_RPC_URLS || process.env.RPC_URLS : process.env.RPC_URLS;
+const rpcs = (rpcEnv || chain.freeRpcs.join(',')).split(',').map((s) => s.trim()).filter(Boolean);
+const vetting = await vetRpcs(rpcs, 20, fetch, chain.id);
+if (!vetting.ok.length) throw new Error(`no usable ${chain.name} RPC: ${JSON.stringify(vetting.rejected)}`);
+const client = makeClient(vetting.ok, chain.viem);
+const tokens = new TokenRegistry(chain.tokens);
 const T = (s: string) => tokens.bySymbol(s).address;
-
-const CORRIDORS: [string, string][] = [
-  ['USDT', 'USDC'], ['USDC', 'USDT'], ['USDT', 'USDm'], ['USDm', 'USDT'], ['USDC', 'USDm'],
-  ['USDT', 'cNGN'], ['cNGN', 'USDT'], ['USDT', 'NGNm'], ['NGNm', 'USDT'],
-  ['USDT', 'KESm'], ['KESm', 'USDT'], ['USDT', 'GHSm'], ['USDT', 'XOFm'],
-  ['USDT', 'wBRL'], ['wBRL', 'USDT'], ['USDT', 'wARS'], ['wARS', 'USDT'], ['USDT', 'BRLA'], ['USDT', 'COPM'],
-  ['cNGN', 'KESm'], ['wBRL', 'wARS'], ['cNGN', 'NGNm'],
-];
+const CORRIDORS = chain.corridors;
 
 async function main() {
   const lines: string[] = [];
@@ -38,10 +36,9 @@ async function main() {
 
   const graph = new PriceGraph();
   const pricer = new Pricer(tokens, graph, 120_000);
-  const hubs = ['USDT', 'USDC', 'USDm'].map(T);
-  const venues = await createVenues(client, tokens);
+  const hubs = chain.startTokens.map(T);
+  const venues = await createVenues(client, tokens, {}, undefined, chain);
   const adapters: VenueAdapter[] = venues.adapters;
-  const pools = { length: venues.uniswapPools };
   const v2ex = venues.mentoV2Pairs;
 
   // Pass 1 prices non-USD tokens off USD-side edges; pass 2 samples their reverse directions at correct sizes.
@@ -50,17 +47,16 @@ async function main() {
   const r2 = await refreshGraph(graph, pricer, adapters, now);
 
   const gasPrice = await client.getGasPrice();
-  const celoEdge = graph.all().find((e) => e.tokenIn === CELO && e.tokenOut === T('USDT'));
-  const celoUsd = celoEdge ? Number(celoEdge.points[0]!.amountOut) / 1e6 / (Number(celoEdge.points[0]!.amountIn) / 1e18) : 0.08;
+  const nativeUsd = nativeUsdFromGraph(graph, tokens, chain.wrappedNative) ?? 0;
 
-  log(`# fisika PAPER run`);
+  log(`# fisika PAPER run — ${chain.name}`);
   log('');
-  log(`${new Date(now).toISOString()} · block ${await client.getBlockNumber()} · gas ${formatUnits(gasPrice, 9)} gwei · CELO $${celoUsd.toFixed(4)}`);
+  log(`${new Date(now).toISOString()} · block ${await client.getBlockNumber()} · gas ${formatUnits(gasPrice, 9)} gwei · ${chain.nativeSymbol} $${nativeUsd.toFixed(4)} · rpc ${vetting.ok.length}/${rpcs.length} vetted`);
   log('');
   const bs = (venues.reader as { stats?: object }).stats;
   log(`RPC requests (pool discovery + two full refreshes, batched): ${venues.reader.requests}. Batch stats: ${JSON.stringify(bs)}`);
   log('');
-  log(`Uniswap v3 pools discovered: ${pools.length}. Mento v2 exchanges between tracked tokens: ${v2ex.join(', ') || 'none'}. Graph edges: ${graph.size()}.`);
+  log(`v3 pools discovered: ${Object.entries(venues.v3Pools).map(([k, n]) => `${k} ${n}`).join(', ')}.${chain.mento ? ` Mento v2 exchanges between tracked tokens: ${v2ex.join(', ') || 'none'}.` : ''} Textile: ${chain.textile ? 'yes' : 'no'}. Graph edges: ${graph.size()}.`);
   log('');
   log('| Venue | Pass 1 | Pass 2 |');
   log('|---|---|---|');
@@ -86,7 +82,7 @@ async function main() {
         cells.push('unpriced');
         continue;
       }
-      const r = bestRoute(graph, pricer, { tokenIn: tin, tokenOut: tout, amountIn, nowMs: now, maxAgeMs: 120_000, gasPriceWei: gasPrice, celoUsd });
+      const r = bestRoute(graph, pricer, { tokenIn: tin, tokenOut: tout, amountIn, nowMs: now, maxAgeMs: 120_000, gasPriceWei: gasPrice, nativeUsd });
       if (!r) {
         cells.push('—');
         continue;
@@ -130,7 +126,7 @@ async function main() {
     maxTokenExposureUsd: 200,
     textileAtomic: false,
     gasPriceWei: gasPrice,
-    celoUsd,
+    nativeUsd,
   };
   const engine = new ArbEngine(graph, pricer, new Map<VenueId, VenueAdapter>(adapters.map((a) => [a.id, a])), new RiskGate(cfg, pricer, () => false), cfg);
   const opps = engine.scan(now);
@@ -153,9 +149,9 @@ async function main() {
   }
 
   await mkdir('verification', { recursive: true });
-  await writeFile('verification/paper-run.md', lines.join('\n'));
+  await writeFile(`verification/paper-run${suffix}.md`, lines.join('\n'));
   // Full graph at board time, so any routing decision can be replayed offline exactly.
-  await writeFile('verification/graph-snapshot.json', JSON.stringify({ now, gasPrice: gasPrice.toString(), celoUsd, edges: graph.snapshot() }));
+  await writeFile(`verification/graph-snapshot${suffix}.json`, JSON.stringify({ now, gasPrice: gasPrice.toString(), nativeUsd, edges: graph.snapshot() }));
 }
 
 main().catch((e) => {

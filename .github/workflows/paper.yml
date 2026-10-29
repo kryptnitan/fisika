@@ -1,6 +1,7 @@
 name: paper
 
-# Unattended PAPER trading on live Celo prices, free RPCs, nothing signed.
+# Unattended PAPER trading on live Celo and BNB Chain prices, free RPCs, nothing signed. One job per chain.
+# BNB Chain files carry a -bsc suffix (paper-summary-bsc.md, ...).
 # Every hour: one 55-minute session (near-continuous coverage for the 24-hour paper test). Results accumulate on the `verification` branch:
 #   paper-summary.md (readable record), paper-log.jsonl (one line per session), paper-state.json.
 on:
@@ -23,6 +24,12 @@ jobs:
   session:
     runs-on: ubuntu-latest
     timeout-minutes: 70
+    strategy:
+      fail-fast: false
+      matrix:
+        chain: [celo, bsc]
+    env:
+      SUFFIX: ${{ matrix.chain == 'celo' && '' || format('-{0}', matrix.chain) }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -35,13 +42,15 @@ jobs:
         run: |
           mkdir -p apps/api/paper
           if git fetch -q --depth 1 origin verification; then
-            for f in paper-log.jsonl paper-state.json; do git show FETCH_HEAD:$f > apps/api/paper/$f 2>/dev/null || rm -f apps/api/paper/$f; done
+            for f in paper-log paper-state; do ext=$([ $f = paper-log ] && echo jsonl || echo json); git show FETCH_HEAD:$f$SUFFIX.$ext > apps/api/paper/$f.$ext 2>/dev/null || rm -f apps/api/paper/$f.$ext; done
           fi
       - name: Paper session
         working-directory: apps/api
         env:
           # Free by default (Forno, then PublicNode), vetted at start. A CELO_RPC_URLS secret overrides it.
+          CHAIN: ${{ matrix.chain }}
           CELO_RPC_URLS: ${{ secrets.CELO_RPC_URLS }}
+          RPC_URLS: ${{ matrix.chain == 'bsc' && secrets.BSC_RPC_URLS || '' }}
           SESSION_MINUTES: ${{ github.event.inputs.minutes || '55' }}
           OUT_DIR: paper
         run: node src/paper-session.ts
@@ -50,6 +59,9 @@ jobs:
         shell: bash
         run: |
           files=""
-          for f in paper-log.jsonl paper-state.json paper-summary.md; do test -f apps/api/paper/$f && cp apps/api/paper/$f /tmp/ && files="$files /tmp/$f"; done
-          test -n "$files" && bash .github/publish.sh verification "paper session $(date -u +%FT%H:%MZ)" $files
+          for f in paper-log.jsonl paper-state.json paper-summary.md; do
+            out="/tmp/${f%.*}$SUFFIX.${f##*.}"
+            test -f apps/api/paper/$f && cp apps/api/paper/$f "$out" && files="$files $out"
+          done
+          test -n "$files" && bash .github/publish.sh verification "paper session ${{ matrix.chain }} $(date -u +%FT%H:%MZ)" $files
           test -f apps/api/paper/paper-summary.md && cat apps/api/paper/paper-summary.md >> "$GITHUB_STEP_SUMMARY" || true

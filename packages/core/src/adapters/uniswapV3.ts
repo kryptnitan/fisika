@@ -17,18 +17,20 @@ export interface UniV3Pool {
   fee: number;
 }
 
-/** Quotes are valid for the block they were read at; one block is ~1 s on Celo. */
+/** Quotes are valid for the block they were read at (Celo ~1 s blocks, BNB Chain sub-second). */
 const QUOTE_TTL_MS = 2_000;
 
+/** Any Uniswap v3-compatible DEX (Uniswap, PancakeSwap v3): same factory.getPool and QuoterV2 interface. */
 export class UniswapV3Adapter implements VenueAdapter {
-  readonly id = 'uniswap-v3' as const;
+  readonly id: 'uniswap-v3' | 'pancake-v3';
   private pools: UniV3Pool[] = [];
   private readonly reader: UniV3Reader;
   private readonly feeTiers: readonly number[];
 
-  constructor(reader: UniV3Reader, feeTiers: readonly number[] = UNISWAP_V3.feeTiers) {
+  constructor(reader: UniV3Reader, feeTiers: readonly number[] = UNISWAP_V3.feeTiers, id: 'uniswap-v3' | 'pancake-v3' = 'uniswap-v3') {
     this.reader = reader;
     this.feeTiers = feeTiers;
+    this.id = id;
   }
 
   /** Find every pool for the configured pairs across all fee tiers. Run at boot and periodically. */

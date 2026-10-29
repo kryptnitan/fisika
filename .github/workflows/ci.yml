@@ -89,6 +89,52 @@ jobs:
           cat /tmp/paper-run.md >> "$GITHUB_STEP_SUMMARY"
           bash .github/publish.sh verification "paper run for ${GITHUB_SHA}" /tmp/paper-run.md /tmp/graph-snapshot.json
 
+  verify-onchain-bsc:
+    runs-on: ubuntu-latest
+    needs: core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --no-frozen-lockfile
+      - name: Verify BNB Chain addresses, decimals, pools, Textile ladder
+        env:
+          CHAIN: bsc
+          RPC_URLS: ${{ secrets.BSC_RPC_URLS }}
+        run: node scripts/verify-onchain.ts
+      - name: Publish
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          test -f verification/onchain-bsc.md || exit 0
+          cat verification/onchain-bsc.md >> "$GITHUB_STEP_SUMMARY"
+          cp verification/onchain-bsc.json verification/onchain-bsc.md /tmp/
+          bash .github/publish.sh verification "bsc on-chain verification for ${GITHUB_SHA}" /tmp/onchain-bsc.json /tmp/onchain-bsc.md
+
+  paper-run-bsc:
+    runs-on: ubuntu-latest
+    needs: verify-onchain-bsc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --no-frozen-lockfile
+      - name: Live PAPER run on BNB Chain (nothing signed)
+        env:
+          CHAIN: bsc
+          RPC_URLS: ${{ secrets.BSC_RPC_URLS }}
+        run: node scripts/paper-run.ts
+      - name: Publish
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          test -f verification/paper-run-bsc.md || exit 0
+          cp verification/paper-run-bsc.md verification/graph-snapshot-bsc.json /tmp/
+          cat /tmp/paper-run-bsc.md >> "$GITHUB_STEP_SUMMARY"
+          bash .github/publish.sh verification "bsc paper run for ${GITHUB_SHA}" /tmp/paper-run-bsc.md /tmp/graph-snapshot-bsc.json
+
   web:
     runs-on: ubuntu-latest
     needs: core

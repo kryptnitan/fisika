@@ -34,10 +34,10 @@ export class PaperArbRunner {
   private readonly state: () => GraphState;
   private readonly tokens: TokenRegistry;
   private readonly adapters: ReadonlyMap<VenueId, VenueAdapter>;
-  private readonly baseCfg: Omit<ArbConfig, 'gasPriceWei' | 'celoUsd'>;
+  private readonly baseCfg: Omit<ArbConfig, 'gasPriceWei' | 'nativeUsd'>;
   private busy = false;
 
-  constructor(state: () => GraphState, tokens: TokenRegistry, adapters: ReadonlyMap<VenueId, VenueAdapter>, baseCfg: Omit<ArbConfig, 'gasPriceWei' | 'celoUsd'>, startCapitalUsd = 1_000) {
+  constructor(state: () => GraphState, tokens: TokenRegistry, adapters: ReadonlyMap<VenueId, VenueAdapter>, baseCfg: Omit<ArbConfig, 'gasPriceWei' | 'nativeUsd'>, startCapitalUsd = 1_000) {
     this.state = state;
     this.tokens = tokens;
     this.adapters = adapters;
@@ -51,7 +51,7 @@ export class PaperArbRunner {
     try {
       const st = this.state();
       if (!st.updatedMs) return;
-      const cfg: ArbConfig = { ...this.baseCfg, gasPriceWei: st.gasPriceWei, celoUsd: st.celoUsd || 0.08 };
+      const cfg: ArbConfig = { ...this.baseCfg, gasPriceWei: st.gasPriceWei, nativeUsd: st.nativeUsd || 0.08 };
       const risk = this.engine?.risk ?? new RiskGate(cfg, st.pricer, () => this.killed);
       this.engine = new ArbEngine(st.graph, st.pricer, this.adapters, risk, cfg, 'PAPER');
       this.engine.consumed = this.consumed;

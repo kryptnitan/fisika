@@ -1,5 +1,5 @@
 /**
- * One unattended PAPER session: live Celo prices on free RPCs, the arbitrage engine with every risk limit,
+ * One unattended PAPER session: live on-chain prices (CHAIN=celo|bsc) on free RPCs, the arbitrage engine with every risk limit,
  * nothing signed. Run repeatedly (the `paper` workflow runs it every hour) to build the multi-day paper record
  * the go-live checklist asks for before any capital is used.
  *
@@ -10,15 +10,17 @@
  */
 import { mkdir, readFile, writeFile, appendFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { TokenRegistry } from '@fisika/core';
+import { chainByKey, TokenRegistry } from '@fisika/core';
 import { createVenues, LiveGraph } from '@fisika/core/setup';
-import { FREE_CELO_RPCS, makeClient, redactRpc, vetRpcs } from '@fisika/core/viem';
+import { makeClient, redactRpc, vetRpcs } from '@fisika/core/viem';
 import { PaperArbRunner } from './arb.ts';
 
 const minutes = Number(process.env.SESSION_MINUTES ?? 25);
 const refreshMs = Number(process.env.GRAPH_REFRESH_MS ?? 15_000);
 const outDir = process.env.OUT_DIR ?? 'paper';
-const urls = (process.env.CELO_RPC_URLS || FREE_CELO_RPCS.join(',')).split(',').map((s) => s.trim()).filter(Boolean);
+const chain = chainByKey(process.env.CHAIN);
+const rpcEnv = chain.key === 'celo' ? process.env.CELO_RPC_URLS || process.env.RPC_URLS : process.env.RPC_URLS;
+const urls = (rpcEnv || chain.freeRpcs.join(',')).split(',').map((s) => s.trim()).filter(Boolean);
 const limits = {
   maxTradeUsd: Number(process.env.MAX_TRADE_USD ?? 1_000),
   minEdgeBps: Number(process.env.MIN_EDGE_BPS ?? 5),
@@ -49,20 +51,21 @@ await mkdir(outDir, { recursive: true });
 const startMs = Date.now();
 
 // 1. Vet the free RPCs: right chain, reachable, not lagging. Only vetted endpoints are used.
-const vetting = await vetRpcs(urls);
+const vetting = await vetRpcs(urls, 20, fetch, chain.id);
 if (!vetting.ok.length) {
   console.error('no usable RPC', vetting.rejected);
   process.exit(1);
 }
 console.log(`rpc ok: ${vetting.ok.map(redactRpc).join(', ')}${vetting.rejected.length ? ` · rejected: ${JSON.stringify(vetting.rejected)}` : ''}`);
 
-const client = makeClient(vetting.ok);
-const tokens = new TokenRegistry();
-const venues = await createVenues(client, tokens);
+console.log(`chain: ${chain.name} (${chain.id})`);
+const client = makeClient(vetting.ok, chain.viem);
+const tokens = new TokenRegistry(chain.tokens);
+const venues = await createVenues(client, tokens, {}, undefined, chain);
 const live = new LiveGraph(client, tokens, venues, refreshMs * 2.5, vetting.ok);
 await live.start(refreshMs);
 
-const usd = ['USDT', 'USDC', 'USDm'].map((s) => tokens.bySymbol(s).address);
+const usd = chain.startTokens.map((s) => tokens.bySymbol(s).address);
 const arb = new PaperArbRunner(() => live.state, tokens, venues.byId, {
   startTokens: usd,
   sizesUsd: [10, 100, 1_000],
@@ -141,7 +144,7 @@ function summarize(jsonl: string): string {
   return [
     '# fisika paper trading record',
     '',
-    `${s.length} sessions over ${days.toFixed(1)} days (${hours.toFixed(1)} hours watched), ${s[0]?.start ?? '—'} to ${s.at(-1)?.end ?? '—'}. Live Celo prices on free RPCs, nothing signed.`,
+    `${s.length} sessions over ${days.toFixed(1)} days (${hours.toFixed(1)} hours watched), ${s[0]?.start ?? '—'} to ${s.at(-1)?.end ?? '—'}. Live ${chain.name} prices on free RPCs, nothing signed.`,
     '',
     '| | |',
     '|---|---|',

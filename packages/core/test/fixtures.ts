@@ -50,5 +50,5 @@ export function setup(edges: Edge[]): { graph: PriceGraph; pricer: Pricer; token
 }
 
 export const NOW = 2_000;
-export const GAS = { gasPriceWei: 25_000_000_000n, celoUsd: 0.08 };
+export const GAS = { gasPriceWei: 25_000_000_000n, nativeUsd: 0.08 };
 export type { TokenInfo };

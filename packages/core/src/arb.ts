@@ -114,7 +114,7 @@ export interface ArbConfig {
   maxTokenExposureUsd: number;
   textileAtomic: boolean;
   gasPriceWei: bigint;
-  celoUsd: number;
+  nativeUsd: number;
 }
 
 export interface Opportunity {
@@ -160,7 +160,7 @@ export function evaluateCycle(cycle: Edge[], amountIn: bigint, pricer: Pricer, c
   const final = amounts[amounts.length - 1]!;
   const txCount = cycleTxCount(cycle, cfg.textileAtomic);
   const gasUnits = cycle.reduce((s, e, i) => s + curveGas(e.points, amounts[i]!, e.gasUnits), 0n) + TX_BASE_GAS * BigInt(txCount);
-  const gasUsd = (Number(gasUnits * cfg.gasPriceWei) / 1e18) * cfg.celoUsd;
+  const gasUsd = (Number(gasUnits * cfg.gasPriceWei) / 1e18) * cfg.nativeUsd;
   const gasInStart = pricer.amountForUsd(start, gasUsd, nowMs);
   if (gasInStart === null) return null;
   const grossProfit = final - amountIn;

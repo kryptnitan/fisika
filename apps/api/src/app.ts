@@ -172,7 +172,7 @@ export function createApp(d: AppDeps) {
       const sizes = SAMPLE_USD.slice(0, 3).map((usd) => {
         const amountIn = st.pricer.amountForUsd(tin, usd, t);
         if (!amountIn) return { usd, rate: null };
-        const r = bestRoute(st.graph, st.pricer, { tokenIn: tin, tokenOut: tout, amountIn, nowMs: t, maxAgeMs: d.cfg.edgeMaxAgeMs, gasPriceWei: st.gasPriceWei, celoUsd: st.celoUsd });
+        const r = bestRoute(st.graph, st.pricer, { tokenIn: tin, tokenOut: tout, amountIn, nowMs: t, maxAgeMs: d.cfg.edgeMaxAgeMs, gasPriceWei: st.gasPriceWei, nativeUsd: st.nativeUsd });
         if (!r) return { usd, rate: null };
         // Direct single-hop rate per venue at this size, for the venue-spread column.
         const directByVenue = st.graph.between(tin, tout, t, d.cfg.edgeMaxAgeMs).flatMap((e) => {
@@ -202,7 +202,7 @@ export function createApp(d: AppDeps) {
       const spreadBps = rates.length > 1 ? ((Math.max(...rates) - Math.min(...rates)) / Math.max(...rates)) * 10_000 : null;
       return { corridor: `${a}-${b}`, from: a, to: b, sizes, spreadBps };
     });
-    const body = json({ asOf: new Date(st.updatedMs).toISOString(), block: st.block, gasPriceWei: st.gasPriceWei, celoUsd: st.celoUsd, rows });
+    const body = json({ asOf: new Date(st.updatedMs).toISOString(), block: st.block, gasPriceWei: st.gasPriceWei, nativeUsd: st.nativeUsd, rows });
     boardCache = { at: t, body };
     return c.json(body);
   });
