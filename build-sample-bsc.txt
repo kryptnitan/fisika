@@ -1,0 +1,2 @@
+{"error":"Textile trades need TEXTILE_API_KEY on this deployment"}
+HTTP 503

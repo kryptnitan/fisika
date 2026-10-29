@@ -1,0 +1,1 @@
+{"default":"celo","chains":[{"key":"celo","chainId":42220,"name":"Celo","nativeSymbol":"CELO","explorer":"https://celoscan.io","prefix":""},{"key":"bsc","chainId":56,"name":"BNB Chain","nativeSymbol":"BNB","explorer":"https://bscscan.com","prefix":"/bsc"}]}

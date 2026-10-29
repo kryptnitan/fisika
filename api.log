@@ -1,1 +1,3 @@
-fisika api on :8787 · rpc https://forno.celo.org, https://celo-rpc.publicnode.com · 39 uniswap pools · mento v2: USDm/GHSm, USDm/XOFm, USDm/ZARm, USDm/BRLm, USDm/NGNm, USDm/KESm, USDm/COPm · x402 OFF · execution off
+[celo] rpc https://forno.celo.org, https://celo-rpc.publicnode.com · pools: uniswap-v3 39 · mento v2: USDm/GHSm, USDm/XOFm, USDm/ZARm, USDm/BRLm, USDm/NGNm, USDm/KESm, USDm/COPm · textile on
+[bsc] rpc https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com · pools: uniswap-v3 4, pancake-v3 7 · textile on
+fisika api on :8787 · chains celo, bsc · x402 OFF · execution on
