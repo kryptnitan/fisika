@@ -16,7 +16,7 @@ Work top to bottom. Each stage needs every item ticked before moving on. **LIVE 
 ### Stage 0 — Decisions only you can make
 
 - [ ] **Legal scope for the paid API and client swaps.** Nigeria's SEC VASP rules, and any other jurisdiction you serve, decide whether charging per quote and taking an in-swap fee needs registration. Until this is settled, `EXECUTION_ENABLED=false` keeps the deployment quote-only.
-- [x] **RPC for paper mode:** two free endpoints, Forno (run by cLabs) then PublicNode, each vetted for chain id, reachability and lag at start and every 10 minutes. Reads are batched through Multicall2, so a full price refresh costs about 15–20 requests instead of ~400.
+- [x] **RPC for paper mode:** two free endpoints, Forno (run by cLabs) then PublicNode, each vetted for chain id, reachability and lag at start and every 10 minutes. Reads are batched through Multicall3, so a full price refresh costs about 15–20 requests instead of ~400.
 - [ ] **Paid Celo RPC before LIVE** (two providers for failover). Free endpoints have no uptime guarantee.
 - [ ] **Key custody plan:**
   - executor owner: hardware wallet or Safe

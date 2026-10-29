@@ -8,6 +8,7 @@ export const UNISWAP_V3 = {
   factory: '0xAfE208a311B21f13EF87E33A90049fC17A7acDEc',
   quoterV2: '0x82825d0554fA07f7FC52Ab63c961F330fdEFa8E8',
   swapRouter02: '0x5615CDAb10dc425a742d643d949a7F474C01abc4',
+  // Listed as "Multicall2" by Uniswap; it is UniswapInterfaceMulticall (not tryAggregate). fisika batches via Multicall3.
   multicall2: '0x633987602DE5C4F337e3DbF265303A1080324204',
   feeTiers: [100, 500, 3000, 10000] as const,
 } as const satisfies Record<string, unknown>;

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { decodeFunctionData, encodeFunctionResult, type PublicClient } from 'viem';
-import { BatchReader, multicall2Abi } from '../src/chain/batch.ts';
+import { BatchReader, MULTICALL3, multicall3Abi } from '../src/chain/batch.ts';
 import { erc20Abi, redactRpc, vetRpcs } from '../src/chain/viem.ts';
 
 const TOKEN = '0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e';
@@ -13,13 +13,13 @@ function fakeClient(opts: { failAggregate?: boolean } = {}) {
   let direct = 0;
   const client = {
     async call({ to, data }: { to: string; data: `0x${string}` }) {
-      if (to.toLowerCase() === '0x633987602de5c4f337e3dbf265303a1080324204') {
+      if (to.toLowerCase() === MULTICALL3) {
         if (opts.failAggregate) throw new Error('gas cap');
-        const { args } = decodeFunctionData({ abi: multicall2Abi, data });
-        const list = args[1] as readonly { target: string; callData: string }[];
+        const { args } = decodeFunctionData({ abi: multicall3Abi, data });
+        const list = args[0] as readonly { target: string; callData: string }[];
         calls.push(list.length);
         const results = list.map((c) => (c.target.toLowerCase() === BAD ? { success: false, returnData: '0x' as const } : { success: true, returnData: encodeFunctionResult({ abi: erc20Abi, functionName: 'decimals', result: 6 }) }));
-        return { data: encodeFunctionResult({ abi: multicall2Abi, functionName: 'tryAggregate', result: results }) };
+        return { data: encodeFunctionResult({ abi: multicall3Abi, functionName: 'aggregate3', result: results }) };
       }
       direct += 1;
       if (to.toLowerCase() === BAD) throw new Error('revert');
@@ -46,7 +46,7 @@ describe('batch reader', () => {
     const r = new BatchReader(f.client);
     const out = await Promise.all([TOKEN, BAD, TOKEN].map((a) => r.read<number>({ address: a as `0x${string}`, abi: erc20Abi, functionName: 'decimals' })));
     assert.deepEqual(out, [6, null, 6]);
-    assert.equal(f.direct(), 3);
+    assert.equal(f.direct(), 3, 'split down to single direct reads');
   });
 });
 
