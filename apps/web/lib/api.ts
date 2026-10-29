@@ -1,8 +1,10 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { currentChain } from './chain';
 
 export async function api<T>(path: string, init?: { method?: 'GET' | 'POST'; body?: unknown; auth?: string }): Promise<T> {
-  const res = await fetch(`/api/proxy/${path}`, {
+  // Every chain-specific call goes to the selected chain's API prefix (BNB Chain: bsc/v1/...).
+  const res = await fetch(`/api/proxy/${currentChain().prefix}${path}`, {
     method: init?.method ?? 'GET',
     headers: { 'content-type': 'application/json', ...(init?.auth ? { authorization: `Bearer ${init.auth}` } : {}) },
     body: init?.body === undefined ? undefined : JSON.stringify(init.body),
@@ -58,4 +60,4 @@ export function ago(iso: string | number | null | undefined): string {
   return s < 60 ? `${s}s ago` : s < 3600 ? `${Math.round(s / 60)}m ago` : `${Math.round(s / 3600)}h ago`;
 }
 
-export const VENUE_LABEL: Record<string, string> = { 'uniswap-v3': 'Uniswap', mento: 'Mento', 'mento-v2': 'Mento v2', textile: 'Textile' };
+export const VENUE_LABEL: Record<string, string> = { 'uniswap-v3': 'Uniswap', 'pancake-v3': 'PancakeSwap', mento: 'Mento', 'mento-v2': 'Mento v2', textile: 'Textile' };

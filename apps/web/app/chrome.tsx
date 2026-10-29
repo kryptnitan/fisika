@@ -1,6 +1,7 @@
 'use client';
 import { usePathname } from 'next/navigation';
 import { usePoll } from '@/lib/api';
+import { setChain, UI_CHAINS, useChain, type ChainKey } from '@/lib/chain';
 
 const LINKS = [
   { href: '/', label: 'Rates' },
@@ -22,13 +23,30 @@ export function Nav() {
   );
 }
 
+/** Celo / BNB Chain switch. Every page reads the selected chain; switching reloads onto the other chain's data. */
+export function ChainSwitch() {
+  const chain = useChain();
+  return (
+    <div className="chainswitch" role="group" aria-label="Chain">
+      {(Object.keys(UI_CHAINS) as ChainKey[]).map((k) => (
+        <button key={k} type="button" aria-pressed={chain.key === k} onClick={() => chain.key !== k && setChain(k)}>
+          {UI_CHAINS[k].name}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function ChainStatus() {
-  const { data, error } = usePoll<{ ok: boolean; block: string; graphAgeMs: number | null }>('health', 5_000);
-  const state = error ? 'stale' : data?.ok ? 'live' : 'stale';
+  const chain = useChain();
+  const { data, error } = usePoll<{ ok: boolean; block: string; graphAgeMs: number | null; chain?: string }>('health', 5_000);
+  // Ignore a stale response from the other chain during the first render.
+  const mine = data && (data.chain ?? 'celo') === chain.key ? data : null;
+  const state = error ? 'stale' : mine?.ok ? 'live' : 'stale';
   return (
     <div className="chain" role="status">
       <span className={`dot ${state}`} aria-hidden />
-      {error ? 'API unreachable' : data ? `Celo block ${Number(data.block).toLocaleString('en-US')}` : 'Connecting'}
+      {error ? `${chain.name} API unreachable` : mine ? `${chain.name} block ${Number(mine.block).toLocaleString('en-US')}` : 'Connecting'}
     </div>
   );
 }

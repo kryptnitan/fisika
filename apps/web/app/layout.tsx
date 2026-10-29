@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { ChainStatus, Nav } from './chrome';
+import { ChainStatus, ChainSwitch, Nav } from './chrome';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'fisika — stablecoin FX on Celo',
-  description: 'Best-execution FX between Celo stablecoins: naira, shilling, cedi, real, peso and dollars, routed across Mento, Uniswap and Textile.',
+  title: 'fisika — stablecoin FX on Celo and BNB Chain',
+  description: 'Best-execution stablecoin FX: naira, shilling, cedi, real, peso and dollars, routed across Mento, Uniswap, PancakeSwap and Textile on Celo and BNB Chain.',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -23,11 +23,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               fisika<span>.</span>
             </a>
             <Nav />
+            <ChainSwitch />
             <ChainStatus />
           </header>
           <main>{children}</main>
           <footer className="foot">
-            Non-custodial: fisika never holds your funds. Rates are live from Celo mainnet and include venue fees; network gas is shown separately.
+            Non-custodial: fisika never holds your funds. Rates are live from mainnet (Celo or BNB Chain, as selected) and include venue fees; network gas is shown separately.
           </footer>
         </div>
       </body>

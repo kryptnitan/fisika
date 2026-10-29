@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { api, fmtUsd, usePoll, VENUE_LABEL, ago } from '@/lib/api';
+import { useChain } from '@/lib/chain';
 
 type ArbStatus = {
   mode: string;
@@ -32,6 +33,7 @@ const REASON: Record<string, string> = {
 };
 
 export default function ArbPage() {
+  const chain = useChain();
   const { data, error, reload } = usePoll<ArbStatus>('v1/arb', 5_000);
   return (
     <>
@@ -46,7 +48,7 @@ export default function ArbPage() {
           <div className="stats">
             <div className="stat"><b>{data.mode === 'PAPER' ? 'Paper' : 'Live'}</b><span>{data.killed ? 'Kill switch on' : data.halted ? `Halted: ${data.haltReason}` : 'Running'}</span></div>
             {data.mode === 'LIVE' ? (
-              <div className="stat"><b className="num">{data.balances ? Object.entries(data.balances).map(([k, v]) => `${v === null ? '—' : v.toFixed(k === 'CELO' ? 2 : 2)} ${k}`).join(' · ') : '—'}</b><span>Wallet <a href={`https://celoscan.io/address/${data.wallet}`} target="_blank" rel="noreferrer">{data.wallet?.slice(0, 8)}…</a></span></div>
+              <div className="stat"><b className="num">{data.balances ? Object.entries(data.balances).map(([k, v]) => `${v === null ? '—' : v.toFixed(k === 'CELO' ? 2 : 2)} ${k}`).join(' · ') : '—'}</b><span>Wallet <a href={`${chain.explorer}/address/${data.wallet}`} target="_blank" rel="noreferrer">{data.wallet?.slice(0, 8)}…</a></span></div>
             ) : (
               <div className="stat"><b className="num">{data.detected}</b><span>Cycles evaluated</span></div>
             )}
@@ -72,7 +74,7 @@ export default function ArbPage() {
               <tbody>
                 {data.events.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="muted">No profitable loops found yet. On thin Celo liquidity that is the normal state; the engine checks again every few seconds.</td>
+                    <td colSpan={6} className="muted">No profitable loops found yet. On thin {chain.name} liquidity that is the normal state; the engine checks again every few seconds.</td>
                   </tr>
                 ) : (
                   data.events.slice(0, 40).map((e, i) => (
@@ -87,7 +89,7 @@ export default function ArbPage() {
                       <td>{fmtUsd(e.netUsd, 4)}</td>
                       <td style={{ textAlign: 'left' }} className={e.action === 'filled' ? 'ok' : 'muted'}>
                         {e.action === 'filled' ? (data.mode === 'LIVE' ? 'Traded' : 'Paper fill') : `${data.mode === 'LIVE' ? 'Not traded' : 'Skipped'}: ${REASON[e.reason ?? ''] ?? e.reason}`}
-                        {e.txs?.length ? <> · <a href={`https://celoscan.io/tx/${e.txs.at(-1)}`} target="_blank" rel="noreferrer">tx</a></> : null}
+                        {e.txs?.length ? <> · <a href={`${chain.explorer}/tx/${e.txs.at(-1)}`} target="_blank" rel="noreferrer">tx</a></> : null}
                       </td>
                     </tr>
                   ))

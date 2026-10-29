@@ -94,7 +94,7 @@ const trader = new LiveTrader(chain, () => st, tokens, adapters, null, {
   ledgerPath: join(dir, 'ledger.jsonl'),
   statusPath: join(dir, 'status.json'),
   killFile: join(dir, 'KILL'),
-  minCeloForGas: parseEther('0.5'),
+  minNativeForGas: parseEther('0.5'),
 });
 
 const force = (cycle: Edge[], amountIn: bigint): Opportunity => ({

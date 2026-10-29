@@ -12,7 +12,7 @@ export default function AgentsPage() {
     <>
       <h1>For agents and apps</h1>
       <p className="lede">
-        Other agents can buy quotes and ready-to-sign swaps from fisika over HTTP, paying per call in USDC on Celo with x402. fisika publishes an ERC-8004 identity on Celo, so callers can find it and leave on-chain feedback.
+        Other agents can buy quotes and ready-to-sign swaps on Celo or BNB Chain from fisika over HTTP, paying per call in USDC on Celo with x402. fisika publishes an ERC-8004 identity on Celo, so callers can find it and leave on-chain feedback.
       </p>
       {s ? (
         <div className="stats">
@@ -59,7 +59,8 @@ const quote = await pay('<API>/v1/quote', {
       <dl className="kv" style={{ maxWidth: 560 }}>
         <dt>Quote</dt><dd>POST /v1/quote · 0.001 USDC</dd>
         <dt>Swap transactions</dt><dd>POST /v1/build · 0.001 USDC{health.data?.serviceFeeBps ? ` + ${health.data.serviceFeeBps / 100}% of the swap` : ', no cut of the swap'}</dd>
-        <dt>Free</dt><dd>/v1/board, /v1/pairs, /v1/receipts</dd>
+        <dt>Free</dt><dd>/v1/board, /v1/pairs, /v1/receipts, /v1/chains</dd>
+        <dt>BNB Chain</dt><dd>Same routes under /bsc (POST /bsc/v1/quote); payment is still USDC on Celo</dd>
         <dt>Registration file</dt><dd>/.well-known/agent-registration.json</dd>
         <dt>Spec</dt><dd>/openapi.json</dd>
       </dl>

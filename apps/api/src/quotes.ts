@@ -17,6 +17,8 @@ export interface StoredQuote {
   expiresMs: number;
   slippageBps: number;
   feeBps: number;
+  /** Set by /v1/build for routes sent straight to a venue contract (no executor): what the receipt must match. */
+  direct?: { target: Address; recipient: Address; rfqId?: string };
 }
 
 export class QuoteError extends Error {

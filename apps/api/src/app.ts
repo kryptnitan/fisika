@@ -1,10 +1,10 @@
-import { buildClientTxs, routeIdFor } from '@fisika/core/build';
+import { buildClientTxs, buildDirectTxs, routeIdFor, type UnsignedTx } from '@fisika/core/build';
 import type { GraphState } from '@fisika/core/setup';
-import { bestRoute, curveOut, SAMPLE_USD, type TokenRegistry } from '@fisika/core';
+import { bestRoute, CELO, curveOut, SAMPLE_USD, type Address, type ChainConfig, type TextileAdapter, type TokenRegistry } from '@fisika/core';
 import { Hono, type MiddlewareHandler } from 'hono';
 import { existsSync } from 'node:fs';
 import { readFile, unlink, writeFile } from 'node:fs/promises';
-import type { Hex } from 'viem';
+import { encodeFunctionData, erc20Abi, type Hex } from 'viem';
 import type { ApiConfig } from './config.ts';
 import { QuoteBook, QuoteError, quoteView, type QuoteRequest } from './quotes.ts';
 import { makeReceipt, ReceiptStore, type TxReceiptLike } from './receipts.ts';
@@ -12,13 +12,8 @@ import type { PaperArbRunner } from './arb.ts';
 import type { Heatmap } from './heatmap.ts';
 import { registrationFile } from './registration.ts';
 
-export const CORRIDORS: [string, string][] = [
-  ['USDT', 'USDC'], ['USDC', 'USDT'], ['USDT', 'USDm'], ['USDm', 'USDT'], ['USDC', 'USDm'],
-  ['USDT', 'cNGN'], ['cNGN', 'USDT'], ['USDT', 'NGNm'], ['NGNm', 'USDT'],
-  ['USDT', 'KESm'], ['KESm', 'USDT'], ['USDT', 'GHSm'], ['GHSm', 'USDT'], ['USDT', 'XOFm'], ['USDT', 'ZARm'],
-  ['USDT', 'wBRL'], ['wBRL', 'USDT'], ['USDT', 'wARS'], ['wARS', 'USDT'], ['USDT', 'BRLA'], ['USDT', 'COPM'],
-  ['cNGN', 'KESm'], ['cNGN', 'GHSm'], ['wBRL', 'wARS'], ['cNGN', 'NGNm'],
-];
+/** Celo corridors (kept for callers that predate multi-chain). Each chain's own list lives in its ChainConfig. */
+export const CORRIDORS = CELO.corridors;
 
 export interface AppDeps {
   cfg: ApiConfig;
@@ -31,6 +26,14 @@ export interface AppDeps {
   quotes?: QuoteBook;
   receipts?: ReceiptStore;
   now?: () => number;
+  /** Chain this app serves. Defaults to Celo. */
+  chain?: ChainConfig;
+  /** fisika executor on this chain (only Celo has one). Defaults to cfg.executor on Celo, none elsewhere. */
+  executor?: Address | null;
+  /** Textile adapter with the API key, for taker-bound firm quotes when a client trades a Textile route. */
+  textile?: TextileAdapter | null;
+  /** This chain's live trader status and kill files. Defaults to cfg.live on Celo. */
+  live?: { statusFile: string | null; killFile: string | null };
 }
 
 export interface Stats {
@@ -103,6 +106,12 @@ const json = (v: unknown) => JSON.parse(JSON.stringify(v, (_k, x) => (typeof x =
 
 export function createApp(d: AppDeps) {
   const now = d.now ?? Date.now;
+  const chain = d.chain ?? CELO;
+  const executor = d.executor !== undefined ? d.executor : chain.key === 'celo' ? d.cfg.executor : null;
+  const live = d.live ?? (chain.key === 'celo' ? d.cfg.live : { statusFile: null, killFile: null });
+  // A service fee can only be collected by the executor; routes sent straight to a venue carry none.
+  const feeBps = executor ? d.cfg.serviceFeeBps : 0;
+  const corridors = chain.corridors;
   const quotes = d.quotes ?? new QuoteBook();
   const receipts = d.receipts ?? new ReceiptStore();
   const stats: Stats = { startedMs: now(), calls: {}, paidCalls: 0, revenueAtomicUsdc: 0n, freeTierCalls: 0, payers: new Map() };
@@ -142,8 +151,11 @@ export function createApp(d: AppDeps) {
         graphAgeMs: st.updatedMs ? now() - st.updatedMs : null,
         edges: st.graph.size(),
         venues: st.lastRefresh,
+        chain: chain.key,
+        chainId: chain.id,
+        chainName: chain.name,
         executionEnabled: d.cfg.executionEnabled,
-        serviceFeeBps: d.cfg.serviceFeeBps,
+        serviceFeeBps: feeBps,
         rpcDegraded: st.rpc?.degraded ?? false,
       }),
     );
@@ -153,9 +165,10 @@ export function createApp(d: AppDeps) {
 
   app.get('/v1/pairs', (c) =>
     c.json({
-      chainId: 42220,
+      chainId: chain.id,
+      chain: chain.key,
       tokens: d.tokens.usable().map((t) => ({ symbol: t.symbol, legacySymbol: t.legacySymbol, address: t.address, decimals: t.decimals, fiat: t.fiat, issuer: t.issuer })),
-      corridors: CORRIDORS.map(([a, b]) => `${a}-${b}`),
+      corridors: corridors.map(([a, b]) => `${a}-${b}`),
     }),
   );
 
@@ -164,7 +177,7 @@ export function createApp(d: AppDeps) {
     const t = now();
     if (boardCache && t - boardCache.at < 2_000) return c.json(boardCache.body);
     const st = s();
-    const rows = CORRIDORS.map(([a, b]) => {
+    const rows = corridors.map(([a, b]) => {
       const tin = d.tokens.bySymbol(a).address;
       const tout = d.tokens.bySymbol(b).address;
       const dIn = d.tokens.decimals(tin);
@@ -202,7 +215,7 @@ export function createApp(d: AppDeps) {
       const spreadBps = rates.length > 1 ? ((Math.max(...rates) - Math.min(...rates)) / Math.max(...rates)) * 10_000 : null;
       return { corridor: `${a}-${b}`, from: a, to: b, sizes, spreadBps };
     });
-    const body = json({ asOf: new Date(st.updatedMs).toISOString(), block: st.block, gasPriceWei: st.gasPriceWei, nativeUsd: st.nativeUsd, rows });
+    const body = json({ chain: chain.key, chainId: chain.id, asOf: new Date(st.updatedMs).toISOString(), block: st.block, gasPriceWei: st.gasPriceWei, nativeUsd: st.nativeUsd, rows });
     boardCache = { at: t, body };
     return c.json(body);
   });
@@ -231,13 +244,13 @@ export function createApp(d: AppDeps) {
   app.post('/v1/quote', async (c) => {
     const body = (await c.req.json().catch(() => null)) as QuoteRequest | null;
     if (!body?.tokenIn || !body.tokenOut || !body.amount) throw new QuoteError(400, 'body must include tokenIn, tokenOut, amount');
-    const q = quotes.quote(s(), d.tokens, body, { feeBps: d.cfg.serviceFeeBps, defaultSlippageBps: d.cfg.defaultSlippageBps, maxAgeMs: d.cfg.edgeMaxAgeMs, nowMs: now() });
-    return c.json(quoteView(q, d.tokens));
+    const q = quotes.quote(s(), d.tokens, body, { feeBps, defaultSlippageBps: d.cfg.defaultSlippageBps, maxAgeMs: d.cfg.edgeMaxAgeMs, nowMs: now() });
+    return c.json({ chain: chain.key, chainId: chain.id, ...quoteView(q, d.tokens) });
   });
 
   // ---- paid: build. Gate on configuration BEFORE payment, so nobody pays for a 503.
   app.use('/v1/build', async (c, next) => {
-    if (!d.cfg.executionEnabled || !d.cfg.executor) return c.json({ error: 'transaction building is disabled on this deployment (quote-only mode)' }, 503);
+    if (!d.cfg.executionEnabled) return c.json({ error: 'transaction building is disabled on this deployment (quote-only mode)' }, 503);
     if (isInternal(c)) return next();
     return d.paymentGate(c, next);
   });
@@ -250,35 +263,88 @@ export function createApp(d: AppDeps) {
     }
     const q = quotes.get(body.quoteId, now());
     if (!q) throw new QuoteError(404, 'quote not found or expired; request a new quote');
-    if (q.route.execution !== 'atomic') {
-      throw new QuoteError(422, `this route needs ${q.route.txCount} transaction(s) including a Textile RFQ leg, which needs a taker-bound firm quote; only atomic routes are built today`);
-    }
+    const taker = body.taker.toLowerCase() as Address;
+    const recipient = (body.recipient ?? body.taker).toLowerCase() as Address;
     const deadlineSec = Math.floor(now() / 1000) + 120;
-    const { txs, minOut } = buildClientTxs(q.route, {
-      executor: d.cfg.executor!,
-      taker: body.taker as Hex,
-      recipient: (body.recipient ?? body.taker) as Hex,
-      slippageBps: q.slippageBps,
-      feeBps: q.feeBps,
-      feeTo: d.cfg.feeTo ?? '0x0000000000000000000000000000000000000000',
-      deadlineSec,
-      routeId: routeIdFor(q.id),
-    });
-    return c.json(json({ quoteId: q.id, routeId: routeIdFor(q.id), deadline: deadlineSec, minOut, txs, quote: quoteView(q, d.tokens) }));
+    const r = q.route;
+
+    // 1. Executor (Celo): any atomic route, split and multi-hop included, in one all-or-nothing transaction.
+    if (executor && r.execution === 'atomic') {
+      const { txs, minOut } = buildClientTxs(r, {
+        executor,
+        taker,
+        recipient,
+        slippageBps: q.slippageBps,
+        feeBps: q.feeBps,
+        feeTo: d.cfg.feeTo ?? '0x0000000000000000000000000000000000000000',
+        deadlineSec,
+        routeId: routeIdFor(q.id),
+        chainId: chain.id,
+      });
+      return c.json(json({ chain: chain.key, quoteId: q.id, routeId: routeIdFor(q.id), mode: 'executor', deadline: deadlineSec, minOut, txs, quote: quoteView(q, d.tokens) }));
+    }
+
+    // 2. Textile RFQ, straight from the client's wallet: a firm quote bound to the client as taker.
+    if (r.execution === 'textile-direct') {
+      if (!d.textile) throw new QuoteError(503, 'Textile trades need TEXTILE_API_KEY on this deployment');
+      if (recipient !== taker) throw new QuoteError(400, 'Textile settles to the taker; omit recipient or set it to the taker');
+      const e = r.paths[0]!.edges[0]!;
+      const minOut = (r.grossOut * BigInt(10_000 - q.slippageBps)) / 10_000n;
+      const fq = await d.textile.firmQuote({ sellToken: e.tokenIn, buyToken: e.tokenOut, sellAmount: r.amountIn, taker }, now());
+      if (fq.status !== 'quoted') throw new QuoteError(422, `Textile gave no firm quote (${fq.reason}); try again or a smaller size`);
+      const allowed = new Set([chain.textile?.reactor, chain.textile?.vaultOrderExecutor].filter(Boolean).map((x) => x!.toLowerCase()));
+      if (!allowed.has(fq.swap.to.toLowerCase()) || !allowed.has(fq.spender.toLowerCase())) throw new QuoteError(502, 'Textile response points at an unknown contract; refusing to build it');
+      if (fq.swap.value !== 0n) throw new QuoteError(502, 'Textile swap asks for native value; refusing to build it');
+      if (fq.takerPays > r.amountIn) throw new QuoteError(422, 'Textile asked for more than the quoted input');
+      if (fq.buyAmount < minOut) throw new QuoteError(422, 'the firm price moved past your slippage limit; request a new quote');
+      const txs: UnsignedTx[] = [
+        {
+          to: e.tokenIn,
+          data: encodeFunctionData({ abi: erc20Abi, functionName: 'approve', args: [fq.spender, fq.takerPays] }),
+          value: '0',
+          chainId: chain.id,
+          description: 'Approve exactly the input amount to Textile (skip if allowance already covers it)',
+        },
+        { to: fq.swap.to, data: fq.swap.data, value: '0', chainId: chain.id, description: `Fill Textile firm quote ${fq.rfqId}; broadcast before ${new Date(fq.expiresAt).toISOString()}` },
+      ];
+      q.direct = { target: fq.swap.to.toLowerCase() as Address, recipient: taker, rfqId: fq.rfqId };
+      return c.json(json({ chain: chain.key, quoteId: q.id, mode: 'textile', rfqId: fq.rfqId, firmOut: fq.buyAmount, expiresAt: new Date(fq.expiresAt).toISOString(), minOut: fq.buyAmount, txs, quote: quoteView(q, d.tokens) }));
+    }
+
+    // 3. No executor here: a single-hop AMM route goes straight to the DEX router, client as recipient.
+    if (r.execution === 'atomic') {
+      let built;
+      try {
+        built = buildDirectTxs(r, chain.v3Dexes, { recipient, slippageBps: q.slippageBps, deadlineSec, chainId: chain.id });
+      } catch (e) {
+        throw new QuoteError(422, `${(e as Error).message}; request a smaller size or a direct pair`);
+      }
+      q.direct = { target: built.txs.at(-1)!.to.toLowerCase() as Address, recipient };
+      return c.json(json({ chain: chain.key, quoteId: q.id, mode: 'direct', deadline: deadlineSec, minOut: built.minOut, txs: built.txs, quote: quoteView(q, d.tokens) }));
+    }
+    throw new QuoteError(422, `this route needs ${r.txCount} transactions across venues; it cannot be signed as one swap yet`);
   });
 
   // ---- receipts (free): client reports its tx hash; we verify the Executed event on-chain.
   app.post('/v1/receipts', async (c) => {
     const body = (await c.req.json().catch(() => null)) as { quoteId?: string; txHash?: string } | null;
     if (!body?.quoteId || !body.txHash || !/^0x[0-9a-fA-F]{64}$/.test(body.txHash)) throw new QuoteError(400, 'body must include quoteId and txHash');
-    if (!d.cfg.executor) throw new QuoteError(503, 'no executor configured');
     const q = quotes.getAny(body.quoteId);
     if (!q) throw new QuoteError(404, 'unknown quote');
+    if (!q.direct && !executor) throw new QuoteError(409, 'this quote was never built into transactions');
+    // Textile wants the hash of a filled firm quote reported back.
+    if (q.direct?.rfqId && d.textile) void d.textile.submit(q.direct.rfqId, body.txHash);
     const tx = await d.getTxReceipt(body.txHash as Hex);
     if (!tx) throw new QuoteError(404, 'transaction not found yet; retry after it is mined');
     let r;
     try {
-      r = makeReceipt(q, body.txHash as Hex, tx, d.cfg.executor, d.tokens);
+      r = makeReceipt(
+        q,
+        body.txHash as Hex,
+        tx,
+        q.direct ? { kind: 'direct', target: q.direct.target, recipient: q.direct.recipient, explorer: chain.explorer } : { kind: 'executor', executor: executor!, explorer: chain.explorer },
+        d.tokens,
+      );
     } catch (e) {
       throw new QuoteError(422, (e as Error).message);
     }
@@ -303,10 +369,10 @@ export function createApp(d: AppDeps) {
   );
 
   app.get('/v1/arb', async (c) => {
-    if (d.cfg.live.statusFile) {
-      const raw = await readFile(d.cfg.live.statusFile, 'utf8').catch(() => null);
-      if (!raw) return c.json({ error: 'live trader has not written a status yet' }, 503);
-      return c.json(liveView(JSON.parse(raw), d.cfg.live.killFile));
+    if (live.statusFile) {
+      const raw = await readFile(live.statusFile, 'utf8').catch(() => null);
+      if (!raw) return c.json({ error: `${chain.name} live trader has not written a status yet` }, 503);
+      return c.json({ chain: chain.key, ...liveView(JSON.parse(raw), live.killFile) });
     }
     return d.arb ? c.json(json(d.arb.status())) : c.json({ error: 'arb engine not running' }, 404);
   });
@@ -319,14 +385,14 @@ export function createApp(d: AppDeps) {
     if (!want || auth.length !== want.length || !timingSafeEqualStr(auth, want)) return c.json({ error: 'unauthorized' }, 401);
     return next();
   });
-  app.get('/v1/admin/state', (c) => c.json({ arbKilled: d.cfg.live.killFile ? existsSync(d.cfg.live.killFile) : (d.arb?.killed ?? null), executionEnabled: d.cfg.executionEnabled }));
+  app.get('/v1/admin/state', (c) => c.json({ chain: chain.key, arbKilled: live.killFile ? existsSync(live.killFile) : (d.arb?.killed ?? null), executionEnabled: d.cfg.executionEnabled }));
   app.post('/v1/admin/kill', async (c) => {
     const body = (await c.req.json().catch(() => ({}))) as { on?: boolean; clearHalt?: boolean };
-    if (d.cfg.live.killFile) {
+    if (live.killFile) {
       // LIVE: the trader stops starting new cycles as soon as this file exists.
-      if (body.on !== false) await writeFile(d.cfg.live.killFile, `stopped from dashboard ${new Date().toISOString()}\n`);
-      else await unlink(d.cfg.live.killFile).catch(() => undefined);
-      console.warn(`[admin] LIVE kill switch ${body.on !== false ? 'ON' : 'off'}`);
+      if (body.on !== false) await writeFile(live.killFile, `stopped from dashboard ${new Date().toISOString()}\n`);
+      else await unlink(live.killFile).catch(() => undefined);
+      console.warn(`[admin] ${chain.name} LIVE kill switch ${body.on !== false ? 'ON' : 'off'}`);
       return c.json({ arbKilled: body.on !== false, note: 'Live trader stops starting new cycles; a cycle in progress finishes first.' });
     }
     if (!d.arb) return c.json({ error: 'arb engine not running' }, 404);
@@ -336,16 +402,20 @@ export function createApp(d: AppDeps) {
     return c.json({ arbKilled: d.arb.killed, note: 'LIVE executor pause is a separate on-chain call from the guardian key' });
   });
 
-  app.get('/openapi.json', (c) => c.json(openapi(d.cfg)));
+  app.get('/openapi.json', (c) => c.json(openapi(d.cfg, chain)));
 
   return { app, quotes, receipts, stats };
 }
 
-function openapi(cfg: ApiConfig) {
+function openapi(cfg: ApiConfig, chain: ChainConfig) {
   return {
     openapi: '3.1.0',
-    info: { title: 'fisika FX API', version: '1', description: 'Best-execution stablecoin FX on Celo. Paid routes use x402 (USDC on Celo, eip155:42220).' },
-    servers: [{ url: cfg.publicUrl }],
+    info: {
+      title: 'fisika FX API',
+      version: '1',
+      description: `Best-execution stablecoin FX on ${chain.name}. Celo routes live at /v1/*, BNB Chain at /bsc/v1/*; GET /v1/chains lists them. Paid routes use x402 (USDC on Celo, eip155:42220) for every chain.`,
+    },
+    servers: [{ url: chain.key === 'celo' ? cfg.publicUrl : `${cfg.publicUrl}/${chain.key}` }],
     paths: {
       '/v1/board': { get: { summary: 'Free FX board: best rate per corridor at $10/$100/$1,000' } },
       '/v1/pairs': { get: { summary: 'Supported tokens and corridors' } },
@@ -365,5 +435,24 @@ function openapi(cfg: ApiConfig) {
       '/v1/receipts/{id}': { get: { summary: 'Receipt by id or tx hash' } },
       '/v1/stats': { get: { summary: 'Calls served, x402 revenue, top payers' } },
     },
+  };
+}
+
+/**
+ * One API for several chains: /<chain>/v1/... goes to that chain's app (/bsc/v1/board), plain /v1/... goes to the
+ * default chain (Celo), and GET /v1/chains lists what this deployment serves.
+ */
+export function multiChainFetch(apps: Partial<Record<string, { fetch: (req: Request) => Response | Promise<Response> }>>, chains: ChainConfig[], defaultKey = 'celo') {
+  const list = chains.map((c) => ({ key: c.key, chainId: c.id, name: c.name, nativeSymbol: c.nativeSymbol, explorer: c.explorer, prefix: c.key === defaultKey ? '' : `/${c.key}` }));
+  return async (req: Request): Promise<Response> => {
+    const url = new URL(req.url);
+    if (url.pathname === '/v1/chains') return Response.json({ default: defaultKey, chains: list }, { headers: { 'Access-Control-Allow-Origin': '*' } });
+    const m = /^\/([a-z0-9]+)(\/.*)$/.exec(url.pathname);
+    const target = m && apps[m[1]!] ? m[1]! : null;
+    if (!target) return apps[defaultKey]!.fetch(req);
+    url.pathname = m![2]!;
+    const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
+    const inner = new Request(url, { method: req.method, headers: req.headers, body: hasBody ? await req.arrayBuffer() : undefined });
+    return apps[target]!.fetch(inner);
   };
 }

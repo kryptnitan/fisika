@@ -8,23 +8,27 @@ declare global {
   }
 }
 
-const CELO_HEX = '0xa4ec'; // 42220
+import { currentChain } from './chain';
 
+/** Connect and make sure the wallet is on the chain selected in the dashboard. */
 export async function connect(): Promise<string> {
+  const c = currentChain();
   const eth = window.ethereum;
   if (!eth) throw new Error('No wallet found. Open fisika in MiniPay, Valora or a browser with an EVM wallet.');
   const [account] = (await eth.request({ method: 'eth_requestAccounts' })) as string[];
   if (!account) throw new Error('The wallet returned no account.');
   const chain = (await eth.request({ method: 'eth_chainId' })) as string;
-  if (chain.toLowerCase() !== CELO_HEX) {
+  if (chain.toLowerCase() !== c.chainIdHex) {
     try {
-      await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CELO_HEX }] });
+      await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: c.chainIdHex }] });
     } catch {
       await eth.request({
         method: 'wallet_addEthereumChain',
-        params: [{ chainId: CELO_HEX, chainName: 'Celo', nativeCurrency: { name: 'CELO', symbol: 'CELO', decimals: 18 }, rpcUrls: ['https://forno.celo.org'], blockExplorerUrls: ['https://celoscan.io'] }],
+        params: [{ chainId: c.chainIdHex, chainName: c.name, nativeCurrency: { name: c.nativeSymbol, symbol: c.nativeSymbol, decimals: 18 }, rpcUrls: [c.rpc], blockExplorerUrls: [c.explorer] }],
       });
     }
+    const now = (await eth.request({ method: 'eth_chainId' })) as string;
+    if (now.toLowerCase() !== c.chainIdHex) throw new Error(`Switch your wallet to ${c.name} to swap here.`);
   }
   return account.toLowerCase();
 }
@@ -44,5 +48,5 @@ export async function waitForTx(hash: string, timeoutMs = 90_000): Promise<'succ
     if (r?.status) return r.status === '0x1' ? 'success' : 'reverted';
     await new Promise((res) => setTimeout(res, 1500));
   }
-  throw new Error('The transaction was not mined within 90 seconds. Check it on Celoscan.');
+  throw new Error(`The transaction was not mined within 90 seconds. Check it on ${currentChain().explorer.replace('https://', '')}.`);
 }

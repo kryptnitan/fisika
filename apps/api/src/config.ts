@@ -1,4 +1,4 @@
-import type { Address } from '@fisika/core';
+import { chainByKey, type Address, type ChainKey } from '@fisika/core';
 
 export interface ApiConfig {
   port: number;
@@ -29,6 +29,10 @@ export interface ApiConfig {
   defaultSlippageBps: number;
   textileApiKey: string | null;
   agent: { id: string | null; wallet: Address | null; name: string; image: string };
+  /** Chains this deployment serves (CHAINS=celo,bsc). The first is the default at /v1/*. */
+  chains: ChainKey[];
+  /** Per-chain RPCs and live trader files. Celo's mirror rpcUrls / live above. */
+  perChain: Partial<Record<ChainKey, { rpcUrls: string[]; live: { statusFile: string | null; killFile: string | null } }>>;
 }
 
 const isAddr = (v: string | undefined): v is Address => !!v && /^0x[0-9a-fA-F]{40}$/.test(v);
@@ -52,7 +56,21 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
   const executionEnabled = env.EXECUTION_ENABLED === 'true';
   const executor = addr('EXECUTOR_ADDRESS');
   const feeTo = addr('FEE_TO');
-  if (executionEnabled && (!executor || (feeBps > 0 && !feeTo))) throw new Error('EXECUTION_ENABLED needs EXECUTOR_ADDRESS and FEE_TO');
+  // Building works without the executor (single-hop and Textile routes go straight to the venue); with one,
+  // a non-zero fee needs somewhere to go.
+  if (executionEnabled && executor && feeBps > 0 && !feeTo) throw new Error('a service fee needs FEE_TO');
+  const chains = [...new Set((env.CHAINS || 'celo').split(',').map((x) => x.trim()).filter(Boolean))].map((k) => chainByKey(k).key);
+  if (chains[0] !== 'celo') throw new Error('CHAINS must start with celo (the default chain at /v1/*)');
+  const list = (v: string | undefined, d: readonly string[]) => (v || d.join(',')).split(',').map((x) => x.trim()).filter(Boolean);
+  const perChain: ApiConfig['perChain'] = {};
+  for (const k of chains) {
+    const c = chainByKey(k);
+    const sfx = k === 'celo' ? '' : `_${k.toUpperCase()}`;
+    perChain[k] = {
+      rpcUrls: list(k === 'celo' ? env.CELO_RPC_URLS : env[`${k.toUpperCase()}_RPC_URLS`], c.freeRpcs),
+      live: { statusFile: env[`LIVE_STATUS_FILE${sfx}`] || null, killFile: env[`KILL_FILE${sfx}`] || null },
+    };
+  }
   const publicUrl = (env.PUBLIC_URL ?? `http://localhost:${num('PORT', 8787)}`).replace(/\/$/, '');
   return {
     port: num('PORT', 8787),
@@ -90,5 +108,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     defaultSlippageBps: num('SLIPPAGE_BPS', 30),
     textileApiKey: env.TEXTILE_API_KEY || null,
     agent: { id: env.AGENT_ID || null, wallet: addr('AGENT_WALLET'), name: env.AGENT_NAME ?? 'fisika', image: env.AGENT_IMAGE ?? '' },
+    chains,
+    perChain,
   };
 }

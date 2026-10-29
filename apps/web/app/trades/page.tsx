@@ -24,7 +24,7 @@ export default function TradesPage() {
     <>
       <h1>Trades</h1>
       <p className="lede">
-        Every swap executed through fisika, with the rate it was quoted and the rate it got. Each receipt is checked against the transaction on Celo and carries a hash of its contents so it can be verified independently.
+        Every swap executed through fisika, with the rate it was quoted and the rate it got. Each receipt is checked against the transaction on the selected chain and carries a hash of its contents so it can be verified independently.
       </p>
       {error && !data ? <p className="err">{error}</p> : null}
       <div className="scroll">

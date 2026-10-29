@@ -17,7 +17,7 @@ export class Heatmap {
     this.maxSamples = maxSamples;
   }
 
-  record(st: GraphState, tokens: TokenRegistry, corridors: [string, string][], nowMs = Date.now()): void {
+  record(st: GraphState, tokens: TokenRegistry, corridors: readonly (readonly [string, string])[], nowMs = Date.now()): void {
     const last = this.samples.at(-1);
     if (last && nowMs - last.atMs < 60_000) return;
     const depth: HeatSample['depth'] = {};

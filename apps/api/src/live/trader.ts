@@ -27,8 +27,8 @@ export interface LiveConfig extends Omit<ArbConfig, 'gasPriceWei' | 'nativeUsd'>
   ledgerPath: string;
   statusPath: string;
   killFile: string;
-  /** Keep at least this much CELO for gas; below it the engine pauses. */
-  minCeloForGas: bigint;
+  /** Keep at least this much of the gas token (CELO, BNB) for gas; below it the engine pauses. */
+  minNativeForGas: bigint;
 }
 
 export interface LedgerEntry {
@@ -99,7 +99,12 @@ export class LiveTrader {
     try {
       const st = this.state();
       if (!st.updatedMs || st.rpc?.degraded) return;
-      const cfg: ArbConfig = { ...this.cfg, gasPriceWei: st.gasPriceWei, nativeUsd: st.nativeUsd || 0.08 };
+      if (!st.nativeUsd) {
+        // Gas cannot be priced, so profit cannot be measured: do not trade.
+        this.lastSkip = { no_gas_token_price: 1 };
+        return;
+      }
+      const cfg: ArbConfig = { ...this.cfg, gasPriceWei: st.gasPriceWei, nativeUsd: st.nativeUsd };
       if (!this.risk) {
         this.risk = new RiskGate(cfg, st.pricer, () => this.killed());
         if (this.pendingRestore) {
@@ -109,9 +114,9 @@ export class LiveTrader {
       }
       if (this.killed() || this.risk.state.halted) return;
 
-      const celo = await this.chain.pub.getBalance({ address: this.chain.account });
-      if (celo < this.cfg.minCeloForGas) {
-        this.lastSkip = { low_celo_for_gas: 1 };
+      const native = await this.chain.pub.getBalance({ address: this.chain.account });
+      if (native < this.cfg.minNativeForGas) {
+        this.lastSkip = { [`low_${(this.chain.config?.nativeSymbol ?? 'CELO').toLowerCase()}_for_gas`]: 1 };
         return;
       }
       // Never size a trade above what the wallet actually holds of the start token.
@@ -161,8 +166,8 @@ export class LiveTrader {
     const minEdge = (o.amountIn * BigInt(Math.ceil(this.cfg.minEdgeBps))) / 10_000n;
     const startBal = await balanceOf(this.chain, start);
     const entry = (status: LedgerEntry['status'], realizedStart: bigint | null, note?: string): LedgerEntry => {
-      const gasCelo = txs.reduce((s, t) => s + t.gasUsed * t.effectiveGasPrice, 0n);
-      const gasUsd = (Number(gasCelo) / 1e18) * (st.nativeUsd || 0.08);
+      const gasNative = txs.reduce((s, t) => s + t.gasUsed * t.effectiveGasPrice, 0n);
+      const gasUsd = (Number(gasNative) / 1e18) * st.nativeUsd;
       const startUsd = realizedStart === null ? 0 : (st.pricer.usdValue(start, realizedStart < 0n ? -realizedStart : realizedStart, Date.now()) ?? 0) * (realizedStart < 0n ? -1 : 1);
       return {
         at: new Date().toISOString(),
@@ -245,7 +250,7 @@ export class LiveTrader {
   async writeStatus(): Promise<void> {
     const st = this.state();
     const start = this.cfg.startTokens[0]!;
-    const [bal, celo] = await Promise.all([balanceOf(this.chain, start).catch(() => null), this.chain.pub.getBalance({ address: this.chain.account }).catch(() => null)]);
+    const [bal, native] = await Promise.all([balanceOf(this.chain, start).catch(() => null), this.chain.pub.getBalance({ address: this.chain.account }).catch(() => null)]);
     const completed = this.recent.filter((r) => r.status === 'completed');
     const status = {
       mode: 'LIVE',
@@ -255,7 +260,7 @@ export class LiveTrader {
       halted: this.risk?.state.halted ?? false,
       haltReason: this.risk?.state.haltReason ?? null,
       todayUsd: this.risk?.state.realizedUsd ?? 0,
-      balances: { [this.sym(start)]: bal === null ? null : Number(bal) / 10 ** this.tokens.decimals(start), CELO: celo === null ? null : Number(celo) / 1e18 },
+      balances: { [this.sym(start)]: bal === null ? null : Number(bal) / 10 ** this.tokens.decimals(start), [this.chain.config?.nativeSymbol ?? 'CELO']: native === null ? null : Number(native) / 1e18 },
       trades: completed.length,
       wins: completed.filter((r) => r.realizedUsd > 0).length,
       realizedUsd: completed.reduce((s, r) => s + r.realizedUsd, 0),

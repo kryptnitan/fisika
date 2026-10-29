@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react';
 import { api, fmtRate, usePoll, VENUE_LABEL, ago } from '@/lib/api';
 import { connect, sendTx, waitForTx } from '@/lib/wallet';
+import { useChain } from '@/lib/chain';
 
 type Size = { usd: number; rate: number | null; venues?: string[]; hops?: number; split?: boolean; execution?: string; firm?: boolean; directByVenue?: { venue: string; rate: number }[] };
 type Row = { corridor: string; from: string; to: string; sizes: Size[]; spreadBps: number | null };
@@ -9,19 +10,22 @@ type Board = { asOf: string; block: string; rows: Row[] };
 type Heat = { samples: { atMs: number; depth: Record<string, Record<string, number>>; maxSampledUsd?: number }[] };
 
 export default function RatesPage() {
+  const chain = useChain();
   const board = usePoll<Board>('v1/board', 5_000);
   const heat = usePoll<Heat>('v1/heatmap?limit=60', 60_000);
   const [pick, setPick] = useState<{ from: string; to: string }>({ from: 'cNGN', to: 'USDT' });
 
   return (
     <>
-      <h1>Stablecoin FX on Celo</h1>
+      <h1>Stablecoin FX on {chain.name}</h1>
       <p className="lede">
-        The best rate for each currency pair right now, at three order sizes. fisika checks every venue, splits large orders and takes multi-hop paths when they pay more.
+        {chain.key === 'bsc'
+          ? 'The best naira ↔ dollar rate on BNB Chain right now, at three order sizes. fisika checks Textile, PancakeSwap and Uniswap and picks the one that pays most.'
+          : 'The best rate for each currency pair right now, at three order sizes. fisika checks every venue, splits large orders and takes multi-hop paths when they pay more.'}
       </p>
       <div className="grid">
         <section aria-label="Live rates">
-          <BoardTable board={board.data} error={board.error} onPick={setPick} selected={`${pick.from}-${pick.to}`} />
+          <BoardTable board={board.data} error={board.error} onPick={setPick} selected={`${pick.from}-${pick.to}`} chainName={chain.name} />
           <Heatmap data={heat.data} />
         </section>
         <Ticket key={`${pick.from}-${pick.to}`} initial={pick} tokens={board.data ? [...new Set(board.data.rows.flatMap((r) => [r.from, r.to]))] : []} />
@@ -30,9 +34,9 @@ export default function RatesPage() {
   );
 }
 
-function BoardTable({ board, error, onPick, selected }: { board: Board | null; error: string | null; onPick: (p: { from: string; to: string }) => void; selected: string }) {
+function BoardTable({ board, error, onPick, selected, chainName }: { board: Board | null; error: string | null; onPick: (p: { from: string; to: string }) => void; selected: string; chainName: string }) {
   if (error && !board) return <p className="err">{error}</p>;
-  if (!board) return <p className="muted">Loading live rates from Celo…</p>;
+  if (!board) return <p className="muted">Loading live rates from {chainName}…</p>;
   return (
     <div className="scroll">
       <table className="board">
@@ -147,11 +151,13 @@ type QuoteView = {
   execution: string;
   txCount: number;
   firm: boolean;
+  chainId?: number;
   paths: { amountIn: string; hops: { venue: string; from: string; to: string; amountOut: string }[] }[];
   expiresAt: string;
 };
 
 function Ticket({ initial, tokens }: { initial: { from: string; to: string }; tokens: string[] }) {
+  const chain = useChain();
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
   const [amount, setAmount] = useState('50000');
@@ -182,10 +188,13 @@ function Ticket({ initial, tokens }: { initial: { from: string; to: string }; to
       setBusy('Connecting wallet…');
       const account = await connect();
       setBusy('Preparing transactions…');
-      const built = await api<{ txs: { to: string; data: string; value: string; description: string }[] }>('v1/build', { method: 'POST', body: { quoteId: quote.quoteId, taker: account } });
+      const built = await api<{ mode: string; expiresAt?: string; txs: { to: string; data: string; value: string; description: string }[] }>('v1/build', { method: 'POST', body: { quoteId: quote.quoteId, taker: account } });
+      // A Textile firm quote must be broadcast before it expires; better to stop than send a dead order.
+      const deadline = built.expiresAt ? Date.parse(built.expiresAt) : Infinity;
       let last = '';
       for (const [i, tx] of built.txs.entries()) {
         setBusy(`Confirm transaction ${i + 1} of ${built.txs.length} in your wallet…`);
+        if (Date.now() > deadline - 1_500) throw new Error('The Textile quote expired before it was sent. Get a new quote and confirm a little faster.');
         last = await sendTx(account, tx);
         setBusy(`Waiting for transaction ${i + 1} to be mined…`);
         if ((await waitForTx(last)) !== 'success') throw new Error(`Transaction ${i + 1} reverted; nothing further was sent.`);
@@ -245,7 +254,15 @@ function Ticket({ initial, tokens }: { initial: { from: string; to: string }; to
             <dt>Network gas</dt>
             <dd>{quote.gasUsd < 0.01 ? '< $0.01' : `$${quote.gasUsd.toFixed(2)}`}</dd>
             <dt>Transactions</dt>
-            <dd>{quote.execution === 'atomic' ? '1 swap (all or nothing)' : `${quote.txCount}, includes a Textile RFQ leg`}</dd>
+            <dd>
+              {quote.execution === 'atomic'
+                ? '1 swap (all or nothing), after a one-time approval'
+                : quote.execution === 'textile-direct'
+                  ? '1 Textile fill at a firm price, after approval'
+                  : `${quote.txCount}, includes a Textile RFQ leg`}
+            </dd>
+            <dt>Network</dt>
+            <dd>{chain.name}</dd>
           </dl>
           <ul className="hops">
             {quote.paths.map((p, i) => (
@@ -255,6 +272,7 @@ function Ticket({ initial, tokens }: { initial: { from: string; to: string }; to
             ))}
           </ul>
           {!quote.firm ? <p className="muted">Part of this route is an indicative RFQ price; the maker confirms the final price before you sign.</p> : null}
+          {quote.execution === 'textile-direct' ? <p className="muted">Textile checks your wallet holds the {quote.tokenIn.symbol} before it quotes, and the firm quote lasts about a minute.</p> : null}
           <button className="primary" style={{ marginTop: 14 }} onClick={swap} disabled={!!busy}>
             Swap with my wallet
           </button>

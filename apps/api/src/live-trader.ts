@@ -2,17 +2,19 @@
  * fisika LIVE arbitrage process. Holds the only copy of the arb wallet key; the API never sees it.
  *
  *   MODE=LIVE LIVE_ACK=i-accept-risk ARB_PRIVATE_KEY=0x… TEXTILE_API_KEY=tx_live_… \
- *   MAX_TRADE_USD=100 DAILY_LOSS_LIMIT_USD=10 node src/live-trader.ts
+ *   MAX_TRADE_USD=100 DAILY_LOSS_LIMIT_USD=10 [CHAIN=celo|bsc] node src/live-trader.ts
+ *
+ * One process per chain, each with its own wallet key, data directory and kill file.
  *
  * Refuses to start unless every limit is set explicitly. Stop new trades: `touch $KILL_FILE`
  * (or the dashboard's Stop button). `systemctl stop` lets a cycle in progress finish first.
  */
+import { mkdir } from 'node:fs/promises';
 import { privateKeyToAccount } from 'viem/accounts';
-import { celo } from 'viem/chains';
 import { createWalletClient, http, parseEther, type Hex } from 'viem';
-import { TokenRegistry } from '@fisika/core';
+import { chainByKey, TokenRegistry } from '@fisika/core';
 import { createVenues, LiveGraph } from '@fisika/core/setup';
-import { FREE_CELO_RPCS, makeClient, redactRpc, vetRpcs } from '@fisika/core/viem';
+import { makeClient, redactRpc, vetRpcs } from '@fisika/core/viem';
 import { registerTokens } from './live/legs.ts';
 import { LiveTrader } from './live/trader.ts';
 
@@ -42,27 +44,30 @@ if (limits.maxTokenExposureUsd < limits.maxTradeUsd && env.ALLOW_TEXTILE !== 'fa
   console.warn('[live] MAX_TOKEN_EXPOSURE_USD < MAX_TRADE_USD: two-transaction (Textile) cycles larger than the exposure cap will be skipped');
 }
 const refreshMs = Number(env.GRAPH_REFRESH_MS ?? 10_000);
-const dataDir = env.DATA_DIR ?? '/var/lib/fisika';
+const chain = chainByKey(env.CHAIN);
+const dataDir = env.DATA_DIR ?? (chain.key === 'celo' ? '/var/lib/fisika' : `/var/lib/fisika/${chain.key}`);
 
-const urls = (env.CELO_RPC_URLS || FREE_CELO_RPCS.join(',')).split(',').map((s) => s.trim()).filter(Boolean);
-const vetting = await vetRpcs(urls);
-if (!vetting.ok.length) die(`no usable Celo RPC: ${JSON.stringify(vetting.rejected)}`);
-const pub = makeClient(vetting.ok);
+await mkdir(dataDir, { recursive: true });
+const rpcEnv = chain.key === 'celo' ? env.CELO_RPC_URLS || env.RPC_URLS : env.RPC_URLS;
+const urls = (rpcEnv || chain.freeRpcs.join(',')).split(',').map((s) => s.trim()).filter(Boolean);
+const vetting = await vetRpcs(urls, 20, fetch, chain.id);
+if (!vetting.ok.length) die(`no usable ${chain.name} RPC: ${JSON.stringify(vetting.rejected)}`);
+const pub = makeClient(vetting.ok, chain.viem);
 const account = privateKeyToAccount(key!);
-const wallet = createWalletClient({ account, chain: celo, transport: http(vetting.ok[0]) });
+const wallet = createWalletClient({ account, chain: chain.viem, transport: http(vetting.ok[0]) });
 
-const tokens = new TokenRegistry();
+const tokens = new TokenRegistry(chain.tokens);
 registerTokens(tokens.all().map((t) => t.address));
 const textileKey = env.ALLOW_TEXTILE === 'false' ? undefined : env.TEXTILE_API_KEY || undefined;
-if (env.ALLOW_TEXTILE !== 'false' && !textileKey) die('TEXTILE_API_KEY is required (or set ALLOW_TEXTILE=false for Uniswap/Mento only)');
-const venues = await createVenues(pub, tokens, { apiKey: textileKey });
+if (env.ALLOW_TEXTILE !== 'false' && !textileKey) die('TEXTILE_API_KEY is required (or set ALLOW_TEXTILE=false for AMM-only cycles)');
+const venues = await createVenues(pub, tokens, { apiKey: textileKey }, undefined, chain);
 const adapters = new Map(venues.byId);
 if (env.ALLOW_TEXTILE === 'false') adapters.delete('textile');
 const live = new LiveGraph(pub, tokens, venues, refreshMs * 2.5, vetting.ok);
 await live.start(refreshMs);
 
 const trader = new LiveTrader(
-  { pub, wallet, account: account.address.toLowerCase() as Hex },
+  { pub, wallet, account: account.address.toLowerCase() as Hex, config: chain },
   () => live.state,
   tokens,
   adapters,
@@ -77,13 +82,14 @@ const trader = new LiveTrader(
     ledgerPath: `${dataDir}/live-ledger.jsonl`,
     statusPath: `${dataDir}/live-status.json`,
     killFile: env.KILL_FILE ?? `${dataDir}/KILL`,
-    minCeloForGas: parseEther(env.MIN_CELO_FOR_GAS ?? '0.5'),
+    // Gas reserve in the chain's own token: 0.5 CELO on Celo, 0.005 BNB (~$4) on BNB Chain.
+    minNativeForGas: parseEther(env.MIN_NATIVE_FOR_GAS ?? env.MIN_CELO_FOR_GAS ?? (chain.key === 'celo' ? '0.5' : '0.005')),
   },
 );
 await trader.restore();
 
 console.log(
-  `fisika LIVE · wallet ${account.address} · rpc ${vetting.ok.map(redactRpc).join(', ')} · max trade $${limits.maxTradeUsd} · daily loss limit $${limits.dailyLossLimitUsd} · textile ${textileKey ? 'on' : 'off'}`,
+  `fisika LIVE · ${chain.name} · wallet ${account.address} · rpc ${vetting.ok.map(redactRpc).join(', ')} · max trade $${limits.maxTradeUsd} · daily loss limit $${limits.dailyLossLimitUsd} · textile ${textileKey ? 'on' : 'off'}`,
 );
 
 const timer = setInterval(() => void trader.tick().catch((e: Error) => console.error('[live] tick failed:', e.message)), refreshMs);

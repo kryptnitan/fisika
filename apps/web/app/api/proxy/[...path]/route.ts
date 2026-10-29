@@ -7,15 +7,17 @@ import { type NextRequest, NextResponse } from 'next/server';
 const API = (process.env.API_URL ?? 'http://localhost:8787').replace(/\/$/, '');
 const INTERNAL = process.env.INTERNAL_API_KEY ?? '';
 
-const GET_ALLOWED = [/^health$/, /^v1\/(board|pairs|heatmap|arb|stats)$/, /^v1\/receipts(\/[\w-]+)?$/, /^v1\/admin\/state$/];
+const GET_ALLOWED = [/^health$/, /^v1\/(board|pairs|heatmap|arb|stats|chains)$/, /^v1\/receipts(\/[\w-]+)?$/, /^v1\/admin\/state$/];
 const POST_ALLOWED = [/^v1\/(quote|build|receipts)$/, /^v1\/admin\/kill$/];
 
 async function forward(req: NextRequest, path: string[], method: 'GET' | 'POST') {
   const p = path.join('/');
-  const allowed = (method === 'GET' ? GET_ALLOWED : POST_ALLOWED).some((r) => r.test(p));
+  // Optional chain prefix (bsc/v1/board); Celo is unprefixed.
+  const bare = p.replace(/^bsc\//, '');
+  const allowed = (method === 'GET' ? GET_ALLOWED : POST_ALLOWED).some((r) => r.test(bare));
   if (!allowed) return NextResponse.json({ error: 'not found' }, { status: 404 });
   const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (p.startsWith('v1/admin/')) {
+  if (bare.startsWith('v1/admin/')) {
     const auth = req.headers.get('authorization');
     if (auth) headers.authorization = auth;
   } else if (INTERNAL) {

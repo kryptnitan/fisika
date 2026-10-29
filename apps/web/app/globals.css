@@ -32,6 +32,11 @@ a { color: inherit; }
 .nav a { text-decoration: none; color: var(--dim); padding: 6px 10px; border-radius: 6px; }
 .nav a:hover { color: var(--text); background: var(--panel); }
 .nav a[aria-current='page'] { color: var(--text); background: var(--panel-2); }
+.chainswitch { margin-left: auto; display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; gap: 2px; }
+.chainswitch button { all: unset; cursor: pointer; font: 500 12px/1 var(--mono); color: var(--dim); padding: 7px 11px; border-radius: 999px; }
+.chainswitch button[aria-pressed='true'] { background: var(--amber); color: var(--amber-ink); }
+.chainswitch button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.chainswitch + .chain { margin-left: 0; }
 .chain { margin-left: auto; font: 12px/1 var(--mono); color: var(--dim); display: flex; align-items: center; gap: 8px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
 .dot.live { background: var(--up); }

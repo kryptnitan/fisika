@@ -6,6 +6,7 @@
 import { encodeFunctionData, keccak256, toHex, zeroAddress, type Hex } from 'viem';
 import { MENTO, UNISWAP_V3 } from '../addresses.ts';
 import type { Route } from '../router.ts';
+import type { V3DexConfig } from '../chains.ts';
 import type { Address, Edge } from '../types.ts';
 import { brokerAbi, erc20Abi, mentoRouterAbi } from './viem.ts';
 
@@ -34,6 +35,54 @@ export const swapRouter02Abi = [
     outputs: [{ name: 'amountOut', type: 'uint256' }],
   },
 ] as const;
+
+/**
+ * Original Uniswap v3-periphery SwapRouter shape (PancakeSwap v3 SwapRouter keeps it): exactInputSingle carries a
+ * deadline inside the params struct. SwapRouter02 (above) dropped it.
+ */
+export const v3SwapRouterAbi = [
+  {
+    type: 'function',
+    name: 'exactInputSingle',
+    stateMutability: 'payable',
+    inputs: [
+      {
+        name: 'params',
+        type: 'tuple',
+        components: [
+          { name: 'tokenIn', type: 'address' },
+          { name: 'tokenOut', type: 'address' },
+          { name: 'fee', type: 'uint24' },
+          { name: 'recipient', type: 'address' },
+          { name: 'deadline', type: 'uint256' },
+          { name: 'amountIn', type: 'uint256' },
+          { name: 'amountOutMinimum', type: 'uint256' },
+          { name: 'sqrtPriceLimitX96', type: 'uint160' },
+        ],
+      },
+    ],
+    outputs: [{ name: 'amountOut', type: 'uint256' }],
+  },
+] as const;
+
+/** exactInputSingle calldata for either router shape. */
+export function encodeV3ExactInputSingle(
+  kind: V3DexConfig['routerKind'],
+  p: { tokenIn: Address; tokenOut: Address; fee: number; recipient: Address; amountIn: bigint; amountOutMinimum: bigint; deadline: bigint },
+): Hex {
+  if (kind === 'swaprouter02') {
+    return encodeFunctionData({
+      abi: swapRouter02Abi,
+      functionName: 'exactInputSingle',
+      args: [{ tokenIn: p.tokenIn, tokenOut: p.tokenOut, fee: p.fee, recipient: p.recipient, amountIn: p.amountIn, amountOutMinimum: p.amountOutMinimum, sqrtPriceLimitX96: 0n }],
+    });
+  }
+  return encodeFunctionData({
+    abi: v3SwapRouterAbi,
+    functionName: 'exactInputSingle',
+    args: [{ tokenIn: p.tokenIn, tokenOut: p.tokenOut, fee: p.fee, recipient: p.recipient, deadline: p.deadline, amountIn: p.amountIn, amountOutMinimum: p.amountOutMinimum, sqrtPriceLimitX96: 0n }],
+  });
+}
 
 const stepTuple = {
   name: 'steps',
@@ -236,6 +285,46 @@ const erc20Abi_approve = [
     outputs: [{ type: 'bool' }],
   },
 ] as const;
+
+/**
+ * Chains without a fisika executor (BNB Chain): a single-hop AMM route becomes approve(router, exact) + the router's
+ * own exactInputSingle, sent from the client's wallet with the client as recipient. Same non-custodial guarantee:
+ * the router enforces minOut on-chain, funds never touch fisika. Split or multi-hop routes need the executor.
+ */
+export function buildDirectTxs(
+  route: Route,
+  dexes: readonly V3DexConfig[],
+  p: { recipient: Address; slippageBps: number; deadlineSec: number; chainId: number },
+): { txs: UnsignedTx[]; minOut: bigint } {
+  if (route.paths.length !== 1 || route.paths[0]!.edges.length !== 1) {
+    throw new Error('without an executor on this chain only single-hop, unsplit routes can be built');
+  }
+  const e = route.paths[0]!.edges[0]!;
+  const dex = dexes.find((d) => d.id === e.venue);
+  if (!dex) throw new Error(`venue ${e.venue} cannot be built directly on this chain`);
+  const fee = Number(e.meta?.fee);
+  if (!Number.isInteger(fee)) throw new Error(`edge ${e.poolId} has no fee tier`);
+  const minOut = (route.grossOut * BigInt(10_000 - p.slippageBps)) / 10_000n;
+  return {
+    minOut,
+    txs: [
+      {
+        to: route.tokenIn,
+        data: encodeFunctionData({ abi: erc20Abi_approve, functionName: 'approve', args: [dex.router, route.amountIn] }),
+        value: '0',
+        chainId: p.chainId,
+        description: `Approve exactly the input amount to the ${dex.label} router (skip if allowance already covers it)`,
+      },
+      {
+        to: dex.router,
+        data: encodeV3ExactInputSingle(dex.routerKind, { tokenIn: e.tokenIn, tokenOut: e.tokenOut, fee, recipient: p.recipient, amountIn: route.amountIn, amountOutMinimum: minOut, deadline: BigInt(p.deadlineSec) }),
+        value: '0',
+        chainId: p.chainId,
+        description: `Swap on ${dex.label} (fee tier ${fee}); reverts unless at least minOut arrives`,
+      },
+    ],
+  };
+}
 
 /** Stable route id: hash of the quote id, so receipts can be joined back to quotes from the Executed event. */
 export function routeIdFor(quoteId: string): Hex {

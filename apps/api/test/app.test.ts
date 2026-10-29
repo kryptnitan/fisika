@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { PriceGraph, Pricer, TokenRegistry, type Address, type Edge } from '@fisika/core';
-import { fisikaExecutorAbi, routeIdFor } from '@fisika/core/build';
+import { BSC, CELO, PriceGraph, Pricer, TokenRegistry, type Address, type Edge } from '@fisika/core';
+import { fisikaExecutorAbi, routeIdFor, v3SwapRouterAbi } from '@fisika/core/build';
 import type { GraphState } from '@fisika/core/setup';
 import type { MiddlewareHandler } from 'hono';
-import { decodeFunctionData, encodeAbiParameters, encodeEventTopics, type Hex, type Log } from 'viem';
-import { createApp } from '../src/app.ts';
+import { decodeFunctionData, encodeAbiParameters, encodeEventTopics, erc20Abi, type Hex, type Log } from 'viem';
+import { createApp, multiChainFetch } from '../src/app.ts';
 import { loadConfig } from '../src/config.ts';
 
 const USDT = '0x48065fbbe25f71c9282ddf5e1cd6d6a887483d5e' as Address;
@@ -168,6 +168,65 @@ describe('api', () => {
     const built = await (await post(app, '/v1/build', { quoteId: q.quoteId, taker: TAKER }, h)).json();
     const [, , , , , , , , feeBps] = decodeFunctionData({ abi: fisikaExecutorAbi, data: built.txs[1].data }).args as unknown as any[];
     assert.equal(feeBps, 0);
+  });
+
+  it('BNB Chain: builds a direct PancakeSwap swap (no executor), verifies the receipt from Transfer logs', async () => {
+    const B_USDT = BSC.tokens.find((t) => t.symbol === 'USDT')!.address;
+    const B_CNGN = BSC.tokens.find((t) => t.symbol === 'cNGN')!.address;
+    const tokens = new TokenRegistry(BSC.tokens);
+    const graph = new PriceGraph();
+    graph.upsert(edge('pancake-v3', '0x7f049051cc191db9837503f74715d7ef96ba7626', B_USDT, B_CNGN, 18, 6, 1380, { fee: 500 }));
+    const st: GraphState = { graph, pricer: new Pricer(tokens, graph, 60_000), gasPriceWei: 50_000_000n, nativeUsd: 750, block: 1n, updatedMs: NOW, lastRefresh: [], rpc: { checkedMs: NOW, degraded: false, vetting: null } };
+    // A fee configured for Celo must not leak into a chain without an executor.
+    const cfg = loadConfig({ EXECUTION_ENABLED: 'true', SERVICE_FEE_BPS: '10', FEE_TO: '0x0000000000000000000000000000000000000fee', CHAINS: 'celo,bsc' });
+    let mined: any = null;
+    const bsc = createApp({ cfg, chain: BSC, tokens, state: () => st, paymentGate: stubGate({ n: 0 }), getTxReceipt: async () => mined, now: () => NOW });
+    const celo = mk();
+    const fetch = multiChainFetch({ celo: celo.app, bsc: bsc.app }, [CELO, BSC]);
+    const call = (path: string, body?: unknown) =>
+      fetch(new Request(`http://x${path}`, body === undefined ? undefined : { method: 'POST', headers: { 'content-type': 'application/json', 'payment-signature': 'x' }, body: JSON.stringify(body) }));
+
+    const chains = await (await call('/v1/chains')).json();
+    assert.deepEqual(chains.chains.map((c: any) => [c.key, c.chainId, c.prefix]), [['celo', 42220, ''], ['bsc', 56, '/bsc']]);
+    const board = await (await call('/bsc/v1/board')).json();
+    assert.equal(board.chainId, 56);
+    assert.ok(board.rows.find((r: any) => r.corridor === 'USDT-cNGN').sizes[1].rate > 1300);
+    assert.equal((await (await call('/v1/board')).json()).chainId, 42220, 'plain /v1 stays Celo');
+
+    const q = await (await call('/bsc/v1/quote', { tokenIn: 'USDT', tokenOut: 'cNGN', amount: '100' })).json();
+    assert.equal(q.chainId, 56);
+    assert.equal(q.serviceFeeBps, 0);
+    const built = await (await call('/bsc/v1/build', { quoteId: q.quoteId, taker: TAKER })).json();
+    assert.equal(built.mode, 'direct');
+    assert.equal(built.txs.length, 2);
+    assert.equal(built.txs[0].to, B_USDT);
+    assert.equal(built.txs[0].chainId, 56);
+    const router = BSC.v3Dexes.find((d) => d.id === 'pancake-v3')!.router;
+    assert.equal(built.txs[1].to, router);
+    const approve = decodeFunctionData({ abi: erc20Abi, data: built.txs[0].data });
+    assert.deepEqual(approve.args, [router, 100n * 10n ** 18n], 'exact approval to the router');
+    const swap = decodeFunctionData({ abi: v3SwapRouterAbi, data: built.txs[1].data });
+    const p = (swap.args as any)[0];
+    assert.equal(p.recipient.toLowerCase(), TAKER);
+    assert.equal(p.fee, 500);
+    assert.equal(p.amountOutMinimum, BigInt(built.minOut));
+    assert.ok(p.amountOutMinimum > 0n && p.deadline > 0n);
+
+    const transfer = (to: Address, value: bigint): Log =>
+      ({
+        address: B_CNGN,
+        topics: encodeEventTopics({ abi: erc20Abi, eventName: 'Transfer', args: { from: router, to } }),
+        data: encodeAbiParameters([{ type: 'uint256' }], [value]),
+        blockNumber: 9n, transactionHash: `0x${'33'.repeat(32)}`, logIndex: 0, blockHash: `0x${'44'.repeat(32)}`, transactionIndex: 0, removed: false,
+      }) as unknown as Log;
+    // Wrong target: refused.
+    mined = { status: 'success', blockNumber: 9n, logs: [transfer(TAKER, 137_000_000_000n)], to: B_USDT };
+    assert.equal((await call('/bsc/v1/receipts', { quoteId: q.quoteId, txHash: `0x${'33'.repeat(32)}` })).status, 422);
+    mined = { ...mined, to: router };
+    const rec = await (await call('/bsc/v1/receipts', { quoteId: q.quoteId, txHash: `0x${'33'.repeat(32)}` })).json();
+    assert.equal(rec.status, 'filled');
+    assert.equal(rec.realizedOut, '137000');
+    assert.match(rec.explorer, /^https:\/\/bscscan\.com\/tx\//);
   });
 });
 
