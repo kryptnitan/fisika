@@ -99,8 +99,8 @@ export const CELO: ChainConfig = {
 export const BSC_TOKENS: readonly TokenInfo[] = [
   // Textile address book, BSC section ("USDT (BSC-USD)"); 18 decimals on BSC per the same page's testnet note.
   T({ symbol: 'USDT', address: '0x55d398326f99059fF775485246999027B3197955', decimals: 18, issuer: 'Tether (Binance-Peg)', fiat: 'USD', usd: true, tier: 1 }),
-  // Textile address book, BSC section. Decimals read on-chain by verify-onchain before use.
-  T({ symbol: 'cNGN', address: '0xa8AEA66B361a8d53e8865c62D142167Af28Af058', decimals: null, issuer: 'Africa Stablecoin Consortium', fiat: 'NGN', usd: false, tier: 1 }),
+  // Textile address book, BSC section. 6 decimals read on-chain (decimals(), block 130426361; Textile API agrees).
+  T({ symbol: 'cNGN', address: '0xa8AEA66B361a8d53e8865c62D142167Af28Af058', decimals: 6, issuer: 'Africa Stablecoin Consortium', fiat: 'NGN', usd: false, tier: 1 }),
   // Uniswap BNB deployments page (wrapped native token). Only used to price gas.
   T({ symbol: 'WBNB', address: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', decimals: 18, issuer: 'BNB Chain', fiat: 'BNB', usd: false, tier: 0 }),
 ];
