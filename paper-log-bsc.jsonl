@@ -1,0 +1,1 @@
+{"start":"2026-10-29T12:56:16.625Z","end":"2026-10-29T13:51:18.890Z","minutes":55,"rpcs":["https://bsc-dataseed.bnbchain.org","https://bsc-rpc.publicnode.com"],"rpcRejected":[],"rpcRequests":886,"refreshes":220,"refreshFailures":{"textile":134},"graphEdges":20,"opportunities":46,"fills":0,"skipped":{"edge_bps_below_min":46},"pnlUsd":0,"fillsDetail":[]}
