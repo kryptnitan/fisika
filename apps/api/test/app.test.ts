@@ -204,7 +204,8 @@ describe('api', () => {
     const router = BSC.v3Dexes.find((d) => d.id === 'pancake-v3')!.router;
     assert.equal(built.txs[1].to, router);
     const approve = decodeFunctionData({ abi: erc20Abi, data: built.txs[0].data });
-    assert.deepEqual(approve.args, [router, 100n * 10n ** 18n], 'exact approval to the router');
+    assert.equal((approve.args![0] as string).toLowerCase(), router, 'approval goes to the router');
+    assert.equal(approve.args![1], 100n * 10n ** 18n, 'exact approval');
     const swap = decodeFunctionData({ abi: v3SwapRouterAbi, data: built.txs[1].data });
     const p = (swap.args as any)[0];
     assert.equal(p.recipient.toLowerCase(), TAKER);
