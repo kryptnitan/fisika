@@ -34,13 +34,13 @@ Work top to bottom. Each stage needs every item ticked before moving on. **LIVE 
 - [x] Every address, decimals value and venue ABI is verified on-chain (`scripts/verify-onchain.ts`, published on the `verification` branch).
 - [x] The executor passes unit tests plus Celo-fork tests on Uniswap, Mento v3, Mento v2 and cross-venue routes, including a rollback when a later leg fails.
 - [x] A live paper run publishes the FX board, arb scan and a graph snapshot on every push.
-- [ ] Let the `paper` workflow run for **at least 7 days** (a 25-minute session every hour; the record builds up in `paper-summary.md` on the `verification` branch). It records:
+- [ ] Let the `paper` workflow run for **24 hours** (shortened from 7 days at the owner's call; a 55-minute session every hour; the record builds up in `paper-summary.md` on the `verification` branch). It records:
   - how many cycles the engine detects
   - how many survive the live re-quote
   - median edge after re-quote
   - how often the edge disappears between detection and confirmation
 
-  Go to stage 4 only if paper P&L is positive after gas over that window.
+  Go to stage 4 only if paper P&L is positive after gas over that window. A 24-hour window covers one weekday cycle but not a weekend (Mento oracles pause) — the first live days are the rest of the test, which is why the first live caps are tiny.
 
 ### Stage 2 — Quotes for sale (x402)
 
