@@ -1,0 +1,171 @@
+{
+  "at": "2026-10-29T06:36:53.893Z",
+  "chainId": 56,
+  "chain": "BNB Chain",
+  "block": "130426361",
+  "codeBytes": {
+    "uniswap-v3.factory": 24535,
+    "uniswap-v3.quoterV2": 8273,
+    "uniswap-v3.router": 24497,
+    "pancake-v3.factory": 5151,
+    "pancake-v3.quoterV2": 8331,
+    "pancake-v3.router": 12154,
+    "textile.reactor": 6888,
+    "textile.feeController": 1983,
+    "textile.vaultOrderExecutor": 5355,
+    "multicall3": 3808,
+    "permit2": 9152
+  },
+  "tokens": {
+    "USDT": {
+      "address": "0x55d398326f99059ff775485246999027b3197955",
+      "symbol": "USDT",
+      "decimals": 18,
+      "configured": 18
+    },
+    "cNGN": {
+      "address": "0xa8aea66b361a8d53e8865c62d142167af28af058",
+      "symbol": "cNGN",
+      "decimals": 6,
+      "configured": null
+    },
+    "WBNB": {
+      "address": "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
+      "symbol": "WBNB",
+      "decimals": 18,
+      "configured": 18
+    }
+  },
+  "uniswapPools": [
+    {
+      "dex": "Uniswap",
+      "pair": "USDT/WBNB",
+      "fee": 100,
+      "pool": "0x47a90A2d92A8367A91EfA1906bFc8c1E05bf10c4",
+      "balances": {
+        "USDT": "200612.236870923829088724",
+        "WBNB": "533.21706100679883443"
+      }
+    },
+    {
+      "dex": "Uniswap",
+      "pair": "USDT/WBNB",
+      "fee": 500,
+      "pool": "0x6fe9E9de56356F7eDBfcBB29FAB7cd69471a4869",
+      "balances": {
+        "USDT": "3176371.19544183458429306",
+        "WBNB": "3145.891918381092317863"
+      }
+    },
+    {
+      "dex": "Uniswap",
+      "pair": "USDT/WBNB",
+      "fee": 3000,
+      "pool": "0x7862D9B4bE2156B15d54F41ee4EDE2d5b0b455e4",
+      "balances": {
+        "USDT": "141727.226597920445140055",
+        "WBNB": "186.458900049753289922"
+      }
+    },
+    {
+      "dex": "Uniswap",
+      "pair": "USDT/WBNB",
+      "fee": 10000,
+      "pool": "0x4d170f8714367C44787AE98259CE8Adb72240067",
+      "balances": {
+        "USDT": "80132.626785016478998837",
+        "WBNB": "27.750040789211510571"
+      }
+    },
+    {
+      "dex": "PancakeSwap",
+      "pair": "USDT/cNGN",
+      "fee": 100,
+      "pool": "0xB84E7C912A1034aD674bba8859Fca84F1F614A29",
+      "balances": {
+        "USDT": "0.00021315748998374",
+        "cNGN": "1000000.000363"
+      }
+    },
+    {
+      "dex": "PancakeSwap",
+      "pair": "USDT/cNGN",
+      "fee": 500,
+      "pool": "0x7F049051cc191dB9837503f74715D7Ef96BA7626",
+      "balances": {
+        "USDT": "2741.080763807027141471",
+        "cNGN": "17257.789009"
+      }
+    },
+    {
+      "dex": "PancakeSwap",
+      "pair": "USDT/cNGN",
+      "fee": 2500,
+      "pool": "0x5244AcbeE4CA1Cd899a53132Cec2816A9C547DC4",
+      "balances": {
+        "USDT": "0.153949728393695064",
+        "cNGN": "8.394311"
+      }
+    },
+    {
+      "dex": "PancakeSwap",
+      "pair": "USDT/WBNB",
+      "fee": 100,
+      "pool": "0x172fcD41E0913e95784454622d1c3724f546f849",
+      "balances": {
+        "USDT": "11278885.145504429735152767",
+        "WBNB": "7320.727227724746175923"
+      }
+    },
+    {
+      "dex": "PancakeSwap",
+      "pair": "USDT/WBNB",
+      "fee": 500,
+      "pool": "0x36696169C63e42cd08ce11f5deeBbCeBae652050",
+      "balances": {
+        "USDT": "7285350.960595614752051407",
+        "WBNB": "3785.531375078186543791"
+      }
+    },
+    {
+      "dex": "PancakeSwap",
+      "pair": "USDT/WBNB",
+      "fee": 2500,
+      "pool": "0x1401ff943D08a7E098328C1d3a9d388923B115D2",
+      "balances": {
+        "USDT": "82678.829546491476175147",
+        "WBNB": "122.705035219389953087"
+      }
+    },
+    {
+      "dex": "PancakeSwap",
+      "pair": "USDT/WBNB",
+      "fee": 10000,
+      "pool": "0x6805E0E5333c5c3acCF2930Be4734E2b98f4Ce06",
+      "balances": {
+        "USDT": "3371.449023543524813117",
+        "WBNB": "9.130420430923025979"
+      }
+    }
+  ],
+  "mento": {},
+  "textileLevels": [
+    {
+      "pair": "cNGN->USDT",
+      "min": "1381.574",
+      "max": "102213010.940893",
+      "sellDecimals": 6,
+      "buyDecimals": 18,
+      "points": 9
+    },
+    {
+      "pair": "USDT->cNGN",
+      "min": "1",
+      "max": "238796.85882979908646",
+      "sellDecimals": 18,
+      "buyDecimals": 6,
+      "points": 9
+    }
+  ],
+  "failures": []
+}
