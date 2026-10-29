@@ -1,17 +1,17 @@
 # fisika PAPER run
 
-2026-10-29T05:42:26.333Z · block 81351789 · gas 202.5 gwei · CELO $0.0794
+2026-10-29T05:45:28.310Z · block 81351970 · gas 202.638749236 gwei · CELO $0.0794
 
-RPC requests (pool discovery + two full refreshes, batched): 995.
+RPC requests (pool discovery + two full refreshes, batched): 952. Batch stats: {"aggregates":0,"fallbacks":169,"reads":783,"lastError":"Execution reverted for an unknown reason."}
 
 Uniswap v3 pools discovered: 39. Mento v2 exchanges between tracked tokens: USDm/GHSm, USDm/XOFm, USDm/ZARm, USDm/BRLm, USDm/NGNm, USDm/KESm, USDm/COPm. Graph edges: 96.
 
 | Venue | Pass 1 | Pass 2 |
 |---|---|---|
-| uniswap-v3 | 37 edges | 57 edges, 2233 ms |
-| mento | 5 edges | 6 edges, 2009 ms |
-| mento-v2 | 7 edges | 14 edges, 2504 ms |
-| textile | 19 edges | 19 edges, 35 ms |
+| uniswap-v3 | 37 edges | 57 edges, 1281 ms |
+| mento | 5 edges | 6 edges, 1263 ms |
+| mento-v2 | 7 edges | 14 edges, 1404 ms |
+| textile | 19 edges | 19 edges, 59 ms |
 
 ## FX board
 
@@ -19,49 +19,49 @@ Rate = output per 1 unit of input at that size, after venue fees, before the fis
 
 | Corridor | $10 | $100 | $1000 | Venues ($100) | Execution ($100) |
 |---|---|---|---|---|---|
-| USDT→USDC | 0.998948 | 0.998945 | 0.998924 | uniswap-v3 | atomic |
-| USDC→USDT | 1.000853 | 1.000936 | 1.000829 | uniswap-v3→mento | atomic |
+| USDT→USDC | 0.998899 | 0.998898 | 0.998921 | uniswap-v3 | atomic |
+| USDC→USDT | 1.000901 | 1.000937 | 1.000878 | uniswap-v3→mento | atomic |
 | USDT→USDm | 0.998847 | 0.998847 | 0.998845 | uniswap-v3 | atomic |
-| USDm→USDT | 1.001121 | 1.001121 | 1.001121 | mento | atomic |
-| USDC→USDm | 0.999885 | 0.999815 | 0.999687 | uniswap-v3 | atomic |
+| USDm→USDT | 1.001123 | 1.001123 | 1.001123 | mento | atomic |
+| USDC→USDm | 0.999885 | 0.999815 | 0.999731 | uniswap-v3 | atomic |
 | USDT→cNGN | 1383.31 | 1383.24 | 1382.80 | uniswap-v3 | atomic |
 | cNGN→USDT | 0.000723 | 0.000723 | 0.000723 | textile | textile-direct |
 | USDT→NGNm | 1335.49 | 1335.35 | 1333.92 | uniswap-v3 | atomic |
 | NGNm→USDT | 0.000749 | 0.000749 | 0.000748 | uniswap-v3 | atomic |
 | USDT→KESm | 129.31 | 129.31 | 129.30 | uniswap-v3 | atomic |
-| KESm→USDT | 0.007732 | 0.007731 | 0.007639 | uniswap-v3 | atomic |
+| KESm→USDT | 0.007732 | 0.007731 | 0.007637 | uniswap-v3 | atomic |
 | USDT→GHSm | 11.617763 | 11.516252 | 11.504948 | uniswap-v3→mento-v2 + uniswap-v3 | atomic |
 | USDT→XOFm | 581.52 | 577.00 | 576.50 | uniswap-v3→mento-v2 + uniswap-v3→uniswap-v3→uniswap-v3 | atomic |
-| USDT→wBRL | 5.361464 | 5.361464 | 5.361464 | textile | textile-direct |
-| wBRL→USDT | 0.186414 | 0.186410 | 0.186409 | textile | textile-direct |
-| USDT→wARS | 1653.95 | 1653.95 | 1653.95 | textile | textile-direct |
-| wARS→USDT | 0.000605 | 0.000605 | 0.000604 | uniswap-v3 | atomic |
+| USDT→wBRL | 5.361364 | 5.361364 | 5.361364 | textile | textile-direct |
+| wBRL→USDT | 0.186415 | 0.186410 | 0.186410 | textile | textile-direct |
+| USDT→wARS | 1654.66 | 1654.41 | 1654.27 | uniswap-v3 | atomic |
+| wARS→USDT | 0.000604 | 0.000604 | 0.000604 | textile | textile-direct |
 | USDT→BRLA | 5.305151 | 5.300490 | 5.254327 | uniswap-v3 | atomic |
 | USDT→COPM | 3666.54 | 3619.57 | 3208.50 | uniswap-v3 | atomic |
 | cNGN→KESm | 0.093462 | 0.093483 | 0.093475 | textile→uniswap-v3 | multi-tx (2 tx) |
-| wBRL→wARS | 308.32 | 308.31 | 308.31 | textile→textile | multi-tx (2 tx) |
+| wBRL→wARS | 308.45 | 308.40 | 308.37 | textile→uniswap-v3 | multi-tx (2 tx) |
 | cNGN→NGNm | 0.965231 | 0.965351 | 0.964322 | textile→uniswap-v3 | multi-tx (2 tx) |
 
 <details><summary>Route breakdown per corridor and size</summary>
 
-- USDT→USDC $10: uniswap-v3[USDT→USDC 10→9.989476]
-- USDT→USDC $100: uniswap-v3[USDT→USDC 100→99.89455]
-- USDT→USDC $1000: uniswap-v3[USDT→USDC 1000→998.923617]
-- USDC→USDT $10: uniswap-v3[USDC→USDT 10→10.008527]
-- USDC→USDT $100: uniswap-v3[USDC→USDm 100→99.98148116842166546] mento[USDm→USDT 99.98148116842166546→100.093608]
-- USDC→USDT $1000: uniswap-v3[USDC→USDT 1000→1000.828586]
+- USDT→USDC $10: uniswap-v3[USDT→USDC 10→9.988992]
+- USDT→USDC $100: uniswap-v3[USDT→USDC 100→99.889782]
+- USDT→USDC $1000: uniswap-v3[USDT→USDm 1000→998.844715975904304881] mento[USDm→USDC 998.844715975904304881→998.921148]
+- USDC→USDT $10: uniswap-v3[USDC→USDT 10→10.009014]
+- USDC→USDT $100: uniswap-v3[USDC→USDm 100→99.98148116842166546] mento[USDm→USDT 99.98148116842166546→100.093726]
+- USDC→USDT $1000: uniswap-v3[USDC→USDT 1000→1000.877851]
 - USDT→USDm $10: uniswap-v3[USDT→USDm 10→9.988470724547738002]
 - USDT→USDm $100: uniswap-v3[USDT→USDm 100→99.88468582289625722]
 - USDT→USDm $1000: uniswap-v3[USDT→USDm 1000→998.844715975904304881]
-- USDm→USDT $10: mento[USDm→USDT 10→10.011214]
-- USDm→USDT $100: mento[USDm→USDT 100→100.112148]
-- USDm→USDT $1000: mento[USDm→USDT 1000→1001.12148]
+- USDm→USDT $10: mento[USDm→USDT 10→10.011226]
+- USDm→USDT $100: mento[USDm→USDT 100→100.112266]
+- USDm→USDT $1000: mento[USDm→USDT 1000→1001.122663]
 - USDC→USDm $10: uniswap-v3[USDC→USDm 10→9.998852935302603534]
 - USDC→USDm $100: uniswap-v3[USDC→USDm 100→99.98148116842166546]
-- USDC→USDm $1000: uniswap-v3[USDC→USDT 900→900.745971] uniswap-v3[USDT→USDm 900.745971→899.705377195184821325] + uniswap-v3[USDC→USDm 100→99.98148116842166546]
+- USDC→USDm $1000: uniswap-v3[USDC→USDT 900→900.790308] uniswap-v3[USDT→USDm 900.790308→899.749662962803592345] + uniswap-v3[USDC→USDm 100→99.98148116842166546]
 - USDT→cNGN $10: uniswap-v3[USDT→cNGN 10→13833.050964]
 - USDT→cNGN $100: uniswap-v3[USDT→cNGN 100→138323.646124]
-- USDT→cNGN $1000: textile[USDT→cNGN 900→1244480.544247] + uniswap-v3[USDT→cNGN 100→138323.646124]
+- USDT→cNGN $1000: textile[USDT→cNGN 900→1244480.544249] + uniswap-v3[USDT→cNGN 100→138323.646124]
 - cNGN→USDT $10: uniswap-v3[cNGN→USDT 13832.364612→9.997393]
 - cNGN→USDT $100: textile[cNGN→USDT 138323.646124→99.997028]
 - cNGN→USDT $1000: textile[cNGN→USDT 1383236.46124→999.970281]
@@ -76,25 +76,25 @@ Rate = output per 1 unit of input at that size, after venue fees, before the fis
 - USDT→KESm $1000: uniswap-v3[USDT→KESm 1000→129301.370056913676586579]
 - KESm→USDT $10: uniswap-v3[KESm→USDT 1293.131053→9.997889]
 - KESm→USDT $100: uniswap-v3[KESm→USDT 12931.310534→99.977984]
-- KESm→USDT $1000: mento-v2[KESm→USDm 116381.7948105→886.832767909854315] mento[USDm→USDT 886.832767909854315→887.827333] + uniswap-v3[KESm→USDT 12931.3105345→99.977984]
+- KESm→USDT $1000: mento-v2[KESm→USDm 116381.7948105→886.6331424578300092] mento[USDm→USDT 886.6331424578300092→887.628532] + uniswap-v3[KESm→USDT 12931.3105345→99.977984]
 - USDT→GHSm $10: uniswap-v3[USDT→GHSm 10→116.177633456541663871]
 - USDT→GHSm $100: uniswap-v3[USDT→USDm 90→89.89621747863531064] mento-v2[USDm→GHSm 89.89621747863531064→1035.447549402248613894] + uniswap-v3[USDT→GHSm 10→116.177633456541663871]
 - USDT→GHSm $1000: uniswap-v3[USDT→USDm 1000→998.844715975904304881] mento-v2[USDm→GHSm 998.844715975904304881→11504.948065656208500334]
 - USDT→XOFm $10: uniswap-v3[USDT→USDm 10→9.988470724547738002] uniswap-v3[USDm→XOFm 9.988470724547738002→5815.248162152925555077]
-- USDT→XOFm $100: uniswap-v3[USDT→USDm 90→89.89621747863531064] mento-v2[USDm→XOFm 89.89621747863531064→51884.813587630934707544] + uniswap-v3[USDT→USDC 10→9.989476] uniswap-v3[USDC→USDm 9.989476→9.988330142473491074] uniswap-v3[USDm→XOFm 9.988330142473491074→5815.166315825150177815]
+- USDT→XOFm $100: uniswap-v3[USDT→USDm 90→89.89621747863531064] mento-v2[USDm→XOFm 89.89621747863531064→51884.813587630934707544] + uniswap-v3[USDT→USDC 10→9.988992] uniswap-v3[USDC→USDm 9.988992→9.987846197991422428] uniswap-v3[USDm→XOFm 9.987846197991422428→5814.884565261170708559]
 - USDT→XOFm $1000: uniswap-v3[USDT→USDm 1000→998.844715975904304881] mento-v2[USDm→XOFm 998.844715975904304881→576496.690794767134191789]
-- USDT→wBRL $10: textile[USDT→wBRL 10→53.614643679162181829]
-- USDT→wBRL $100: textile[USDT→wBRL 100→536.146388985464105143]
-- USDT→wBRL $1000: textile[USDT→wBRL 1000→5361.46384199668454075]
-- wBRL→USDT $10: textile[wBRL→USDT 53.614639→9.994544]
-- wBRL→USDT $100: textile[wBRL→USDT 536.146389→99.942805]
-- wBRL→USDT $1000: textile[wBRL→USDT 5361.46389→999.425416]
-- USDT→wARS $10: textile[USDT→wARS 10→16539.494508723187897348]
-- USDT→wARS $100: textile[USDT→wARS 100→165394.929828135011928739]
-- USDT→wARS $1000: textile[USDT→wARS 1000→1653949.298282838671781614]
-- wARS→USDT $10: uniswap-v3[wARS→USDT 16539.492983→10.004723]
-- wARS→USDT $100: uniswap-v3[wARS→USDT 165394.929828→100.032357]
-- wARS→USDT $1000: textile[wARS→USDT 1488554.3684529→899.652177] + uniswap-v3[wARS→USDT 165394.9298281→100.032357]
+- USDT→wBRL $10: textile[USDT→wBRL 10→53.613643839681630807]
+- USDT→wBRL $100: textile[USDT→wBRL 100→536.136390594841050457]
+- USDT→wBRL $1000: textile[USDT→wBRL 1000→5361.363858094813377989]
+- wBRL→USDT $10: textile[wBRL→USDT 53.613639→9.994382]
+- wBRL→USDT $100: textile[wBRL→USDT 536.136391→99.94121]
+- wBRL→USDT $1000: textile[wBRL→USDT 5361.363906→999.409484]
+- USDT→wARS $10: uniswap-v3[USDT→wARS 10→16546.555918426708711092]
+- USDT→wARS $100: uniswap-v3[USDT→wARS 100→165440.950597399087117739]
+- USDT→wARS $1000: textile[USDT→wARS 900→1488827.728153120797292638] + uniswap-v3[USDT→wARS 100→165440.950597399087117739]
+- wARS→USDT $10: uniswap-v3[wARS→USDT 16544.09506→9.996182]
+- wARS→USDT $100: textile[wARS→USDT 165440.950597→99.969443]
+- wARS→USDT $1000: textile[wARS→USDT 1654409.505974→999.694436]
 - USDT→BRLA $10: uniswap-v3[USDT→BRLA 10→53.051505823286704916]
 - USDT→BRLA $100: uniswap-v3[USDT→BRLA 100→530.048964999919408349]
 - USDT→BRLA $1000: uniswap-v3[USDT→BRLA 1000→5254.326841833605215055]
@@ -104,9 +104,9 @@ Rate = output per 1 unit of input at that size, after venue fees, before the fis
 - cNGN→KESm $10: uniswap-v3[cNGN→USDT 13832.364612→9.997393] uniswap-v3[USDT→KESm 9.997393→1292.80566757932093376]
 - cNGN→KESm $100: textile[cNGN→USDT 138323.646124→99.997028] uniswap-v3[USDT→KESm 99.997028→12930.926216292648244727]
 - cNGN→KESm $1000: textile[cNGN→USDT 1383236.46124→999.970281] uniswap-v3[USDT→KESm 999.970281→129297.527388248178837547]
-- wBRL→wARS $10: textile[wBRL→USDT 53.614639→9.994544] textile[USDT→wARS 9.994544→16530.47056141933373695]
-- wBRL→wARS $100: textile[wBRL→USDT 536.146389→99.942805] textile[USDT→wARS 99.942805→165300.332198019715511155]
-- wBRL→wARS $1000: textile[wBRL→USDT 5361.46389→999.425416] textile[USDT→wARS 999.425416→1652998.965479234030173067]
+- wBRL→wARS $10: textile[wBRL→USDT 53.613639→9.994382] uniswap-v3[USDT→wARS 9.994382→16537.260063311736586138]
+- wBRL→wARS $100: textile[wBRL→USDT 536.136391→99.94121] uniswap-v3[USDT→wARS 99.94121→165343.689470030456160777]
+- wBRL→wARS $1000: textile[wBRL→USDT 5361.363906→999.409484] textile[USDT→wARS 999.409484→1653276.168215486493381799]
 - cNGN→NGNm $10: uniswap-v3[cNGN→USDT 13832.364612→9.997393] uniswap-v3[USDT→NGNm 9.997393→13351.433622926365362909]
 - cNGN→NGNm $100: textile[cNGN→USDT 138323.646124→99.997028] uniswap-v3[USDT→NGNm 99.997028→133530.925179093908401235]
 - cNGN→NGNm $1000: textile[cNGN→USDT 1383236.46124→999.970281] uniswap-v3[USDT→NGNm 999.970281→1333885.102073579094676567]
@@ -115,12 +115,4 @@ Rate = output per 1 unit of input at that size, after venue fees, before the fis
 
 ## Arbitrage scan (PAPER)
 
-1 cycle(s) with positive net profit on graph prices.
-
-| Cycle | Size | Net bps | Net $ | Txs | Indicative legs |
-|---|---|---|---|---|---|
-| USDT→wARS→USDT via textile,uniswap-v3 | $100 | 2.46 | 0.0246 | 2 | 1 |
-
-Engine tick (live re-quote of each leg, then risk gate):
-
-- skipped (edge_bps_below_min): net 2.46 bps / $0.0246
+0 cycle(s) with positive net profit on graph prices.
