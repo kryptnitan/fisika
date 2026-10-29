@@ -150,6 +150,8 @@ export async function executeLeg(c: Chain, e: Edge, amountIn: bigint, minOut: bi
       void textile.submit(q.rfqId, swap.hash);
       break;
     }
+    default:
+      throw new LegError(`live trading on venue ${e.venue} is not enabled (live trader is Celo-only)`, false);
   }
 
   const received = (await balanceOf(c, e.tokenOut)) - before;

@@ -150,6 +150,9 @@ export function encodeHop(e: Edge, amount: bigint, executor: Address, deadline: 
       };
     case 'textile':
       throw new Error('textile legs settle through a taker-bound firm quote, not inside the executor (aggregator key pending)');
+    default:
+      // The executor is deployed on Celo only; other chains' venues (PancakeSwap on BNB Chain) are quote-only.
+      throw new Error(`venue ${e.venue} has no executor encoding (Celo executor only)`);
   }
 }
 
