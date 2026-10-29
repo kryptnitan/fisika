@@ -22,8 +22,8 @@ export interface StoredQuote {
 }
 
 export class QuoteError extends Error {
-  readonly status: 400 | 404 | 422 | 503;
-  constructor(status: 400 | 404 | 422 | 503, message: string) {
+  readonly status: 400 | 404 | 409 | 422 | 502 | 503;
+  constructor(status: 400 | 404 | 409 | 422 | 502 | 503, message: string) {
     super(message);
     this.status = status;
   }
