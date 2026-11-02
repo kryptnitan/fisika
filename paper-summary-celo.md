@@ -1,14 +1,14 @@
 # fisika paper trading record
 
-17 sessions over 3.6 days (15.6 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-02T03:24:18.179Z. Live Celo prices on free RPCs, nothing signed.
+18 sessions over 4.0 days (16.5 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-02T11:53:25.999Z. Live Celo prices on free RPCs, nothing signed.
 
 | | |
 |---|---|
-| Opportunities that cleared the first check | 2627 |
+| Opportunities that cleared the first check | 2730 |
 | Paper fills (passed live re-quote and every risk limit) | 4 |
 | Paper P&L | $0.3899 |
-| P&L per watched hour | $0.0250 |
-| RPC requests | 74,373 (1.33/s) |
+| P&L per watched hour | $0.0236 |
+| RPC requests | 78,972 (1.33/s) |
 | Venue refresh failures | {"textile":144} |
 
 ## Fills by cycle
@@ -19,14 +19,15 @@
 
 ## Why opportunities were skipped
 
-- edge_bps_below_min: 2218
-- inventory_exposure: 402
+- edge_bps_below_min: 2317
+- inventory_exposure: 406
 - edge_usd_below_min: 3
 
 ## Sessions
 
 | Start | Min | RPCs | Requests | Opps | Fills | P&L |
 |---|---|---|---|---|---|---|
+| 2026-11-02 10:58 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4599 | 103 | 0 | $0.0000 |
 | 2026-11-02 02:29 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4321 | 246 | 0 | $0.0000 |
 | 2026-11-01 22:48 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4335 | 52 | 0 | $0.0000 |
 | 2026-11-01 18:27 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4049 | 292 | 0 | $0.0000 |
