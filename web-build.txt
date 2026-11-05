@@ -8,10 +8,10 @@ This information is used to shape Next.js' roadmap and prioritize features.
 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
 https://nextjs.org/telemetry
 
-   ▲ Next.js 15.5.28
+   ▲ Next.js 15.5.29
 
    Creating an optimized production build ...
- ✓ Compiled successfully in 4.0s
+ ✓ Compiled successfully in 3.3s
    Linting and checking validity of types ...
    Collecting page data ...
    Generating static pages (0/7) ...
@@ -23,15 +23,15 @@ https://nextjs.org/telemetry
    Collecting build traces ...
 
 Route (app)                                 Size  First Load JS
-┌ ○ /                                    4.87 kB         108 kB
-├ ○ /_not-found                            988 B         104 kB
+┌ ○ /                                    4.89 kB         107 kB
+├ ○ /_not-found                            991 B         103 kB
 ├ ○ /agents                              2.72 kB         105 kB
-├ ƒ /api/proxy/[...path]                   123 B         103 kB
+├ ƒ /api/proxy/[...path]                   123 B         102 kB
 ├ ○ /arb                                 3.77 kB         106 kB
-└ ○ /trades                              2.06 kB         105 kB
-+ First Load JS shared by all             103 kB
-  ├ chunks/372-a3acc2614ebe8471.js       46.5 kB
-  ├ chunks/d02de58d-4922b2630c75b8c8.js  54.2 kB
+└ ○ /trades                              2.05 kB         104 kB
++ First Load JS shared by all             102 kB
+  ├ chunks/901-4bb38870caa2eef7.js       46.2 kB
+  ├ chunks/e7e3044d-ffe374be2430ae06.js  54.2 kB
   └ other shared chunks (total)           1.9 kB
 
 
