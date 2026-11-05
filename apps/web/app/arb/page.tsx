@@ -123,7 +123,7 @@ function Equity({ points, live }: { points: ArbStatus['equity']; live?: boolean 
     <figure className="panel" style={{ margin: 0 }}>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Paper equity versus holding dollars">
         <path d={line('baselineUsd')} fill="none" stroke="var(--dim)" strokeDasharray="4 4" />
-        <path d={line('equityUsd')} fill="none" stroke="var(--amber)" strokeWidth="2" />
+        <path d={line('equityUsd')} fill="none" stroke="var(--amber-text)" strokeWidth="2" />
       </svg>
       <figcaption className="muted">{live ? 'Cumulative realized profit after gas (amber) against zero (dashed).' : 'Paper equity (amber) against simply holding the starting dollars (dashed).'}</figcaption>
     </figure>
