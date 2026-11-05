@@ -236,6 +236,32 @@ jobs:
         shell: bash
         run: test -f live-fork-bsc.txt && cp live-fork-bsc.txt /tmp/ && bash .github/publish.sh verification "bsc live fork test for ${GITHUB_SHA}" /tmp/live-fork-bsc.txt || true
 
+  caddy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Public routing (deploy/Caddyfile) against stub API and web servers
+        shell: bash
+        run: |
+          sed 's/__DOMAIN__/http:\/\/localhost:8080/' deploy/Caddyfile | awk '/^\tlog \{/{skip=1} !skip{print} skip && /^\t\}$/{skip=0}' > /tmp/Caddyfile
+          cat /tmp/Caddyfile
+          mkdir -p /tmp/api/v1/admin /tmp/api/bsc/v1 /tmp/web/arb
+          echo api-board > /tmp/api/v1/board; echo api-bsc-board > /tmp/api/bsc/v1/board; echo api-admin > /tmp/api/v1/admin/state; echo api-health > /tmp/api/health
+          echo web-home > /tmp/web/index.html; echo web-arb > /tmp/web/arb/index.html
+          (cd /tmp/api && python3 -m http.server 8787 --bind 127.0.0.1 >/dev/null 2>&1 &)
+          (cd /tmp/web && python3 -m http.server 3000 --bind 127.0.0.1 >/dev/null 2>&1 &)
+          docker run -d --network host -v /tmp/Caddyfile:/etc/caddy/Caddyfile caddy:2.6-alpine
+          for i in $(seq 1 30); do curl -sf localhost:8080/health >/dev/null && break; sleep 1; done
+          check() { got=$(curl -s -o /tmp/body -w '%{http_code}' "localhost:8080$1"); body=$(cat /tmp/body | tr -d '\n'); echo "$1 -> $got $body"; [ "$got" = "$2" ] && [ -z "$3" -o "$body" = "$3" ]; }
+          check /v1/board 200 api-board
+          check /bsc/v1/board 200 api-bsc-board
+          check /health 200 api-health
+          check /v1/admin/state 404
+          check /bsc/v1/admin/kill 404
+          check / 200 web-home
+          check /arb/ 200 web-arb
+          curl -sI localhost:8080/ | grep -i 'x-frame-options: DENY'
+
   contracts:
     runs-on: ubuntu-latest
     defaults:

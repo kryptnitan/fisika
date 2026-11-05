@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
 # fisika — one-command VPS setup (Ubuntu 22.04/24.04). Run as root:
 #   curl -fsSL https://raw.githubusercontent.com/kryptnitan/fisika/main/deploy/setup.sh | sudo bash
-# Safe to re-run: it updates the code and keeps your keys and data.
+# Public website (HTTPS on your domain; point its DNS A record at this server first):
+#   curl -fsSL https://raw.githubusercontent.com/kryptnitan/fisika/main/deploy/setup.sh | sudo DOMAIN=example.com PAY_TO=0xYourWallet bash
+# Safe to re-run: it updates the code and keeps your keys and data. Re-run with DOMAIN= to go public later.
 #
 # What it does
 #   - creates a locked-down `fisika` system user; code in /opt/fisika, data in /var/lib/fisika (mode 700)
 #   - generates a NEW wallet for the trading bot on this machine; the key never leaves it and is never printed
-#   - installs three services, all bound to 127.0.0.1 (nothing is reachable from the internet):
+#   - installs the services, all bound to 127.0.0.1:
 #       fisika-api   prices, quotes, dashboard data      fisika-web  dashboard
 #       fisika-live      the LIVE trader on Celo      (starts only after you fund it and run `fisika-start-live`)
 #       fisika-live-bsc  the LIVE trader on BNB Chain (its own wallet; `fisika-start-live bsc`)
-#   - firewall: SSH only
+#   - with DOMAIN: Caddy serves the dashboard and agent API over HTTPS (free automatic certificate);
+#     admin routes are never exposed. Firewall: SSH, plus 80/443 only when DOMAIN is set.
 set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "run as root (sudo)"; exit 1; }
+DOMAIN=${DOMAIN:-}
+PAY_TO=${PAY_TO:-}
+if [ -n "$DOMAIN" ] && ! printf '%s' "$DOMAIN" | grep -Eq '^([a-z0-9-]+\.)+[a-z]{2,}$'; then echo "DOMAIN must look like example.com"; exit 1; fi
+if [ -n "$PAY_TO" ] && ! printf '%s' "$PAY_TO" | grep -Eq '^0x[0-9a-fA-F]{40}$'; then echo "PAY_TO must be a 0x address"; exit 1; fi
 
 REPO=${REPO:-https://github.com/kryptnitan/fisika}
 apt-get update -qq
@@ -105,6 +112,13 @@ ADMIN_TOKEN=$(rand)
 EXECUTION_ENABLED=true
 SERVICE_FEE_BPS=0
 CELO_RPC_URLS=
+PUBLIC_URL=http://localhost:8787
+# Agent API payments: x402, USDC on Celo, paid to X402_PAY_TO. Get X402_API_KEY at https://x402.celo.org
+# (connect a wallet -> Create API key; it is shown once). Without both, paid routes answer 503.
+X402_PAY_TO=
+X402_API_KEY=
+# Optional: lets the dashboard quote Textile firm prices for visitors' swaps (same key as the bot is fine).
+TEXTILE_API_KEY=
 ENV
   cat > /etc/fisika/web.env <<ENV
 API_URL=http://127.0.0.1:8787
@@ -194,13 +208,34 @@ CMD
 chmod 755 /usr/local/bin/fisika-start-live /usr/local/bin/fisika-stop-live /usr/local/bin/fisika-wallet
 chmod 644 /usr/local/bin/fisika-chain
 
+# Settings passed on the command line win over what is in api.env.
+setenv() { grep -q "^$1=" /etc/fisika/api.env && sed -i "s|^$1=.*|$1=$2|" /etc/fisika/api.env || echo "$1=$2" >> /etc/fisika/api.env; }
+[ -n "$PAY_TO" ] && setenv X402_PAY_TO "$PAY_TO"
+if [ -n "$DOMAIN" ]; then
+  setenv PUBLIC_URL "https://$DOMAIN"
+  if ! apt-get install -y -qq caddy >/dev/null 2>&1; then
+    # Not in this Ubuntu's own repos (22.04): Caddy's official apt repository (caddyserver.com/docs/install).
+    apt-get install -y -qq debian-keyring debian-archive-keyring apt-transport-https gnupg >/dev/null
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' > /etc/apt/sources.list.d/caddy-stable.list
+    apt-get update -qq && apt-get install -y -qq caddy >/dev/null
+  fi
+  sed "s/__DOMAIN__/$DOMAIN/" /opt/fisika/deploy/Caddyfile > /etc/caddy/Caddyfile
+  install -d -o caddy -g caddy /var/log/caddy
+  caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
+  systemctl enable -q caddy && systemctl reload-or-restart caddy
+  ufw allow 80/tcp >/dev/null && ufw allow 443/tcp >/dev/null
+fi
+systemctl restart fisika-api fisika-web
 ufw allow OpenSSH >/dev/null && ufw --force enable >/dev/null
 
 ADDR=$(/usr/local/bin/fisika-wallet celo)
 ADDR_BSC=$(/usr/local/bin/fisika-wallet bsc)
 cat <<DONE
 
-fisika is installed. Dashboard and API run on this server's localhost only.
+fisika is installed.
+$( [ -n "$DOMAIN" ] && echo "Public site: https://$DOMAIN   (agent API: https://$DOMAIN/v1/board, https://$DOMAIN/openapi.json)" || echo "Dashboard and API run on this server's localhost only. Re-run with DOMAIN=yourdomain.com to go public." )
+$( grep -q '^X402_API_KEY=.\+' /etc/fisika/api.env && grep -q '^X402_PAY_TO=0x' /etc/fisika/api.env && echo "Agent payments: on" || echo "Agent payments: OFF until X402_PAY_TO and X402_API_KEY are set (sudo nano /etc/fisika/api.env, then sudo systemctl restart fisika-api)" )
 
 Bot wallets (new, generated on this server, one per chain):
   Celo       $ADDR

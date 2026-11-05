@@ -1,5 +1,5 @@
 import { serve } from '@hono/node-server';
-import { chainByKey, TokenRegistry, type ChainConfig } from '@fisika/core';
+import { chainByKey, MemoryRfqSlots, TokenRegistry, type ChainConfig } from '@fisika/core';
 import { createVenues, LiveGraph } from '@fisika/core/setup';
 import { makeClient, redactRpc, vetRpcs } from '@fisika/core/viem';
 import { PaperArbRunner } from './arb.ts';
@@ -12,6 +12,10 @@ const cfg = loadConfig();
 const { gate, server } = makePaymentGate(cfg);
 if (server) await server.initialize().catch((e: Error) => console.error('x402 facilitator /supported failed:', e.message));
 
+// Textile allows 4 live firm quotes per key, across chains and processes. Default split with one key everywhere:
+// Celo bot 2, this API 1 (shared by every chain it serves), BNB Chain bot 1.
+const textileSlots = new MemoryRfqSlots(Number(process.env.TEXTILE_SLOTS ?? 1));
+
 /** One price graph, arb scanner and app per chain. A chain that fails to start is left out; Celo must start. */
 async function startChain(chain: ChainConfig) {
   const pc = cfg.perChain[chain.key]!;
@@ -20,7 +24,7 @@ async function startChain(chain: ChainConfig) {
   if (vetting.rejected.length) console.warn(`[rpc ${chain.key}] rejected:`, vetting.rejected);
   const client = makeClient(vetting.ok, chain.viem);
   const tokens = new TokenRegistry(chain.tokens);
-  const venues = await createVenues(client, tokens, { apiKey: cfg.textileApiKey ?? undefined }, undefined, chain);
+  const venues = await createVenues(client, tokens, { apiKey: cfg.textileApiKey ?? undefined }, textileSlots, chain);
   const live = new LiveGraph(client, tokens, venues, cfg.edgeMaxAgeMs, vetting.ok);
   await live.start(cfg.graphRefreshMs);
 

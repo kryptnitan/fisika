@@ -43,6 +43,16 @@ Default mode is `PAPER`: everything live except signing. `LIVE` requires `MODE=L
 
 On BNB Chain the naira depth is on Textile; the cNGN AMM pools are dust. Textile swaps from the dashboard need `TEXTILE_API_KEY` on the API, and Textile checks the wallet holds the input before it quotes.
 
+## Going public (website + agent API)
+
+1. Point your domain's DNS A record at the VPS.
+2. Run the setup with it: `curl -fsSL https://raw.githubusercontent.com/kryptnitan/fisika/main/deploy/setup.sh | sudo DOMAIN=yourdomain.com PAY_TO=0xYourPayoutWallet bash`.
+   Caddy gets a free HTTPS certificate. The dashboard is served at `/`, and the agent API at `/v1/*`, `/bsc/v1/*` and `/openapi.json`. Admin routes return 404 from outside.
+3. Agent payments: create a key at x402.celo.org (connect a wallet, then Create API key), put it in `X402_API_KEY` in `/etc/fisika/api.env`, then run `sudo systemctl restart fisika-api`.
+4. Optional: add `TEXTILE_API_KEY` to the same file so visitors can swap at Textile's firm price (naira on BNB Chain needs it).
+
+Public limits per visitor per minute: 240 page reads, 30 quotes, 6 swap builds. One Textile key is shared like this: Celo bot 2 live quotes, BNB Chain bot 1, website 1.
+
 ## Going live (small real-money test)
 
 1. Get a small VPS running Ubuntu 22.04 or 24.04 (any $5/month plan), then SSH in and run:

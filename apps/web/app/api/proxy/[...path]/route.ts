@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { clientIp, limit, type RULES } from '@/lib/ratelimit';
 
 /**
  * Server-side proxy to the fisika API. The internal key (no x402 charge for fisika's own UI) never reaches the
@@ -16,6 +17,19 @@ async function forward(req: NextRequest, path: string[], method: 'GET' | 'POST')
   const bare = p.replace(/^bsc\//, '');
   const allowed = (method === 'GET' ? GET_ALLOWED : POST_ALLOWED).some((r) => r.test(bare));
   if (!allowed) return NextResponse.json({ error: 'not found' }, { status: 404 });
+  const kind: keyof typeof RULES = bare.startsWith('v1/admin/')
+    ? 'admin'
+    : method === 'GET'
+      ? 'read'
+      : bare === 'v1/quote'
+        ? 'quote'
+        : bare === 'v1/build'
+          ? 'build'
+          : 'receipts';
+  const wait = limit(kind, clientIp(req.headers));
+  if (wait) return NextResponse.json({ error: `Too many requests. Try again in ${wait}s.` }, { status: 429, headers: { 'retry-after': String(wait) } });
+  const body = method === 'POST' ? await req.text() : undefined;
+  if (body && body.length > 4_096) return NextResponse.json({ error: 'request body too large' }, { status: 413 });
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   if (bare.startsWith('v1/admin/')) {
     const auth = req.headers.get('authorization');
@@ -28,7 +42,7 @@ async function forward(req: NextRequest, path: string[], method: 'GET' | 'POST')
     const res = await fetch(`${API}/${p}${qs}`, {
       method,
       headers,
-      body: method === 'POST' ? await req.text() : undefined,
+      body,
       cache: 'no-store',
       signal: AbortSignal.timeout(20_000),
     });

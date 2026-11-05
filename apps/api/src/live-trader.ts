@@ -12,7 +12,7 @@
 import { mkdir } from 'node:fs/promises';
 import { privateKeyToAccount } from 'viem/accounts';
 import { createWalletClient, http, parseEther, type Hex } from 'viem';
-import { chainByKey, TokenRegistry } from '@fisika/core';
+import { chainByKey, MemoryRfqSlots, TokenRegistry } from '@fisika/core';
 import { createVenues, LiveGraph } from '@fisika/core/setup';
 import { makeClient, redactRpc, vetRpcs } from '@fisika/core/viem';
 import { registerTokens } from './live/legs.ts';
@@ -60,7 +60,8 @@ const tokens = new TokenRegistry(chain.tokens);
 registerTokens(tokens.all().map((t) => t.address));
 const textileKey = env.ALLOW_TEXTILE === 'false' ? undefined : env.TEXTILE_API_KEY || undefined;
 if (env.ALLOW_TEXTILE !== 'false' && !textileKey) die('TEXTILE_API_KEY is required (or set ALLOW_TEXTILE=false for AMM-only cycles)');
-const venues = await createVenues(pub, tokens, { apiKey: textileKey }, undefined, chain);
+// Textile allows 4 live firm quotes per key across every process using it: Celo bot 2, BNB Chain bot 1, API 1.
+const venues = await createVenues(pub, tokens, { apiKey: textileKey }, new MemoryRfqSlots(Number(env.TEXTILE_SLOTS ?? (chain.key === 'celo' ? 2 : 1))), chain);
 const adapters = new Map(venues.byId);
 if (env.ALLOW_TEXTILE === 'false') adapters.delete('textile');
 const live = new LiveGraph(pub, tokens, venues, refreshMs * 2.5, vetting.ok);
