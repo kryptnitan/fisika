@@ -54,6 +54,31 @@ describe('mento adapter', () => {
     assert.equal(edges.length, 1);
     assert.equal(edges[0]!.tokenIn, A.USDT);
   });
+
+  it('caps a pool by the output reserve it actually holds (quote alone would overstate it)', async () => {
+    const reader: MentoReader = {
+      async getAmountOut(_i, _o, a) {
+        return a; // the Router quotes any size, like the live FPMM does
+      },
+      async isTradable() {
+        return true;
+      },
+      async blockNumber() {
+        return 1n;
+      },
+      async outputCap(_pool, tokenOut) {
+        return tokenOut === A.USDm ? U6(150) : null; // USDm side nearly drained
+      },
+    };
+    const ad = new MentoAdapter(reader, [{ tokenA: A.USDT, tokenB: A.USDm, poolId: '0xpool' }]);
+    const edges = await ad.fetchEdges(ctx([U6(10), U6(100), U6(1_000)]));
+    const toUsdm = edges.find((e) => e.tokenOut === A.USDm)!;
+    const toUsdt = edges.find((e) => e.tokenOut === A.USDT)!;
+    assert.equal(toUsdm.points.length, 2, 'stops before the size the pool cannot pay');
+    assert.equal(toUsdt.points.length, 3, 'the other side is not capped');
+    assert.equal(await ad.quote(A.USDT, A.USDm, U6(1_000)), null);
+    assert.ok(await ad.quote(A.USDT, A.USDm, U6(100)));
+  });
 });
 
 describe('textile adapter', () => {

@@ -10,7 +10,16 @@ export interface MentoReader {
   /** Circuit breakers, market hours and trading limits all allow this pair right now. */
   isTradable(tokenIn: Address, tokenOut: Address): Promise<boolean>;
   blockNumber(): Promise<bigint>;
+  /**
+   * Most of tokenOut the pool can pay out, when it pays from its own reserves (v3 FPMM: its balance), else null.
+   * The Router's getAmountsOut does not check reserves, so without this cap a drained side quotes fine and then
+   * reverts InsufficientLiquidity() on execution (seen on the USDC/USDm FPMM, 5 Nov 2026).
+   */
+  outputCap?(poolId: string, tokenOut: Address): Promise<bigint | null>;
 }
+
+/** Keep 1% headroom under the pool's balance: reserves move between our read and the swap. */
+const underCap = (out: bigint, cap: bigint | null) => cap === null || out * 100n <= cap * 99n;
 
 export interface MentoPair {
   tokenA: Address;
@@ -47,10 +56,11 @@ export class MentoAdapter implements VenueAdapter {
           if (!(await this.reader.isTradable(tokenIn, tokenOut).catch(() => false))) return;
           const sizes = ctx.sampleAmounts(tokenIn);
           if (!sizes?.length) return;
+          const cap = (await this.reader.outputCap?.(pair.poolId, tokenOut).catch(() => null)) ?? null;
           const points: Edge['points'] = [];
           for (const amountIn of sizes) {
             const out = await this.reader.getAmountOut(tokenIn, tokenOut, amountIn).catch(() => null);
-            if (!out) break; // trading limit or depth reached
+            if (!out || !underCap(out, cap)) break; // trading limit, depth, or the pool's reserve reached
             points.push({ amountIn, amountOut: out });
           }
           if (!points.length) return;
@@ -84,6 +94,8 @@ export class MentoAdapter implements VenueAdapter {
     if (!(await this.reader.isTradable(tokenIn, tokenOut).catch(() => false))) return null;
     const out = await this.reader.getAmountOut(tokenIn, tokenOut, amountIn).catch(() => null);
     if (!out) return null;
+    const cap = (await this.reader.outputCap?.(pair.poolId, tokenOut).catch(() => null)) ?? null;
+    if (!underCap(out, cap)) return null;
     return { amountOut: out, gasEstimate: MENTO_SWAP_GAS_ESTIMATE, expiry: Date.now() + QUOTE_TTL_MS, firm: true, feeBps: pair.feeBps ?? 0, source: pair.poolId };
   }
 }

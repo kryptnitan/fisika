@@ -66,6 +66,11 @@ contract FisikaExecutorForkTest is Test {
     address constant MENTO_BROKER = 0x777A8255cA72412f0d706dc03C9D1987306B4CaD;
     address constant BIPOOL_MANAGER = 0x22d9db95E6Ae61c104A7B6F6C78D7993B94ec901;
     address constant KESM = 0x456a3D042C0DbD3db53D5489e98dFb038553B0d0;
+    // Mento v3 FPMM pools (MENTO.fpmmPools, verified on-chain). An FPMM pays out of its own reserves, so a quote can
+    // succeed while the swap reverts InsufficientLiquidity() once one side is drained; tests pick a direction the
+    // pool can actually fill, exactly as the adapter now caps its curve by the pool's balance.
+    address constant FPMM_USDC_USDM = 0x462fe04b4FD719Cbd04C0310365D421D02AaA19E;
+    address constant FPMM_USDT_USDM = 0x0FEBa760d93423D127DE1B6ABECdB60E5253228D;
 
     uint16 constant NP = type(uint16).max;
     // SwapRouter02.exactInputSingle: selector(4) + tokenIn, tokenOut, fee, recipient (4 words) -> amountIn at 132
@@ -149,36 +154,69 @@ contract FisikaExecutorForkTest is Test {
         assertEq(IERC20Min(USDT).balanceOf(address(ex)), 0);
     }
 
+    function _logReserves() internal view {
+        console2.log("FPMM USDC/USDm holds USDm", IERC20Min(USDM).balanceOf(FPMM_USDC_USDM) / 1e18, "USDC", IERC20Min(USDC).balanceOf(FPMM_USDC_USDM) / 1e6);
+        console2.log("FPMM USDT/USDm holds USDm", IERC20Min(USDM).balanceOf(FPMM_USDT_USDM) / 1e18, "USDT", IERC20Min(USDT).balanceOf(FPMM_USDT_USDM) / 1e6);
+    }
+
+    /// A $1-stable the given FPMM can sell `amt` USDm for, or address(0).
+    function _usdmSource(uint256 amt) internal view returns (address stable) {
+        if (IERC20Min(USDM).balanceOf(FPMM_USDC_USDM) > amt * 11 / 10) return USDC;
+        if (IERC20Min(USDM).balanceOf(FPMM_USDT_USDM) > amt * 11 / 10) return USDT;
+    }
+
+    function _approve(address token, uint256 amt) internal {
+        (bool ok,) = token.call(abi.encodeWithSignature("approve(address,uint256)", address(ex), amt));
+        require(ok, "approve");
+    }
+
     function test_fork_mentoQuoteMatchesExecution() public {
         if (!forked) return;
+        _logReserves();
+        // Whichever direction of USDC/USDm the pool can fill right now.
+        bool buyUsdm = IERC20Min(USDM).balanceOf(FPMM_USDC_USDM) > 110e18;
+        (address tin, address tout, uint256 amt) = buyUsdm ? (USDC, USDM, uint256(100e6)) : (USDM, USDC, uint256(100e18));
+        assertTrue(buyUsdm || IERC20Min(USDC).balanceOf(FPMM_USDC_USDM) > 110e6, "USDC/USDm FPMM cannot fill $100 either way");
         IMentoRouter.Route[] memory r = new IMentoRouter.Route[](1);
-        r[0] = IMentoRouter.Route(USDC, USDM, address(0));
-        uint256[] memory q = IMentoRouter(MENTO_ROUTER).getAmountsOut(100e6, r);
-        deal(USDC, user, 100e6);
+        r[0] = IMentoRouter.Route(tin, tout, address(0));
+        uint256[] memory q = IMentoRouter(MENTO_ROUTER).getAmountsOut(amt, r);
+        deal(tin, user, amt);
         FisikaExecutor.Step[] memory s = new FisikaExecutor.Step[](1);
-        s[0] = _mentoStep(USDC, USDM, 100e6);
+        s[0] = _mentoStep(tin, tout, amt);
         vm.startPrank(user);
-        IERC20Min(USDC).approve(address(ex), 100e6);
-        uint256 out = ex.execute(bytes32("fork2"), s, USDC, 100e6, USDM, 0, user, block.timestamp + 60, 0, address(0));
+        _approve(tin, amt);
+        uint256 out = ex.execute(bytes32("fork2"), s, tin, amt, tout, 0, user, block.timestamp + 60, 0, address(0));
         vm.stopPrank();
-        console2.log("USDC->USDm mento quoted", q[q.length - 1], "executed", out);
+        console2.log(buyUsdm ? "USDC->USDm mento quoted" : "USDm->USDC mento quoted", q[q.length - 1], "executed", out);
         assertEq(out, q[q.length - 1], "quote must equal execution in the same block");
     }
 
     function test_fork_crossVenueTwoHopAtomic() public {
         if (!forked) return;
         uint24 fee = _deepestUniFee(USDT, USDC);
-        deal(USDT, user, 100e6);
+        bool buyUsdm = IERC20Min(USDM).balanceOf(FPMM_USDC_USDM) > 110e18;
         FisikaExecutor.Step[] memory s = new FisikaExecutor.Step[](2);
-        s[0] = _uniStep(USDT, USDC, fee, 100e6);
-        s[1] = _mentoStep(USDC, USDM, 0); // amount patched with the USDC actually received
+        uint256 out;
         vm.startPrank(user);
-        (bool ok,) = USDT.call(abi.encodeWithSignature("approve(address,uint256)", address(ex), 100e6));
-        require(ok);
-        uint256 out = ex.execute(bytes32("fork3"), s, USDT, 100e6, USDM, 97e18, user, block.timestamp + 60, 10, address(0xFEE));
+        if (buyUsdm) {
+            // USDT -(Uniswap)-> USDC -(Mento)-> USDm, second amount patched with the USDC actually received.
+            deal(USDT, user, 100e6);
+            s[0] = _uniStep(USDT, USDC, fee, 100e6);
+            s[1] = _mentoStep(USDC, USDM, 0);
+            _approve(USDT, 100e6);
+            out = ex.execute(bytes32("fork3"), s, USDT, 100e6, USDM, 97e18, user, block.timestamp + 60, 10, address(0xFEE));
+            assertGt(IERC20Min(USDM).balanceOf(address(0xFEE)), 0, "fee collected");
+        } else {
+            // The pool is short of USDm: the same two venues the other way, USDm -(Mento)-> USDC -(Uniswap)-> USDT.
+            deal(USDM, user, 100e18);
+            s[0] = _mentoStep(USDM, USDC, 100e18);
+            s[1] = _uniStep(USDC, USDT, fee, 0);
+            _approve(USDM, 100e18);
+            out = ex.execute(bytes32("fork3"), s, USDM, 100e18, USDT, 97e6, user, block.timestamp + 60, 10, address(0xFEE));
+            assertGt(IERC20Min(USDT).balanceOf(address(0xFEE)), 0, "fee collected");
+        }
         vm.stopPrank();
-        console2.log("USDT->USDC->USDm out", out);
-        assertGt(IERC20Min(USDM).balanceOf(address(0xFEE)), 0, "fee collected");
+        console2.log(buyUsdm ? "USDT->USDC->USDm out" : "USDm->USDC->USDT out", out);
         assertEq(IERC20Min(USDC).balanceOf(address(ex)), 0, "no intermediate left behind");
     }
 
@@ -187,13 +225,13 @@ contract FisikaExecutorForkTest is Test {
         uint24 fee = _deepestUniFee(USDT, USDC);
         deal(USDT, user, 100e6);
         FisikaExecutor.Step[] memory s = new FisikaExecutor.Step[](2);
+        // USDT -> USDC (Uniswap) -> USDT (Uniswap again, other leg) can never return 101 USDT for 100.
         s[0] = _uniStep(USDT, USDC, fee, 100e6);
-        s[1] = _mentoStep(USDC, USDM, 0);
+        s[1] = _uniStep(USDC, USDT, fee, 0);
         vm.startPrank(user);
-        (bool ok,) = USDT.call(abi.encodeWithSignature("approve(address,uint256)", address(ex), 100e6));
-        require(ok);
+        _approve(USDT, 100e6);
         vm.expectRevert();
-        ex.execute(bytes32("fork4"), s, USDT, 100e6, USDM, 101e18, user, block.timestamp + 60, 0, address(0));
+        ex.execute(bytes32("fork4"), s, USDT, 100e6, USDT, 101e6, user, block.timestamp + 60, 0, address(0));
         vm.stopPrank();
         assertEq(IERC20Min(USDT).balanceOf(user), 100e6, "first leg rolled back");
     }
@@ -212,9 +250,16 @@ contract FisikaExecutorForkTest is Test {
         if (!forked) return;
         bytes32 xid = _exchangeId(USDM, KESM);
         assertTrue(xid != bytes32(0), "no USDm/KESm exchange");
-        deal(USDC, user, 50e6);
+        // First hop from whichever FPMM still holds USDm (both USDC and USDT have 6 decimals on Celo).
+        address src = _usdmSource(50e18);
+        if (src == address(0)) {
+            _logReserves();
+            console2.log("SKIPPED: neither FPMM holds 55 USDm right now");
+            return;
+        }
+        deal(src, user, 50e6);
         FisikaExecutor.Step[] memory s = new FisikaExecutor.Step[](2);
-        s[0] = _mentoStep(USDC, USDM, 50e6);
+        s[0] = _mentoStep(src, USDM, 50e6);
         s[1] = FisikaExecutor.Step({
             target: MENTO_BROKER,
             spender: MENTO_BROKER,
@@ -224,8 +269,8 @@ contract FisikaExecutorForkTest is Test {
             data: abi.encodeCall(IBroker.swapIn, (BIPOOL_MANAGER, xid, USDM, KESM, 0, 0))
         });
         vm.startPrank(user);
-        IERC20Min(USDC).approve(address(ex), 50e6);
-        uint256 out = ex.execute(bytes32("fork5"), s, USDC, 50e6, KESM, 1, user, block.timestamp + 60, 0, address(0));
+        _approve(src, 50e6);
+        uint256 out = ex.execute(bytes32("fork5"), s, src, 50e6, KESM, 1, user, block.timestamp + 60, 0, address(0));
         vm.stopPrank();
         console2.log("USDC->USDm->KESm out", out);
         assertGt(out, 50e18 * 100, "expected > 100 KESm per USD");

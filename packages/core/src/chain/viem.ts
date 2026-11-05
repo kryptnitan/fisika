@@ -230,6 +230,11 @@ export function viemMentoReader(client: PublicClient, reader: Reader = new Direc
       return (await amountOut(tokenIn, tokenOut, 10n ** BigInt(dec))) !== null;
     },
     blockNumber: () => client.getBlockNumber(),
+    // v3 FPMM pools pay from their own balance; pool ids that are not addresses (default-factory pairs) are uncapped.
+    async outputCap(poolId, tokenOut) {
+      if (!/^0x[0-9a-fA-F]{40}$/.test(poolId)) return null;
+      return (await reader.read<bigint>({ address: tokenOut, abi: erc20Abi, functionName: 'balanceOf', args: [poolId as Address] })) ?? null;
+    },
   };
 }
 
