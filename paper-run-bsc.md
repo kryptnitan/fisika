@@ -1,6 +1,6 @@
 # fisika PAPER run — BNB Chain
 
-2026-11-05T07:43:47.275Z · block 131778865 · gas 0.05 gwei · BNB $712.4222 · rpc 2/2 vetted
+2026-11-05T07:49:13.896Z · block 131779594 · gas 0.05 gwei · BNB $712.5147 · rpc 2/2 vetted
 
 RPC requests (pool discovery + two full refreshes, batched): 10. Batch stats: {"aggregates":10,"fallbacks":0,"reads":130,"lastError":""}
 
@@ -8,9 +8,9 @@ v3 pools discovered: uniswap-v3 4, pancake-v3 7. Textile: yes. Graph edges: 20.
 
 | Venue | Pass 1 | Pass 2 |
 |---|---|---|
-| uniswap-v3 | 4 edges | 8 edges, 1366 ms |
-| pancake-v3 | 5 edges | 10 edges, 1365 ms |
-| textile | 2 edges | 2 edges, 190 ms |
+| uniswap-v3 | 4 edges | 8 edges, 2979 ms |
+| pancake-v3 | 5 edges | 10 edges, 2979 ms |
+| textile | 2 edges | 2 edges, 134 ms |
 
 ## FX board
 
@@ -18,17 +18,17 @@ Rate = output per 1 unit of input at that size, after venue fees, before the fis
 
 | Corridor | $10 | $100 | $1000 | Venues ($100) | Execution ($100) |
 |---|---|---|---|---|---|
-| USDT→cNGN | 1382.12 | 1382.12 | 1382.12 | textile | textile-direct |
+| USDT→cNGN | 1381.72 | 1381.72 | 1381.72 | textile | textile-direct |
 | cNGN→USDT | 0.000723 | 0.000723 | 0.000723 | textile | textile-direct |
 
 <details><summary>Route breakdown per corridor and size</summary>
 
-- USDT→cNGN $10: textile[USDT→cNGN 10→13821.234994]
-- USDT→cNGN $100: textile[USDT→cNGN 100→138212.349954]
-- USDT→cNGN $1000: textile[USDT→cNGN 1000→1382123.499552]
-- cNGN→USDT $10: textile[cNGN→USDT 13821.234995→9.996715047961321194]
-- cNGN→USDT $100: textile[cNGN→USDT 138212.349954→99.960644986959612604]
-- cNGN→USDT $1000: textile[cNGN→USDT 1382123.49954→999.599944374049589217]
+- USDT→cNGN $10: textile[USDT→cNGN 10→13817.243294]
+- USDT→cNGN $100: textile[USDT→cNGN 100→138172.432947]
+- USDT→cNGN $1000: textile[USDT→cNGN 1000→1381724.329484]
+- cNGN→USDT $10: textile[cNGN→USDT 13817.243295→9.996729443175974215]
+- cNGN→USDT $100: textile[cNGN→USDT 138172.432947→99.960788932944680981]
+- cNGN→USDT $1000: textile[cNGN→USDT 1381724.32947→999.601383832802081701]
 
 </details>
 
