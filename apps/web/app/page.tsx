@@ -122,7 +122,7 @@ function Heatmap({ data }: { data: Heat | null }) {
                     const a = d ? 0.12 + 0.88 * Math.sqrt(d / max) : 0;
                     return (
                       <td key={v} className="cell">
-                        <span className="swatch" style={{ background: d ? `rgba(233,185,73,${a.toFixed(2)})` : 'transparent', color: a > 0.55 ? 'var(--amber-ink)' : undefined }}>
+                        <span className="swatch" style={{ background: d ? `rgba(244,246,250,${a.toFixed(2)})` : 'transparent', color: a > 0.55 ? 'var(--amber-ink)' : undefined }}>
                           {d ? `$${d >= 1000 ? `${Math.round(d / 1000)}k` : d}${v !== 'textile' && d >= (latest.maxSampledUsd ?? Infinity) ? '+' : ''}` : ''}
                         </span>
                       </td>
