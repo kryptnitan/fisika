@@ -1,27 +1,27 @@
 # fisika paper trading record
 
-32 sessions over 8.1 days (29.3 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-06T15:55:19.117Z. Live Celo prices on free RPCs, nothing signed.
+33 sessions over 8.4 days (30.3 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-06T21:47:15.868Z. Live Celo prices on free RPCs, nothing signed.
 
 | | |
 |---|---|
-| Opportunities that cleared the first check | 6010 |
-| Paper fills (passed live re-quote and every risk limit) | 14 |
-| Paper P&L | $1.0871 |
-| P&L per watched hour | $0.0371 |
-| RPC requests | 142,470 (1.35/s) |
+| Opportunities that cleared the first check | 6111 |
+| Paper fills (passed live re-quote and every risk limit) | 15 |
+| Paper P&L | $1.1374 |
+| P&L per watched hour | $0.0376 |
+| RPC requests | 147,228 (1.35/s) |
 | Venue refresh failures | {"textile":144} |
 
 ## Fills by cycle
 
 | Cycle | Fills | Paper P&L | Median edge |
 |---|---|---|---|
-| USDT→wARS→USDT (uniswap-v3, textile) | 8 | $0.5965 | 5.4 bps |
+| USDT→wARS→USDT (uniswap-v3, textile) | 9 | $0.6468 | 5.2 bps |
 | USDT→wARS→USDT (textile, uniswap-v3) | 6 | $0.4906 | 8.6 bps |
 
 ## Why opportunities were skipped
 
-- edge_bps_below_min: 5506
-- inventory_exposure: 482
+- edge_bps_below_min: 5585
+- inventory_exposure: 503
 - after_requote: edge_bps_below_min: 5
 - edge_usd_below_min: 3
 
@@ -29,6 +29,7 @@
 
 | Start | Min | RPCs | Requests | Opps | Fills | P&L |
 |---|---|---|---|---|---|---|
+| 2026-11-06 20:52 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4758 | 101 | 1 | $0.0504 |
 | 2026-11-06 15:00 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4995 | 175 | 1 | $0.0524 |
 | 2026-11-06 06:38 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4534 | 256 | 0 | $0.0000 |
 | 2026-11-06 00:12 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4699 | 50 | 0 | $0.0000 |
