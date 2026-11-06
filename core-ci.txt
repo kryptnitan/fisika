@@ -1,25 +1,25 @@
 Scope: all 4 workspace projects
 Progress: resolved 1, reused 0, downloaded 0, added 0
-Progress: resolved 26, reused 0, downloaded 21, added 0
-Progress: resolved 87, reused 0, downloaded 45, added 0
+Progress: resolved 15, reused 0, downloaded 13, added 0
+Progress: resolved 50, reused 0, downloaded 32, added 0
 Packages: +91
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Progress: resolved 120, reused 0, downloaded 82, added 67
-Progress: resolved 120, reused 0, downloaded 92, added 91, done
+Progress: resolved 120, reused 0, downloaded 72, added 0
+Progress: resolved 120, reused 0, downloaded 93, added 91, done
 
 devDependencies:
 + @types/node 22.20.5 (26.6.6 is available)
 + typescript 6.0.3 (7.0.2 is available)
 + viem 2.57.16
 
-Done in 3.5s
+Done in 5s
 
 > fisika@ typecheck /home/runner/work/fisika/fisika
 > pnpm -r typecheck
 
 Scope: 3 of 4 workspace projects
-packages/core typecheck$ tsc -p tsconfig.json
 apps/web typecheck$ tsc --noEmit -p tsconfig.json
+packages/core typecheck$ tsc -p tsconfig.json
 apps/web typecheck: Done
 packages/core typecheck: Done
 apps/api typecheck$ tsc -p tsconfig.json
@@ -38,306 +38,306 @@ packages/core test: # Subtest: uniswap v3 adapter
 packages/core test:     # Subtest: discovers pools per fee tier and builds both directions, stopping at depth
 packages/core test:     ok 1 - discovers pools per fee tier and builds both directions, stopping at depth
 packages/core test:       ---
-packages/core test:       duration_ms: 6.424566
+packages/core test:       duration_ms: 5.470795
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     1..1
 packages/core test: ok 1 - uniswap v3 adapter
 packages/core test:   ---
-packages/core test:   duration_ms: 7.221761
+packages/core test:   duration_ms: 6.631013
 packages/core test:   type: 'suite'
 packages/core test:   ...
 packages/core test: # Subtest: mento adapter
 packages/core test:     # Subtest: omits pairs that are not tradable
 packages/core test:     ok 1 - omits pairs that are not tradable
 packages/core test:       ---
-packages/core test:       duration_ms: 0.556985
+packages/core test:       duration_ms: 3.845341
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: caps a pool by the output reserve it actually holds (quote alone would overstate it)
 packages/core test:     ok 2 - caps a pool by the output reserve it actually holds (quote alone would overstate it)
 packages/core test:       ---
-packages/core test:       duration_ms: 0.515784
+packages/core test:       duration_ms: 0.765954
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     1..2
 packages/core test: ok 2 - mento adapter
 packages/core test:   ---
-packages/core test:   duration_ms: 1.219639
+packages/core test:   duration_ms: 4.847215
 packages/core test:   type: 'suite'
 packages/core test:   ...
 packages/core test: # Subtest: textile adapter
 packages/core test:     # Subtest: turns the public ladder into indicative edges and skips empty sides
 packages/core test:     ok 1 - turns the public ladder into indicative edges and skips empty sides
 packages/core test:       ---
-packages/core test:       duration_ms: 20.293358
+packages/core test:       duration_ms: 40.908236
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: rejects a ladder for the wrong chain
 packages/core test:     ok 2 - rejects a ladder for the wrong chain
 packages/core test:       ---
-packages/core test:       duration_ms: 0.658047
+packages/core test:       duration_ms: 1.11827
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: enforces the 4-quote cap locally and frees slots on no_quote
 packages/core test:     ok 3 - enforces the 4-quote cap locally and frees slots on no_quote
 packages/core test:       ---
-packages/core test:       duration_ms: 2.398067
+packages/core test:       duration_ms: 5.352004
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: refuses firm quotes without an API key
 packages/core test:     ok 4 - refuses firm quotes without an API key
 packages/core test:       ---
-packages/core test:       duration_ms: 0.311207
+packages/core test:       duration_ms: 0.657974
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     1..4
 packages/core test: ok 3 - textile adapter
 packages/core test:   ---
-packages/core test:   duration_ms: 24.000437
+packages/core test:   duration_ms: 48.663451
 packages/core test:   type: 'suite'
 packages/core test:   ...
 packages/core test: # Subtest: cycle detection
 packages/core test:     # Subtest: Bellman-Ford finds the negative cycle and DFS finds the same triangle
 packages/core test:     ok 1 - Bellman-Ford finds the negative cycle and DFS finds the same triangle
 packages/core test:       ---
-packages/core test:       duration_ms: 5.504566
+packages/core test:       duration_ms: 3.76356
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: finds nothing in a fair market
 packages/core test:     ok 2 - finds nothing in a fair market
 packages/core test:       ---
-packages/core test:       duration_ms: 0.283085
+packages/core test:       duration_ms: 0.417266
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     1..2
 packages/core test: ok 4 - cycle detection
 packages/core test:   ---
-packages/core test:   duration_ms: 6.530255
+packages/core test:   duration_ms: 5.539853
 packages/core test:   type: 'suite'
 packages/core test:   ...
 packages/core test: # Subtest: arb engine (PAPER)
 packages/core test:     # Subtest: detects, confirms with live quotes and paper-fills a profitable triangle
 packages/core test:     ok 1 - detects, confirms with live quotes and paper-fills a profitable triangle
 packages/core test:       ---
-packages/core test:       duration_ms: 1.955764
+packages/core test:       duration_ms: 3.38189
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: skips when the edge vanishes on re-quote
 packages/core test:     ok 2 - skips when the edge vanishes on re-quote
 packages/core test:       ---
-packages/core test:       duration_ms: 0.617096
+packages/core test:       duration_ms: 1.007463
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: respects the kill switch and the max trade size
 packages/core test:     ok 3 - respects the kill switch and the max trade size
 packages/core test:       ---
-packages/core test:       duration_ms: 0.517756
+packages/core test:       duration_ms: 0.887731
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: halts after the daily loss limit and stays halted until cleared
 packages/core test:     ok 4 - halts after the daily loss limit and stays halted until cleared
 packages/core test:       ---
-packages/core test:       duration_ms: 0.177647
+packages/core test:       duration_ms: 0.355622
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: blocks multi-tx Textile cycles whose intermediate inventory exceeds the cap
 packages/core test:     ok 5 - blocks multi-tx Textile cycles whose intermediate inventory exceeds the cap
 packages/core test:       ---
-packages/core test:       duration_ms: 0.538728
+packages/core test:       duration_ms: 1.057057
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     1..5
 packages/core test: ok 5 - arb engine (PAPER)
 packages/core test:   ---
-packages/core test:   duration_ms: 5.148091
+packages/core test:   duration_ms: 7.434347
 packages/core test:   type: 'suite'
 packages/core test:   ...
 packages/core test: # Subtest: batch reader
 packages/core test:     # Subtest: coalesces concurrent reads into chunked multicalls and isolates reverts
 packages/core test:     ok 1 - coalesces concurrent reads into chunked multicalls and isolates reverts
 packages/core test:       ---
-packages/core test:       duration_ms: 11.421061
+packages/core test:       duration_ms: 18.269528
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: falls back to direct calls when a whole aggregate fails, so nothing is silently dropped
 packages/core test:     ok 2 - falls back to direct calls when a whole aggregate fails, so nothing is silently dropped
 packages/core test:       ---
-packages/core test:       duration_ms: 5.116344
+packages/core test:       duration_ms: 5.881118
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     1..2
 packages/core test: ok 6 - batch reader
 packages/core test:   ---
-packages/core test:   duration_ms: 17.086348
+packages/core test:   duration_ms: 25.138744
 packages/core test:   type: 'suite'
 packages/core test:   ...
 packages/core test: # Subtest: rpc vetting
 packages/core test:     # Subtest: keeps honest endpoints and drops wrong-chain, lagging and dead ones
 packages/core test:     ok 1 - keeps honest endpoints and drops wrong-chain, lagging and dead ones
 packages/core test:       ---
-packages/core test:       duration_ms: 11.835923
+packages/core test:       duration_ms: 23.230365
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: redacts API keys from RPC URLs
 packages/core test:     ok 2 - redacts API keys from RPC URLs
 packages/core test:       ---
-packages/core test:       duration_ms: 0.089755
+packages/core test:       duration_ms: 0.211403
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     1..2
 packages/core test: ok 7 - rpc vetting
 packages/core test:   ---
-packages/core test:   duration_ms: 12.041862
+packages/core test:   duration_ms: 23.633765
 packages/core test:   type: 'suite'
 packages/core test:   ...
 packages/core test: # Subtest: curve
 packages/core test:     # Subtest: interpolates between samples and from the origin
 packages/core test:     ok 1 - interpolates between samples and from the origin
 packages/core test:       ---
-packages/core test:       duration_ms: 0.597026
+packages/core test:       duration_ms: 1.263109
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: refuses to extrapolate past the deepest sample
 packages/core test:     ok 2 - refuses to extrapolate past the deepest sample
 packages/core test:       ---
-packages/core test:       duration_ms: 0.144577
+packages/core test:       duration_ms: 0.312902
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: drops non-monotonic and empty samples
 packages/core test:     ok 3 - drops non-monotonic and empty samples
 packages/core test:       ---
-packages/core test:       duration_ms: 0.628152
+packages/core test:       duration_ms: 1.289087
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     1..3
 packages/core test: ok 8 - curve
 packages/core test:   ---
-packages/core test:   duration_ms: 2.03975
+packages/core test:   duration_ms: 4.390576
 packages/core test:   type: 'suite'
 packages/core test:   ...
 packages/core test: # Subtest: token registry
 packages/core test:     # Subtest: resolves legacy symbols and keeps the two naira tokens apart
 packages/core test:     ok 1 - resolves legacy symbols and keeps the two naira tokens apart
 packages/core test:       ---
-packages/core test:       duration_ms: 0.505538
+packages/core test:       duration_ms: 2.073797
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: refuses unverified decimals and rejects a mismatch
 packages/core test:     ok 2 - refuses unverified decimals and rejects a mismatch
 packages/core test:       ---
-packages/core test:       duration_ms: 1.330045
+packages/core test:       duration_ms: 2.246108
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     1..2
 packages/core test: ok 9 - token registry
 packages/core test:   ---
-packages/core test:   duration_ms: 1.987301
+packages/core test:   duration_ms: 4.638918
 packages/core test:   type: 'suite'
 packages/core test:   ...
 packages/core test: # Subtest: graph
 packages/core test:     # Subtest: drops stale edges and replaces a venue wholesale
 packages/core test:     ok 1 - drops stale edges and replaces a venue wholesale
 packages/core test:       ---
-packages/core test:       duration_ms: 0.439059
+packages/core test:       duration_ms: 0.941842
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: round-trips through a snapshot
 packages/core test:     ok 2 - round-trips through a snapshot
 packages/core test:       ---
-packages/core test:       duration_ms: 2.157777
+packages/core test:       duration_ms: 0.969233
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     1..2
 packages/core test: ok 10 - graph
 packages/core test:   ---
-packages/core test:   duration_ms: 2.773009
+packages/core test:   duration_ms: 2.291372
 packages/core test:   type: 'suite'
 packages/core test:   ...
 packages/core test: # Subtest: pricer
 packages/core test:     # Subtest: prices non-USD tokens from USD edges and sizes samples
 packages/core test:     ok 1 - prices non-USD tokens from USD edges and sizes samples
 packages/core test:       ---
-packages/core test:       duration_ms: 0.527401
+packages/core test:       duration_ms: 1.038322
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: returns null for tokens it cannot price
 packages/core test:     ok 2 - returns null for tokens it cannot price
 packages/core test:       ---
-packages/core test:       duration_ms: 0.72664
+packages/core test:       duration_ms: 0.363696
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     1..2
 packages/core test: ok 11 - pricer
 packages/core test:   ---
-packages/core test:   duration_ms: 1.439078
+packages/core test:   duration_ms: 1.864367
 packages/core test:   type: 'suite'
 packages/core test:   ...
 packages/core test: # Subtest: router
 packages/core test:     # Subtest: picks the better of two venues for a small order
 packages/core test:     ok 1 - picks the better of two venues for a small order
 packages/core test:       ---
-packages/core test:       duration_ms: 2.762033
+packages/core test:       duration_ms: 6.501392
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: splits a large order across two shallow venues and beats either alone
 packages/core test:     ok 2 - splits a large order across two shallow venues and beats either alone
 packages/core test:       ---
-packages/core test:       duration_ms: 0.462234
+packages/core test:       duration_ms: 0.81735
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: does not split a tiny order when the second path costs more gas than it adds
 packages/core test:     ok 3 - does not split a tiny order when the second path costs more gas than it adds
 packages/core test:       ---
-packages/core test:       duration_ms: 0.303215
+packages/core test:       duration_ms: 0.653114
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: routes multi-hop through USDT across 6- and 18-decimal tokens (BRL -> ARS)
 packages/core test:     ok 4 - routes multi-hop through USDT across 6- and 18-decimal tokens (BRL -> ARS)
 packages/core test:       ---
-packages/core test:       duration_ms: 0.489925
+packages/core test:       duration_ms: 0.749534
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: labels a single Textile hop as textile-direct, and atomic once the aggregator key is live
 packages/core test:     ok 5 - labels a single Textile hop as textile-direct, and atomic once the aggregator key is live
 packages/core test:       ---
-packages/core test:       duration_ms: 0.262403
+packages/core test:       duration_ms: 0.379566
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: returns null when no combination of paths has enough depth
 packages/core test:     ok 6 - returns null when no combination of paths has enough depth
 packages/core test:       ---
-packages/core test:       duration_ms: 0.138668
+packages/core test:       duration_ms: 0.208528
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: applies service fee and slippage to the output, never to the input
 packages/core test:     ok 7 - applies service fee and slippage to the output, never to the input
 packages/core test:       ---
-packages/core test:       duration_ms: 0.250546
+packages/core test:       duration_ms: 0.403501
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: never revisits a token and respects the hop limit
 packages/core test:     ok 8 - never revisits a token and respects the hop limit
 packages/core test:       ---
-packages/core test:       duration_ms: 0.708733
+packages/core test:       duration_ms: 1.0805
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: charges gas measured at the order size and never returns worse than the best single path
 packages/core test:     ok 9 - charges gas measured at the order size and never returns worse than the best single path
 packages/core test:       ---
-packages/core test:       duration_ms: 0.489104
+packages/core test:       duration_ms: 0.87097
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     # Subtest: prefers a path that can fill the order over a better-rate path that cannot
 packages/core test:     ok 10 - prefers a path that can fill the order over a better-rate path that cannot
 packages/core test:       ---
-packages/core test:       duration_ms: 0.482344
+packages/core test:       duration_ms: 0.909942
 packages/core test:       type: 'test'
 packages/core test:       ...
 packages/core test:     1..10
 packages/core test: ok 12 - router
 packages/core test:   ---
-packages/core test:   duration_ms: 7.349053
+packages/core test:   duration_ms: 15.44195
 packages/core test:   type: 'suite'
 packages/core test:   ...
 packages/core test: 1..12
@@ -348,149 +348,149 @@ packages/core test: # fail 0
 packages/core test: # cancelled 0
 packages/core test: # skipped 0
 packages/core test: # todo 0
-packages/core test: # duration_ms 449.351795
+packages/core test: # duration_ms 853.625669
 packages/core test: Done
 apps/api test$ node --test test/*.test.ts
 apps/api test: TAP version 13
-apps/api test: # [agent] owner signed in 0xcd1f73e0b65816ff47211c8fbc4660bcfdbe3618
+apps/api test: # [agent] owner signed in 0x7f8bbf5bd7546192dd6cb5fcd133f9ca916fe1b6
 apps/api test: # Subtest: agent console: owner-only access
 apps/api test:     # Subtest: every console route needs a session; non-owner wallets and replays are refused
 apps/api test:     ok 1 - every console route needs a session; non-owner wallets and replays are refused
 apps/api test:       ---
-apps/api test:       duration_ms: 32.385524
+apps/api test:       duration_ms: 56.42904
 apps/api test:       type: 'test'
 apps/api test:       ...
 apps/api test:     1..1
 apps/api test: ok 1 - agent console: owner-only access
 apps/api test:   ---
-apps/api test:   duration_ms: 33.085735
+apps/api test:   duration_ms: 57.587275
 apps/api test:   type: 'suite'
 apps/api test:   ...
-apps/api test: # [agent] owner signed in 0xcd1f73e0b65816ff47211c8fbc4660bcfdbe3618
+apps/api test: # [agent] owner signed in 0x7f8bbf5bd7546192dd6cb5fcd133f9ca916fe1b6
 apps/api test: # [agent] resume all by owner
 apps/api test: # [agent] pause bsc by owner
 apps/api test: # Subtest: agent console: switch, withdraw, history
 apps/api test:     # Subtest: starts Paused; global + per-chain switches persist and are logged
 apps/api test:     ok 1 - starts Paused; global + per-chain switches persist and are logged
 apps/api test:       ---
-apps/api test:       duration_ms: 13.342096
+apps/api test:       duration_ms: 24.860087
 apps/api test:       type: 'test'
 apps/api test:       ...
-apps/api test: # [agent] owner signed in 0xcd1f73e0b65816ff47211c8fbc4660bcfdbe3618
+apps/api test: # [agent] owner signed in 0x7f8bbf5bd7546192dd6cb5fcd133f9ca916fe1b6
 apps/api test: # [agent] resume all by owner
-apps/api test: # [agent] withdrawal w_02f68127-86db-4ba9-a1b3-a62dd1b97ae2 1 USDT on celo requested by owner
-apps/api test: # [agent] withdrawal w_91e990d6-161c-47dd-a5ca-a024192e817b max native on bsc requested by owner
+apps/api test: # [agent] withdrawal w_a1dcefee-eaa4-49be-84ea-0dc9f7b92bbc 1 USDT on celo requested by owner
+apps/api test: # [agent] withdrawal w_6842194b-cdb6-467e-b9f5-7ac1b6c7182f max native on bsc requested by owner
 apps/api test:     # Subtest: withdraw pauses the chain and queues a request with no destination field
 apps/api test:     ok 2 - withdraw pauses the chain and queues a request with no destination field
 apps/api test:       ---
-apps/api test:       duration_ms: 11.682993
+apps/api test:       duration_ms: 26.683022
 apps/api test:       type: 'test'
 apps/api test:       ...
-apps/api test: # [agent] owner signed in 0xcd1f73e0b65816ff47211c8fbc4660bcfdbe3618
+apps/api test: # [agent] owner signed in 0x7f8bbf5bd7546192dd6cb5fcd133f9ca916fe1b6
 apps/api test:     # Subtest: records a deposit only when the transaction pays the bot wallet
 apps/api test:     ok 3 - records a deposit only when the transaction pays the bot wallet
 apps/api test:       ---
-apps/api test:       duration_ms: 12.512947
+apps/api test:       duration_ms: 19.541474
 apps/api test:       type: 'test'
 apps/api test:       ...
-apps/api test: # [agent] owner signed in 0xcd1f73e0b65816ff47211c8fbc4660bcfdbe3618
+apps/api test: # [agent] owner signed in 0x7f8bbf5bd7546192dd6cb5fcd133f9ca916fe1b6
 apps/api test:     # Subtest: trade history reads the trader ledger, filters, paginates and exports CSV
 apps/api test:     ok 4 - trade history reads the trader ledger, filters, paginates and exports CSV
 apps/api test:       ---
-apps/api test:       duration_ms: 11.320679
+apps/api test:       duration_ms: 19.281905
 apps/api test:       type: 'test'
 apps/api test:       ...
 apps/api test:     1..4
 apps/api test: ok 2 - agent console: switch, withdraw, history
 apps/api test:   ---
-apps/api test:   duration_ms: 49.164735
+apps/api test:   duration_ms: 90.938232
 apps/api test:   type: 'suite'
 apps/api test:   ...
 apps/api test: # Subtest: control file
 apps/api test:     # Subtest: a missing or broken file reads as Paused
 apps/api test:     ok 1 - a missing or broken file reads as Paused
 apps/api test:       ---
-apps/api test:       duration_ms: 1.273931
+apps/api test:       duration_ms: 1.981352
 apps/api test:       type: 'test'
 apps/api test:       ...
 apps/api test:     1..1
 apps/api test: ok 3 - control file
 apps/api test:   ---
-apps/api test:   duration_ms: 1.498809
+apps/api test:   duration_ms: 2.507311
 apps/api test:   type: 'suite'
 apps/api test:   ...
 apps/api test: # Subtest: api
 apps/api test:     # Subtest: serves health, pairs, board and a compliant ERC-8004 registration file
 apps/api test:     ok 1 - serves health, pairs, board and a compliant ERC-8004 registration file
 apps/api test:       ---
-apps/api test:       duration_ms: 19.97505
+apps/api test:       duration_ms: 35.152769
 apps/api test:       type: 'test'
 apps/api test:       ...
 apps/api test:     # Subtest: charges for quotes via x402, lets free-tier keys through up to the daily limit
 apps/api test:     ok 2 - charges for quotes via x402, lets free-tier keys through up to the daily limit
 apps/api test:       ---
-apps/api test:       duration_ms: 3.624697
+apps/api test:       duration_ms: 6.27489
 apps/api test:       type: 'test'
 apps/api test:       ...
 apps/api test:     # Subtest: rejects bad input with 400 and unknown tokens clearly
 apps/api test:     ok 3 - rejects bad input with 400 and unknown tokens clearly
 apps/api test:       ---
-apps/api test:       duration_ms: 1.665088
+apps/api test:       duration_ms: 3.143296
 apps/api test:       type: 'test'
 apps/api test:       ...
 apps/api test:     # Subtest: refuses to build (and never charges) while execution is disabled
 apps/api test:     ok 4 - refuses to build (and never charges) while execution is disabled
 apps/api test:       ---
-apps/api test:       duration_ms: 0.671758
+apps/api test:       duration_ms: 1.050233
 apps/api test:       type: 'test'
 apps/api test:       ...
 apps/api test:     # Subtest: builds approve + execute with the fee, minOut and route id, then verifies the receipt on-chain
 apps/api test:     ok 5 - builds approve + execute with the fee, minOut and route id, then verifies the receipt on-chain
 apps/api test:       ---
-apps/api test:       duration_ms: 7.057315
+apps/api test:       duration_ms: 12.296098
 apps/api test:       type: 'test'
 apps/api test:       ...
 apps/api test:     # Subtest: internal web keys skip payment; admin kill switch needs the bearer token
 apps/api test:     ok 6 - internal web keys skip payment; admin kill switch needs the bearer token
 apps/api test:       ---
-apps/api test:       duration_ms: 1.72029
+apps/api test:       duration_ms: 2.173583
 apps/api test:       type: 'test'
 apps/api test:       ...
 apps/api test:     # Subtest: charges no swap fee by default
 apps/api test:     ok 7 - charges no swap fee by default
 apps/api test:       ---
-apps/api test:       duration_ms: 2.288171
+apps/api test:       duration_ms: 3.700703
 apps/api test:       type: 'test'
 apps/api test:       ...
 apps/api test:     # Subtest: BNB Chain: builds a direct PancakeSwap swap (no executor), verifies the receipt from Transfer logs
 apps/api test:     ok 8 - BNB Chain: builds a direct PancakeSwap swap (no executor), verifies the receipt from Transfer logs
 apps/api test:       ---
-apps/api test:       duration_ms: 6.862192
+apps/api test:       duration_ms: 14.413697
 apps/api test:       type: 'test'
 apps/api test:       ...
 apps/api test:     1..8
 apps/api test: ok 4 - api
 apps/api test:   ---
-apps/api test:   duration_ms: 45.14304
+apps/api test:   duration_ms: 79.665316
 apps/api test:   type: 'suite'
 apps/api test:   ...
 apps/api test: # Subtest: live trade sizes
 apps/api test:     # Subtest: a $100 wallet with a $100 cap can make one full-size trade
 apps/api test:     ok 1 - a $100 wallet with a $100 cap can make one full-size trade
 apps/api test:       ---
-apps/api test:       duration_ms: 1.01371
+apps/api test:       duration_ms: 1.909953
 apps/api test:       type: 'test'
 apps/api test:       ...
 apps/api test:     # Subtest: never exceeds the cap and adds nothing below the smallest size
 apps/api test:     ok 2 - never exceeds the cap and adds nothing below the smallest size
 apps/api test:       ---
-apps/api test:       duration_ms: 0.178908
+apps/api test:       duration_ms: 0.296852
 apps/api test:       type: 'test'
 apps/api test:       ...
 apps/api test:     1..2
 apps/api test: ok 5 - live trade sizes
 apps/api test:   ---
-apps/api test:   duration_ms: 2.072839
+apps/api test:   duration_ms: 3.616676
 apps/api test:   type: 'suite'
 apps/api test:   ...
 apps/api test: 1..5
@@ -501,5 +501,5 @@ apps/api test: # fail 0
 apps/api test: # cancelled 0
 apps/api test: # skipped 0
 apps/api test: # todo 0
-apps/api test: # duration_ms 671.175433
+apps/api test: # duration_ms 1213.783316
 apps/api test: Done
