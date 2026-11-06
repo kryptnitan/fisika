@@ -35,7 +35,14 @@ install -d -o fisika -g fisika -m 700 /var/lib/fisika
 install -d -o fisika -g fisika -m 700 /var/lib/fisika/bsc
 install -d -o root -g fisika -m 750 /etc/fisika
 
-if [ -d /opt/fisika/.git ]; then git -C /opt/fisika pull -q --ff-only; else git clone -q "$REPO" /opt/fisika; fi
+# The checkout belongs to the fisika user, so root's git must be told it is safe. Nothing in /opt/fisika is yours
+# to keep (keys live in /etc/fisika, data in /var/lib/fisika), so updates reset it to the published code.
+git config --global --add safe.directory /opt/fisika
+if [ -d /opt/fisika/.git ]; then
+  git -C /opt/fisika fetch -q origin main && git -C /opt/fisika reset -q --hard origin/main
+else
+  git clone -q "$REPO" /opt/fisika
+fi
 chown -R fisika:fisika /opt/fisika
 cd /opt/fisika
 sudo -u fisika -H bash -c 'pnpm install --no-frozen-lockfile --silent && pnpm --filter @fisika/web build >/dev/null'
