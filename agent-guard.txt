@@ -1,0 +1,3 @@
+agent state without session -> 401
+agent withdraw without session -> 401
+agent withdraw cross-site -> 403
