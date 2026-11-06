@@ -261,6 +261,15 @@ fi
 systemctl restart fisika-api fisika-web
 # Running traders pick up new code and settings; stopped ones stay stopped.
 systemctl try-restart fisika-live fisika-live-bsc
+# Traders run all the time once they can (key + Textile key or ALLOW_TEXTILE=false). They idle while the console
+# switch is Paused, which is the default, so the console's Active switch is all it takes to trade, and withdrawals
+# are processed whenever you ask.
+for pair in "fisika-live /etc/fisika/live.env" "fisika-live-bsc /etc/fisika/live-bsc.env"; do
+  set -- $pair
+  if grep -q '^ARB_PRIVATE_KEY=0x' "$2" && { grep -q '^TEXTILE_API_KEY=.\+' "$2" || grep -q '^ALLOW_TEXTILE=false' "$2"; }; then
+    systemctl is-active -q "$1" || systemctl start "$1"
+  fi
+done
 ufw allow OpenSSH >/dev/null && ufw --force enable >/dev/null
 
 ADDR=$(/usr/local/bin/fisika-wallet celo)
