@@ -1,10 +1,11 @@
 'use client';
-import { useState } from 'react';
-import { api, fmtUsd, usePoll, VENUE_LABEL, ago } from '@/lib/api';
+import { fmtUsd, usePoll, VENUE_LABEL, ago } from '@/lib/api';
 import { useChain } from '@/lib/chain';
 
 type ArbStatus = {
   mode: string;
+  /** LIVE only: running | pausing | paused | stopped | halted | offline (follows the agent console's switch). */
+  state?: string;
   wallet?: string;
   balances?: Record<string, number | null>;
   lastSkip?: Record<string, number>;
@@ -21,6 +22,15 @@ type ArbStatus = {
   equity: { atMs: number; equityUsd: number; baselineUsd: number }[];
 };
 
+const LIVE_STATE: Record<string, string> = {
+  running: 'Running',
+  pausing: 'Pausing…',
+  paused: 'Paused',
+  stopped: 'Stopped (kill file)',
+  halted: 'Halted',
+  offline: 'Trader offline',
+};
+
 const REASON: Record<string, string> = {
   edge_bps_below_min: 'edge below minimum (bps)',
   edge_usd_below_min: 'edge below minimum ($)',
@@ -28,13 +38,14 @@ const REASON: Record<string, string> = {
   inventory_exposure: 'would hold too much of one token between transactions',
   stale_edge: 'price too old',
   kill_switch: 'kill switch on',
+  paused: 'agent paused',
   requote_failed: 'a leg could not be re-quoted',
   already_filled_prices_unchanged: 'already filled at these prices',
 };
 
 export default function ArbPage() {
   const chain = useChain();
-  const { data, error, reload } = usePoll<ArbStatus>('v1/arb', 5_000);
+  const { data, error } = usePoll<ArbStatus>('v1/arb', 5_000);
   return (
     <>
       <h1>Arbitrage engine</h1>
@@ -46,7 +57,7 @@ export default function ArbPage() {
       {data ? (
         <>
           <div className="stats">
-            <div className="stat"><b>{data.mode === 'PAPER' ? 'Paper' : 'Live'}</b><span>{data.killed ? 'Kill switch on' : data.halted ? `Halted: ${data.haltReason}` : 'Running'}</span></div>
+            <div className="stat"><b>{data.mode === 'PAPER' ? 'Paper' : 'Live'}</b><span>{data.mode === 'LIVE' ? LIVE_STATE[data.state ?? ''] ?? 'Unknown' : data.killed ? 'Kill switch on' : data.halted ? `Halted: ${data.haltReason}` : 'Running'}</span></div>
             {data.mode === 'LIVE' ? (
               <div className="stat"><b className="num">{data.balances ? Object.entries(data.balances).map(([k, v]) => `${v === null ? '—' : v.toFixed(k === 'CELO' ? 2 : 2)} ${k}`).join(' · ') : '—'}</b><span>Wallet <a href={`${chain.explorer}/address/${data.wallet}`} target="_blank" rel="noreferrer">{data.wallet?.slice(0, 8)}…</a></span></div>
             ) : (
@@ -57,7 +68,11 @@ export default function ArbPage() {
             <div className="stat"><b className={`num ${data.realizedUsd >= 0 ? 'ok' : ''}`}>{fmtUsd(data.realizedUsd, 4)}</b><span>{data.mode === 'LIVE' ? 'Realized P&L' : 'P&L since start'}</span></div>
           </div>
           <Equity points={data.equity} live={data.mode === 'LIVE'} />
-          <KillSwitch killed={data.killed} onChange={reload} />
+          {data.mode === 'LIVE' ? (
+            <p className="muted" style={{ marginTop: 16 }}>
+              {data.state === 'running' ? 'Trading.' : data.state === 'pausing' ? 'Finishing the trade in flight, then pausing.' : data.state === 'halted' ? `Halted: ${data.haltReason}` : data.state === 'offline' ? 'The trader is not reporting.' : 'Opens no new trades until the owner switches it on.'} The owner starts and pauses the agent from <a href="/agent">My agent</a>.
+            </p>
+          ) : null}
           <h2>Recent decisions</h2>
           <div className="scroll">
             <table className="board">
@@ -130,25 +145,3 @@ function Equity({ points, live }: { points: ArbStatus['equity']; live?: boolean 
   );
 }
 
-function KillSwitch({ killed, onChange }: { killed: boolean; onChange: () => void }) {
-  const [msg, setMsg] = useState<string | null>(null);
-  async function toggle() {
-    const token = window.prompt('Admin token for the kill switch');
-    if (!token) return;
-    try {
-      await api('v1/admin/kill', { method: 'POST', body: { on: !killed }, auth: token });
-      setMsg(killed ? 'Engine resumed.' : 'Engine stopped. No new trades will be attempted.');
-      onChange();
-    } catch (e) {
-      setMsg((e as Error).message);
-    }
-  }
-  return (
-    <p style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 16 }}>
-      <button className={`danger ${killed ? 'on' : ''}`} onClick={toggle} aria-pressed={killed}>
-        {killed ? 'Resume engine' : 'Stop engine'}
-      </button>
-      <span className="muted">{msg ?? 'Stops the engine immediately. Pausing the on-chain executor is a separate guardian-key action.'}</span>
-    </p>
-  );
-}

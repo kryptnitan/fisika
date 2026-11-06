@@ -11,6 +11,9 @@ import type { GraphState } from '@fisika/core/setup';
 import { createAgentApp, type AgentChain } from '../src/agent/routes.ts';
 import { readControl } from '../src/agent/control.ts';
 import { listRequests } from '../src/agent/withdrawals.ts';
+import { setControl } from '../src/agent/control.ts';
+import { createApp } from '../src/app.ts';
+import { loadConfig } from '../src/config.ts';
 
 const NOW = Date.parse('2026-11-06T12:00:00Z');
 const owner = privateKeyToAccount(generatePrivateKey());
@@ -199,3 +202,28 @@ describe('control file', () => {
     void readFile;
   });
 });
+
+describe('public arbitrage page follows the console switch', () => {
+  it('shows Paused / Running / Pausing from the control file, not just the process', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'fisika-arbview-'));
+    const statusFile = join(dir, 'live-status.json');
+    const controlFile = join(dir, 'control.json');
+    const status = (inFlight: boolean) => writeFile(statusFile, JSON.stringify({ mode: 'LIVE', wallet: BOT, updatedAt: new Date(NOW - 5_000).toISOString(), killed: false, halted: false, inFlight, trades: 0, wins: 0, realizedUsd: 0, recent: [] }));
+    const cfg = loadConfig({ LIVE_STATUS_FILE: statusFile, KILL_FILE: join(dir, 'KILL'), CONTROL_FILE: controlFile });
+    const tokens = new TokenRegistry();
+    const graph = new PriceGraph();
+    const st: GraphState = { graph, pricer: new Pricer(tokens, graph, 60_000), gasPriceWei: 1n, nativeUsd: 0.3, block: 1n, updatedMs: NOW, lastRefresh: [], rpc: { checkedMs: NOW, degraded: false, vetting: null } };
+    const { app } = createApp({ cfg, tokens, state: () => st, paymentGate: async (_c: any, next: any) => next(), getTxReceipt: async () => null, now: () => NOW } as any);
+    const view = async () => (await (await app.request('/v1/arb')).json()).state;
+    await status(false);
+    assert.equal(await view(), 'paused', 'no switch file: paused');
+    await setControl(controlFile, 'all', true, 'test');
+    assert.equal(await view(), 'running');
+    await setControl(controlFile, 'celo', false, 'test');
+    await status(true);
+    assert.equal(await view(), 'pausing', 'switched off with a trade in flight');
+    await status(false);
+    assert.equal(await view(), 'paused');
+  });
+});
+

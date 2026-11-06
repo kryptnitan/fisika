@@ -5,6 +5,7 @@ import { Hono, type MiddlewareHandler } from 'hono';
 import { existsSync } from 'node:fs';
 import { readFile, unlink, writeFile } from 'node:fs/promises';
 import { encodeFunctionData, erc20Abi, type Hex } from 'viem';
+import { chainTrades, readControl, type ControlState } from './agent/control.ts';
 import type { ApiConfig } from './config.ts';
 import { QuoteBook, QuoteError, quoteView, type QuoteRequest } from './quotes.ts';
 import { makeReceipt, ReceiptStore, type TxReceiptLike } from './receipts.ts';
@@ -56,7 +57,8 @@ export function decodeSettlement(header: string | null | undefined): { payer?: s
 }
 
 /** Map the live trader's status file onto the shape the dashboard's arb panel reads. */
-function liveView(s: any, killFile: string | null) {
+/** Public view of the live trader. The status reflects the agent console's switch, not just the process. */
+function liveView(s: any, killFile: string | null, control: ControlState, chainKey: string, nowMs: number) {
   const recent: any[] = s.recent ?? [];
   let equity = 0;
   const eq = recent
@@ -64,11 +66,16 @@ function liveView(s: any, killFile: string | null) {
     .slice()
     .reverse()
     .map((r) => ({ atMs: Date.parse(r.at), equityUsd: (equity += r.realizedUsd), baselineUsd: 0 }));
+  const killed = killFile ? existsSync(killFile) : !!s.killed;
+  const trading = chainTrades(control, chainKey);
+  const online = !!s.updatedAt && nowMs - Date.parse(s.updatedAt) < 90_000;
+  const state = !online ? 'offline' : killed ? 'stopped' : s.halted ? 'halted' : trading ? 'running' : s.inFlight ? 'pausing' : 'paused';
   return {
     mode: 'LIVE',
+    state,
     wallet: s.wallet,
     balances: s.balances,
-    killed: killFile ? existsSync(killFile) : s.killed,
+    killed,
     halted: s.halted,
     haltReason: s.haltReason,
     detected: recent.length,
@@ -372,7 +379,8 @@ export function createApp(d: AppDeps) {
     if (live.statusFile) {
       const raw = await readFile(live.statusFile, 'utf8').catch(() => null);
       if (!raw) return c.json({ error: `${chain.name} live trader has not written a status yet` }, 503);
-      return c.json({ chain: chain.key, ...liveView(JSON.parse(raw), live.killFile) });
+      const control = await readControl(d.cfg.agentConsole?.controlFile ?? '/var/lib/fisika/control.json');
+      return c.json({ chain: chain.key, ...liveView(JSON.parse(raw), live.killFile, control, chain.key, now()) });
     }
     return d.arb ? c.json(json(d.arb.status())) : c.json({ error: 'arb engine not running' }, 404);
   });
