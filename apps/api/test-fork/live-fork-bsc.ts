@@ -24,6 +24,7 @@ import { buildDirectTxs } from '@fisika/core/build';
 import { erc20Abi, makeClient, viemUniV3Reader } from '@fisika/core/viem';
 import { balanceOf, executeLeg, LegError, registerTokens } from '../src/live/legs.ts';
 import { LiveTrader } from '../src/live/trader.ts';
+import { runAgentChecks } from './agent-checks.ts';
 import { makeReceipt } from '../src/receipts.ts';
 import type { StoredQuote } from '../src/quotes.ts';
 
@@ -147,6 +148,26 @@ const rec = makeReceipt(q, last, mined, { kind: 'direct', target: built.txs[1]!.
 assert.equal(rec.status, 'filled');
 assert.ok(BigInt(Math.round(Number(rec.realizedOut) * 1e18)) >= (built.minOut * 999n) / 1000n, 'received at least minOut');
 ok(`dashboard swap 25 USDT → ${rec.realizedOut} WBNB via ${route.venues.join('+')} (direct router build, receipt verified)`);
+
+// Agent console: pause/resume, mid-loop pause, restart, per-chain switch, $1 deposit + withdraw.
+{
+  const { ledgerPath, statusPath, killFile, ...base } = trader.cfg;
+  void ledgerPath, statusPath, killFile;
+  await runAgentChecks({
+    cfg: BSC,
+    rpc: RPC,
+    chain,
+    state: () => st,
+    tokens,
+    adapters,
+    base,
+    cycle: () => [edge('pancake-v3', USDT, WBNB, PANCAKE_POOL, 100), edge('uniswap-v3', WBNB, USDT, UNI_POOL, 500)],
+    amountIn: 10n * E18,
+    stable: USDT,
+    stableDecimals: 18,
+    ok,
+  });
+}
 
 console.log(`\n${passed} checks passed`);
 process.exit(0);

@@ -24,6 +24,8 @@ import { BatchReader } from '@fisika/core/batch';
 import { discoverMentoV2Exchanges, erc20Abi, makeClient, viemMentoReader, viemMentoV2Reader, viemUniV3Reader } from '@fisika/core/viem';
 import { balanceOf, executeLeg, LegError, registerTokens } from '../src/live/legs.ts';
 import { LiveTrader } from '../src/live/trader.ts';
+import { runAgentChecks } from './agent-checks.ts';
+import { CELO } from '@fisika/core';
 
 const RPC = process.env.FORK_RPC ?? 'http://127.0.0.1:8545';
 // anvil's well-known first dev key: a throwaway, holds nothing on mainnet.
@@ -149,6 +151,26 @@ ok('impossible minimum output reverts and moves no funds');
 // Textile legs need the API key; without it the leg is refused before anything is sent.
 await assert.rejects(executeLeg(chain, { ...uniEdge(), venue: 'textile' }, 1_000_000n, 1n, null, 0), /TEXTILE_API_KEY/);
 ok('Textile leg without a key is refused');
+
+// Agent console: pause/resume, mid-loop pause, restart, per-chain switch, $1 deposit + withdraw.
+{
+  const { ledgerPath, statusPath, killFile, ...base } = trader.cfg;
+  void ledgerPath, statusPath, killFile;
+  await runAgentChecks({
+    cfg: CELO,
+    rpc: RPC,
+    chain: { ...chain, config: CELO },
+    state: () => st,
+    tokens,
+    adapters,
+    base,
+    cycle: () => [uniEdge(), edge('uniswap-v3', USDm, USDT, uniPool, { fee: 100 })],
+    amountIn: 10_000_000n,
+    stable: USDT,
+    stableDecimals: 6,
+    ok,
+  });
+}
 
 console.log(`\n${results.length} checks passed`);
 process.exit(0);

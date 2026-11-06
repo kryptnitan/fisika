@@ -4,6 +4,9 @@ import { createVenues, LiveGraph } from '@fisika/core/setup';
 import { makeClient, redactRpc, vetRpcs } from '@fisika/core/viem';
 import { PaperArbRunner } from './arb.ts';
 import { createApp, multiChainFetch } from './app.ts';
+import { createAgentApp, type AgentChain, type AgentChainClient } from './agent/routes.ts';
+import { dirname } from 'node:path';
+import { parseEther } from 'viem';
 import { Heatmap } from './heatmap.ts';
 import { loadConfig } from './config.ts';
 import { makePaymentGate } from './x402.ts';
@@ -50,11 +53,21 @@ async function startChain(chain: ChainConfig) {
     paymentGate: gate,
     getTxReceipt: async (hash) => client.getTransactionReceipt({ hash }).catch(() => null),
   });
+  agentChains.push({
+    chain,
+    tokens,
+    client: client as unknown as AgentChainClient,
+    state: () => live.state,
+    dataDir: pc.live.statusFile ? dirname(pc.live.statusFile) : null,
+    wallet: cfg.agentConsole.wallets[chain.key] ?? null,
+    lowGas: parseEther(chain.key === 'celo' ? '0.5' : '0.005'),
+  });
   const pools = Object.entries(venues.v3Pools).map(([k, n]) => `${k} ${n}`).join(', ');
   console.log(`[${chain.key}] rpc ${vetting.ok.map(redactRpc).join(', ')} · pools: ${pools}${chain.mento ? ` · mento v2: ${venues.mentoV2Pairs.join(', ')}` : ''} · textile ${venues.textile ? 'on' : 'off'}`);
   return app;
 }
 
+const agentChains: AgentChain[] = [];
 const apps: Record<string, { fetch: (req: Request) => Response | Promise<Response> }> = {};
 const served: ChainConfig[] = [];
 for (const key of cfg.chains) {
@@ -68,5 +81,17 @@ for (const key of cfg.chains) {
   }
 }
 
-serve({ fetch: multiChainFetch(apps, served), port: cfg.port, hostname: cfg.host });
+const publicUrl = new URL(cfg.publicUrl);
+const agent = createAgentApp({
+  owner: cfg.agentConsole.owner,
+  withdrawTo: cfg.agentConsole.withdrawTo,
+  // The console page is served from the public site; a SIWE message must name that host.
+  domains: [publicUrl.host, ...(process.env.AGENT_SIWE_DOMAINS ?? '').split(',').map((x) => x.trim()).filter(Boolean)],
+  secureCookie: publicUrl.protocol === 'https:',
+  controlFile: cfg.agentConsole.controlFile,
+  eventsFile: cfg.agentConsole.eventsFile,
+  chains: agentChains,
+});
+serve({ fetch: multiChainFetch(apps, served, 'celo', [{ prefix: '/v1/agent/', app: agent.app }]), port: cfg.port, hostname: cfg.host });
+console.log(`agent console: ${cfg.agentConsole.owner ? `owner ${cfg.agentConsole.owner}, withdrawals to ${cfg.agentConsole.withdrawTo}` : 'OFF (set OWNER_ADDRESS)'}`);
 console.log(`fisika api on :${cfg.port} · chains ${served.map((c) => c.key).join(', ')} · x402 ${server ? 'on' : 'OFF'} · execution ${cfg.executionEnabled ? 'on' : 'off'}`);

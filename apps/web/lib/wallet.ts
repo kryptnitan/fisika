@@ -8,11 +8,11 @@ declare global {
   }
 }
 
-import { currentChain } from './chain';
+import { currentChain, type UiChain } from './chain';
 
-/** Connect and make sure the wallet is on the chain selected in the dashboard. */
-export async function connect(): Promise<string> {
-  const c = currentChain();
+/** Connect and make sure the wallet is on the chain selected in the dashboard (or the one given). */
+export async function connect(target?: UiChain): Promise<string> {
+  const c = target ?? currentChain();
   const eth = window.ethereum;
   if (!eth) throw new Error('No wallet found. Open fisika in MiniPay, Valora or a browser with an EVM wallet.');
   const [account] = (await eth.request({ method: 'eth_requestAccounts' })) as string[];
@@ -28,7 +28,7 @@ export async function connect(): Promise<string> {
       });
     }
     const now = (await eth.request({ method: 'eth_chainId' })) as string;
-    if (now.toLowerCase() !== c.chainIdHex) throw new Error(`Switch your wallet to ${c.name} to swap here.`);
+    if (now.toLowerCase() !== c.chainIdHex) throw new Error(`Switch your wallet to ${c.name} to continue.`);
   }
   return account.toLowerCase();
 }
@@ -49,4 +49,11 @@ export async function waitForTx(hash: string, timeoutMs = 90_000): Promise<'succ
     await new Promise((res) => setTimeout(res, 1500));
   }
   throw new Error(`The transaction was not mined within 90 seconds. Check it on ${currentChain().explorer.replace('https://', '')}.`);
+}
+
+/** Ask the wallet to sign a plain-text message (Sign-In With Ethereum). */
+export async function signMessage(from: string, message: string): Promise<string> {
+  const eth = window.ethereum;
+  if (!eth) throw new Error('No wallet found.');
+  return (await eth.request({ method: 'personal_sign', params: [message, from] })) as string;
 }

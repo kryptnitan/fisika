@@ -17,6 +17,8 @@ export const RULES: Record<string, Rule> = {
   build: { perIp: 6, global: 30 },
   receipts: { perIp: 30, global: 600 },
   admin: { perIp: 10, global: 30 },
+  agentRead: { perIp: 120, global: 600 },
+  agentAction: { perIp: 20, global: 60 },
 };
 
 const WINDOW_MS = 60_000;

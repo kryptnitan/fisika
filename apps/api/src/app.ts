@@ -442,10 +442,17 @@ function openapi(cfg: ApiConfig, chain: ChainConfig) {
  * One API for several chains: /<chain>/v1/... goes to that chain's app (/bsc/v1/board), plain /v1/... goes to the
  * default chain (Celo), and GET /v1/chains lists what this deployment serves.
  */
-export function multiChainFetch(apps: Partial<Record<string, { fetch: (req: Request) => Response | Promise<Response> }>>, chains: ChainConfig[], defaultKey = 'celo') {
+export function multiChainFetch(
+  apps: Partial<Record<string, { fetch: (req: Request) => Response | Promise<Response> }>>,
+  chains: ChainConfig[],
+  defaultKey = 'celo',
+  /** Chain-independent apps by path prefix (the agent console at /v1/agent/). */
+  extra: { prefix: string; app: { fetch: (req: Request) => Response | Promise<Response> } }[] = [],
+) {
   const list = chains.map((c) => ({ key: c.key, chainId: c.id, name: c.name, nativeSymbol: c.nativeSymbol, explorer: c.explorer, prefix: c.key === defaultKey ? '' : `/${c.key}` }));
   return async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
+    for (const x of extra) if (url.pathname.startsWith(x.prefix)) return x.app.fetch(req);
     if (url.pathname === '/v1/chains') return Response.json({ default: defaultKey, chains: list }, { headers: { 'Access-Control-Allow-Origin': '*' } });
     const m = /^\/([a-z0-9]+)(\/.*)$/.exec(url.pathname);
     const target = m && apps[m[1]!] ? m[1]! : null;

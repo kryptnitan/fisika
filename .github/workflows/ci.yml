@@ -168,6 +168,11 @@ jobs:
           timeout 90 npx -y playwright@1.49.0 screenshot --full-page --wait-for-timeout 4000 --viewport-size 390,844 http://localhost:3000/ shot-rates-mobile.png
           timeout 90 npx -y playwright@1.49.0 screenshot --full-page --wait-for-timeout 4000 --viewport-size 1360,900 http://localhost:3000/arb shot-arb.png
           timeout 90 npx -y playwright@1.49.0 screenshot --full-page --wait-for-timeout 4000 --viewport-size 1360,900 http://localhost:3000/agents shot-agents.png
+          timeout 90 npx -y playwright@1.49.0 screenshot --full-page --wait-for-timeout 4000 --viewport-size 1360,900 http://localhost:3000/agent shot-console.png
+          # The console API is owner-only: without a session every call is refused.
+          curl -s -o /dev/null -w 'agent state without session -> %{http_code}\n' localhost:3000/api/proxy/v1/agent/state | tee agent-guard.txt
+          curl -s -o /dev/null -w 'agent withdraw without session -> %{http_code}\n' -X POST -H 'origin: http://localhost:3000' -H 'content-type: application/json' -d '{"chain":"celo","token":"USDT","amount":"1"}' localhost:3000/api/proxy/v1/agent/withdraw | tee -a agent-guard.txt
+          curl -s -o /dev/null -w 'agent withdraw cross-site -> %{http_code}\n' -X POST -H 'origin: https://evil.example' -H 'content-type: application/json' -d '{}' localhost:3000/api/proxy/v1/agent/withdraw | tee -a agent-guard.txt
           timeout 90 npx -y playwright@1.49.0 screenshot --full-page --wait-for-timeout 8000 --viewport-size 1360,900 'http://localhost:3000/?chain=bsc' shot-rates-bsc.png
           timeout 90 npx -y playwright@1.49.0 screenshot --full-page --wait-for-timeout 6000 --viewport-size 390,844 'http://localhost:3000/?chain=bsc' shot-rates-bsc-mobile.png
           curl -s localhost:8787/v1/chains > chains.json || true
@@ -183,7 +188,7 @@ jobs:
         shell: bash
         run: |
           files=""
-          for f in web-build.txt shot-rates.png shot-rates-mobile.png shot-arb.png shot-agents.png shot-rates-bsc.png shot-rates-bsc-mobile.png chains.json quote-sample-bsc.json build-sample-bsc.txt quote-sample.json x402-unpaid-status.txt api.log web.log; do test -f "$f" && cp "$f" /tmp/ && files="$files /tmp/$f"; done
+          for f in agent-guard.txt shot-console.png web-build.txt shot-rates.png shot-rates-mobile.png shot-arb.png shot-agents.png shot-rates-bsc.png shot-rates-bsc-mobile.png chains.json quote-sample-bsc.json build-sample-bsc.txt quote-sample.json x402-unpaid-status.txt api.log web.log; do test -f "$f" && cp "$f" /tmp/ && files="$files /tmp/$f"; done
           test -n "$files" && bash .github/publish.sh verification "web build + screenshots for ${GITHUB_SHA}" $files || true
 
   live-fork:
@@ -258,6 +263,8 @@ jobs:
           check /health 200 api-health
           check /v1/admin/state 404
           check /bsc/v1/admin/kill 404
+          check /v1/agent/state 404
+          check /v1/agent/withdraw 404
           check / 200 web-home
           check /arb/ 200 web-arb
           curl -sI localhost:8080/ | grep -i 'x-frame-options: DENY'

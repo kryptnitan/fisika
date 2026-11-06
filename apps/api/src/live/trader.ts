@@ -14,14 +14,19 @@
  *   4. If a later leg still cannot fill, the engine halts and the status says which token it is holding.
  *   5. Profit or loss is measured from the wallet's real balance of the start token before and after, minus gas.
  *
- * Kill switch: if KILL_FILE exists, no new cycle starts (a cycle already under way is finished, for the reason
- * in step 3). A daily loss at or past the limit halts the engine until a person clears it.
+ * Pause: the agent console's Active/Paused switch (control file, global + per chain) and the older KILL_FILE both
+ * stop new cycles. The switch is read right before every cycle would spend anything; a cycle already under way is
+ * finished, for the reason in step 3. A daily loss at or past the limit halts the engine until a person clears it.
+ *
+ * Withdrawals queued by the console are sent at the start of a tick, which is always between cycles.
  */
 import { appendFile, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { ArbEngine, RiskGate, type Address, type ArbConfig, type Edge, type Opportunity, type TextileAdapter, type TokenRegistry, type VenueAdapter, type VenueId } from '@fisika/core';
 import type { GraphState } from '@fisika/core/setup';
 import { balanceOf, executeLeg, LegError, type Chain, type TxCost } from './legs.ts';
+import { chainTrades, readControlSync } from '../agent/control.ts';
+import { listRequests, processWithdrawals } from '../agent/withdrawals.ts';
 
 export interface LiveConfig extends Omit<ArbConfig, 'gasPriceWei' | 'nativeUsd'> {
   ledgerPath: string;
@@ -29,14 +34,29 @@ export interface LiveConfig extends Omit<ArbConfig, 'gasPriceWei' | 'nativeUsd'>
   killFile: string;
   /** Keep at least this much of the gas token (CELO, BNB) for gas; below it the engine pauses. */
   minNativeForGas: bigint;
+  /** Console switch file (global + per chain). Unset: no switch, only KILL_FILE (tests). */
+  controlFile?: string;
+  /** Agent activity log (pauses, deposits, withdrawals). */
+  eventsFile?: string;
+  /** Where the console drops withdrawal requests for this chain. Unset: withdrawals off. */
+  withdrawDir?: string;
+  /** The only address withdrawals can go to, from this process's own environment. */
+  withdrawTo?: Address | null;
+  /** Test hook: called after each leg fills. */
+  afterLeg?: (legIndex: number) => void | Promise<void>;
 }
 
 export interface LedgerEntry {
   at: string;
+  /** Chain key (celo, bsc). Missing on entries written before the agent console existed. */
+  chain?: string;
   status: 'completed' | 'aborted_before_spend' | 'stuck';
   path: string;
   venues: VenueId[];
   amountIn: string;
+  /** What came back in the start token (atomic), on completed cycles. */
+  amountOut?: string | null;
+  startDecimals?: number;
   startToken: string;
   expectedNetBps: number;
   realizedStart: string | null;
@@ -99,10 +119,49 @@ export class LiveTrader {
     return existsSync(this.cfg.killFile);
   }
 
+  get chainKey(): string {
+    return this.chain.config?.key ?? 'celo';
+  }
+
+  /** True when no new cycle may start: KILL file, or the console switch (global or this chain) is off. */
+  paused(): boolean {
+    if (this.killed()) return true;
+    if (!this.cfg.controlFile) return false;
+    return !chainTrades(readControlSync(this.cfg.controlFile), this.chainKey);
+  }
+
+  /** A cycle is between its first spend and its last leg. */
+  inFlight = false;
+  pendingWithdrawals = 0;
+
+  private async withdrawals(): Promise<void> {
+    if (!this.cfg.withdrawDir || !this.cfg.controlFile) return;
+    await processWithdrawals({
+      chainKey: this.chainKey,
+      pub: this.chain.pub as never,
+      wallet: this.chain.wallet as never,
+      account: this.chain.account,
+      tokens: this.tokens,
+      nativeSymbol: this.chain.config?.nativeSymbol ?? 'CELO',
+      withdrawTo: this.cfg.withdrawTo ?? null,
+      nativeReserve: this.cfg.minNativeForGas,
+      dir: this.cfg.withdrawDir,
+      controlFile: this.cfg.controlFile,
+      eventsFile: this.cfg.eventsFile ?? `${this.cfg.withdrawDir}/../agent-events.jsonl`,
+    }).catch((e: Error) => console.error('[withdraw] failed:', e.message));
+    this.pendingWithdrawals = (await listRequests(this.cfg.withdrawDir)).filter((r) => r.status === 'requested').length;
+  }
+
   async tick(nowMs = Date.now()): Promise<void> {
     if (this.busy || this.stopping) return;
     this.busy = true;
     try {
+      // Between trades by construction (busy): safe point to send queued withdrawals.
+      await this.withdrawals();
+      if (this.paused()) {
+        this.lastSkip = { paused: 1 };
+        return;
+      }
       const st = this.state();
       if (!st.updatedMs || st.rpc?.degraded) return;
       if (!st.nativeUsd) {
@@ -177,10 +236,13 @@ export class LiveTrader {
       const startUsd = realizedStart === null ? 0 : (st.pricer.usdValue(start, realizedStart < 0n ? -realizedStart : realizedStart, Date.now()) ?? 0) * (realizedStart < 0n ? -1 : 1);
       return {
         at: new Date().toISOString(),
+        chain: this.chainKey,
         status,
         path,
         venues: cycle.map((e) => e.venue),
         amountIn: o.amountIn.toString(),
+        amountOut: status === 'completed' && realizedStart !== null ? (o.amountIn + realizedStart).toString() : null,
+        startDecimals: this.tokens.get(start)?.decimals ?? undefined,
         startToken: this.sym(start),
         expectedNetBps: o.netBps,
         realizedStart: realizedStart === null ? null : realizedStart.toString(),
@@ -191,13 +253,35 @@ export class LiveTrader {
       };
     };
 
+    // 0. The console switch, right before anything could be submitted. Not logged: nothing was attempted.
+    if (this.paused()) return entry('aborted_before_spend', null, 'paused');
+
     // 1. Final check before spending anything.
     const projected = await this.projectFrom(cycle, 0, o.amountIn);
     if (projected === null || projected < o.amountIn + o.gasInStart + minEdge) {
       return this.log(entry('aborted_before_spend', null, projected === null ? 'a leg could not be quoted' : 'edge gone on final check'));
     }
 
-    // 2–3. Run every leg; once the first one fills, finish the cycle.
+    // 2–3. Run every leg; once the first one fills, finish the cycle (even if paused meanwhile).
+    this.inFlight = true;
+    void this.writeStatus().catch(() => undefined);
+    try {
+      return await this.legs(o, st, cycle, start, slip, txs, entry, startBal);
+    } finally {
+      this.inFlight = false;
+    }
+  }
+
+  private async legs(
+    o: Opportunity,
+    st: GraphState,
+    cycle: Edge[],
+    start: Address,
+    slip: bigint,
+    txs: TxCost[],
+    entry: (status: LedgerEntry['status'], realizedStart: bigint | null, note?: string) => LedgerEntry,
+    startBal: bigint,
+  ): Promise<LedgerEntry> {
     let amount = o.amountIn;
     for (let i = 0; i < cycle.length; i++) {
       const e = cycle[i]!;
@@ -216,6 +300,7 @@ export class LiveTrader {
           txs.push(...r.txs);
           amount = r.amountOut;
           done = true;
+          await this.cfg.afterLeg?.(i);
         } catch (err) {
           const cost = (err as { cost?: TxCost }).cost;
           if (cost) txs.push(cost);
@@ -260,7 +345,11 @@ export class LiveTrader {
     const completed = this.recent.filter((r) => r.status === 'completed');
     const status = {
       mode: 'LIVE',
+      chain: this.chainKey,
       wallet: this.chain.account,
+      paused: this.paused(),
+      inFlight: this.inFlight,
+      pendingWithdrawals: this.pendingWithdrawals,
       updatedAt: new Date().toISOString(),
       killed: this.killed(),
       halted: this.risk?.state.halted ?? false,

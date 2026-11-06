@@ -8,6 +8,7 @@ const LINKS = [
   { href: '/arb', label: 'Arbitrage' },
   { href: '/agents', label: 'Agent API' },
   { href: '/trades', label: 'Trades' },
+  { href: '/agent', label: 'My agent' },
 ];
 
 export function Nav() {

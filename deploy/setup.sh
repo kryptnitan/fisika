@@ -2,7 +2,8 @@
 # fisika — one-command VPS setup (Ubuntu 22.04/24.04). Run as root:
 #   curl -fsSL https://raw.githubusercontent.com/kryptnitan/fisika/main/deploy/setup.sh | sudo bash
 # Public website (HTTPS on your domain; point its DNS A record at this server first):
-#   curl -fsSL https://raw.githubusercontent.com/kryptnitan/fisika/main/deploy/setup.sh | sudo DOMAIN=example.com PAY_TO=0xYourWallet bash
+#   curl -fsSL https://raw.githubusercontent.com/kryptnitan/fisika/main/deploy/setup.sh | sudo DOMAIN=example.com PAY_TO=0xYourWallet OWNER=0xYourWallet bash
+# OWNER is the only wallet that can sign in to the agent console (/agent), and the only address withdrawals go to.
 # Safe to re-run: it updates the code and keeps your keys and data. Re-run with DOMAIN= to go public later.
 #
 # What it does
@@ -18,8 +19,10 @@ set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "run as root (sudo)"; exit 1; }
 DOMAIN=${DOMAIN:-}
 PAY_TO=${PAY_TO:-}
+OWNER=${OWNER:-}
 if [ -n "$DOMAIN" ] && ! printf '%s' "$DOMAIN" | grep -Eq '^([a-z0-9-]+\.)+[a-z]{2,}$'; then echo "DOMAIN must look like example.com"; exit 1; fi
 if [ -n "$PAY_TO" ] && ! printf '%s' "$PAY_TO" | grep -Eq '^0x[0-9a-fA-F]{40}$'; then echo "PAY_TO must be a 0x address"; exit 1; fi
+if [ -n "$OWNER" ] && ! printf '%s' "$OWNER" | grep -Eq '^0x[0-9a-fA-F]{40}$'; then echo "OWNER must be a 0x address"; exit 1; fi
 
 REPO=${REPO:-https://github.com/kryptnitan/fisika}
 apt-get update -qq
@@ -134,7 +137,7 @@ ENV
 fi
 chown root:fisika /etc/fisika/api.env /etc/fisika/web.env && chmod 640 /etc/fisika/api.env /etc/fisika/web.env
 
-unit() { # name, workdir, command, envfile, extra
+unit() { # name, workdir, command, envfile, extra writable paths, extra [Service] lines
   cat > /etc/systemd/system/$1.service <<UNIT
 [Unit]
 Description=$1
@@ -156,6 +159,7 @@ ProtectHome=true
 PrivateTmp=true
 ReadWritePaths=/var/lib/fisika $5
 CapabilityBoundingSet=
+${6:-}
 RestrictSUIDSGID=true
 
 [Install]
@@ -163,10 +167,12 @@ WantedBy=multi-user.target
 UNIT
 }
 NODE=$(command -v node)
-unit fisika-api  /opt/fisika/apps/api "$NODE src/server.ts" /etc/fisika/api.env ""
+# The website and API can never read the bot keys, even though they run as the same user: only the traders can.
+NOKEYS="InaccessiblePaths=-/etc/fisika/live.env -/etc/fisika/live-bsc.env"
+unit fisika-api  /opt/fisika/apps/api "$NODE src/server.ts" /etc/fisika/api.env "" "$NOKEYS"
 unit fisika-live /opt/fisika/apps/api "$NODE src/live-trader.ts" /etc/fisika/live.env ""
 unit fisika-live-bsc /opt/fisika/apps/api "$NODE src/live-trader.ts" /etc/fisika/live-bsc.env ""
-unit fisika-web  /opt/fisika/apps/web "/opt/fisika/apps/web/node_modules/.bin/next start -H 127.0.0.1 -p 3000" /etc/fisika/web.env "/opt/fisika/apps/web/.next"
+unit fisika-web  /opt/fisika/apps/web "/opt/fisika/apps/web/node_modules/.bin/next start -H 127.0.0.1 -p 3000" /etc/fisika/web.env "/opt/fisika/apps/web/.next" "$NOKEYS"
 systemctl daemon-reload
 systemctl enable -q --now fisika-api fisika-web
 systemctl enable -q fisika-live fisika-live-bsc   # enabled, not started: run fisika-start-live [bsc] after funding
@@ -189,6 +195,8 @@ set -e
 grep -q '^TEXTILE_API_KEY=.\+' $ENVF || grep -q '^ALLOW_TEXTILE=false' $ENVF || { echo "Add TEXTILE_API_KEY to $ENVF first (sudo nano $ENVF)"; exit 1; }
 rm -f $DIR/KILL
 systemctl restart $SVC
+# Starting the trader is the intent to trade: switch this chain (and the agent) on. Pause any time from the console.
+/usr/local/bin/fisika resume "${1:-celo}"
 sleep 8
 journalctl -u $SVC -n 15 --no-pager
 CMD
@@ -212,12 +220,29 @@ cd /opt/fisika/apps/api
 KEY=$(grep '^ARB_PRIVATE_KEY=' $ENVF | cut -d= -f2) \
   node -e "import('viem/accounts').then(m=>console.log(m.privateKeyToAccount(process.env.KEY).address))"
 CMD
-chmod 755 /usr/local/bin/fisika-start-live /usr/local/bin/fisika-stop-live /usr/local/bin/fisika-wallet
+cat > /usr/local/bin/fisika <<CMD
+#!/usr/bin/env bash
+# fisika status | pause [all|celo|bsc] | resume [all|celo|bsc]   (same switch as the console's Active/Paused)
+cd /opt/fisika/apps/api && exec sudo -u fisika env CONTROL_FILE=/var/lib/fisika/control.json $NODE src/cli.ts "\$@"
+CMD
+chmod 755 /usr/local/bin/fisika-start-live /usr/local/bin/fisika-stop-live /usr/local/bin/fisika-wallet /usr/local/bin/fisika
 chmod 644 /usr/local/bin/fisika-chain
 
-# Settings passed on the command line win over what is in api.env.
-setenv() { grep -q "^$1=" /etc/fisika/api.env && sed -i "s|^$1=.*|$1=$2|" /etc/fisika/api.env || echo "$1=$2" >> /etc/fisika/api.env; }
+# Settings passed on the command line win over what is in the env files.
+setenvf() { grep -q "^$2=" "$1" && sed -i "s|^$2=.*|$2=$3|" "$1" || echo "$2=$3" >> "$1"; }
+setenv() { setenvf /etc/fisika/api.env "$1" "$2"; }
 [ -n "$PAY_TO" ] && setenv X402_PAY_TO "$PAY_TO"
+# Agent console: owner sign-in, and the one address withdrawals can go to (the traders enforce their own copy).
+if [ -n "$OWNER" ]; then
+  setenv OWNER_ADDRESS "$OWNER"
+  setenv WITHDRAW_ADDRESS "$OWNER"
+  for f in /etc/fisika/live.env /etc/fisika/live-bsc.env; do [ -f "$f" ] && setenvf "$f" WITHDRAW_ADDRESS "$OWNER"; done
+fi
+grep -q '^CONTROL_FILE=' /etc/fisika/api.env || setenv CONTROL_FILE /var/lib/fisika/control.json
+for f in /etc/fisika/live.env /etc/fisika/live-bsc.env; do [ -f "$f" ] && { grep -q '^CONTROL_FILE=' "$f" || setenvf "$f" CONTROL_FILE /var/lib/fisika/control.json; }; done
+# The console shows the bot wallets' balances even before a trader has run.
+setenv AGENT_WALLET_CELO "$(/usr/local/bin/fisika-wallet celo)"
+setenv AGENT_WALLET_BSC "$(/usr/local/bin/fisika-wallet bsc)"
 if [ -n "$DOMAIN" ]; then
   setenv PUBLIC_URL "https://$DOMAIN"
   if ! apt-get install -y -qq caddy >/dev/null 2>&1; then
@@ -234,6 +259,8 @@ if [ -n "$DOMAIN" ]; then
   ufw allow 80/tcp >/dev/null && ufw allow 443/tcp >/dev/null
 fi
 systemctl restart fisika-api fisika-web
+# Running traders pick up new code and settings; stopped ones stay stopped.
+systemctl try-restart fisika-live fisika-live-bsc
 ufw allow OpenSSH >/dev/null && ufw --force enable >/dev/null
 
 ADDR=$(/usr/local/bin/fisika-wallet celo)
@@ -242,6 +269,7 @@ cat <<DONE
 
 fisika is installed.
 $( [ -n "$DOMAIN" ] && echo "Public site: https://$DOMAIN   (agent API: https://$DOMAIN/v1/board, https://$DOMAIN/openapi.json)" || echo "Dashboard and API run on this server's localhost only. Re-run with DOMAIN=yourdomain.com to go public." )
+$( grep -q '^OWNER_ADDRESS=0x' /etc/fisika/api.env && echo "Agent console: ${DOMAIN:+https://$DOMAIN}/agent  (owner $(grep '^OWNER_ADDRESS=' /etc/fisika/api.env | cut -d= -f2))" || echo "Agent console: OFF until you re-run with OWNER=0xYourWallet" )
 $( grep -q '^X402_API_KEY=.\+' /etc/fisika/api.env && grep -q '^X402_PAY_TO=0x' /etc/fisika/api.env && echo "Agent payments: on" || echo "Agent payments: OFF until X402_PAY_TO and X402_API_KEY are set (sudo nano /etc/fisika/api.env, then sudo systemctl restart fisika-api)" )
 
 Bot wallets (new, generated on this server, one per chain):
@@ -251,13 +279,13 @@ Bot wallets (new, generated on this server, one per chain):
 Celo:
   1. Send the Celo wallet 100 USDT and 20 CELO (about \$2, for gas) on Celo (chain 42220).
   2. sudo nano /etc/fisika/live.env       -> paste TEXTILE_API_KEY
-  3. sudo fisika-start-live
+  3. sudo fisika-start-live          (starts the trader and switches Celo on; pause/resume any time in the console)
 BNB Chain (optional, separate capital):
   1. Send the BNB Chain wallet USDT (BEP-20) and 0.02 BNB for gas on BNB Chain (chain 56).
   2. sudo nano /etc/fisika/live-bsc.env   -> paste TEXTILE_API_KEY
   3. sudo fisika-start-live bsc
-Dashboard from your computer:  ssh -L 3000:localhost:3000 <user>@<this-server>  then open http://localhost:3000/arb
-Stop new trades:  sudo fisika-stop-live [celo|bsc|all]    Stop the process too:  add --now
+Pause / resume from the server:  sudo fisika pause [all|celo|bsc]   sudo fisika resume [all|celo|bsc]   sudo fisika status
+Stop the trader process:  sudo fisika-stop-live [celo|bsc|all] --now
 Logs:  journalctl -u fisika-live -f      (BNB Chain: -u fisika-live-bsc)
 Admin token for the dashboard's Stop button:  sudo grep ADMIN_TOKEN /etc/fisika/api.env
 DONE

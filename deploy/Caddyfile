@@ -8,9 +8,9 @@ __DOMAIN__ {
 		Referrer-Policy strict-origin-when-cross-origin
 		-Server
 	}
-	# The kill switch and admin state are reached only through the dashboard (localhost), never directly.
+	# The kill switch, admin state and agent console API are reached only through the dashboard's server (localhost).
 	# handle blocks are exclusive and checked in this order, so this one must come first.
-	@admin path /v1/admin/* /bsc/v1/admin/* /celo/v1/admin/*
+	@admin path /v1/admin/* /bsc/v1/admin/* /celo/v1/admin/* /v1/agent/* /bsc/v1/agent/* /celo/v1/agent/*
 	handle @admin {
 		respond 404
 	}

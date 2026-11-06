@@ -6,11 +6,15 @@
  *
  * One process per chain, each with its own wallet key, data directory and kill file.
  *
- * Refuses to start unless every limit is set explicitly. Stop new trades: `touch $KILL_FILE`
- * (or the dashboard's Stop button). `systemctl stop` lets a cycle in progress finish first.
+ * Refuses to start unless every limit is set explicitly. Pause: the agent console, `fisika pause`, or
+ * `touch $KILL_FILE`. `systemctl stop` lets a cycle in progress finish first. Withdrawals queued by the console are
+ * sent by this process (it alone holds the key) to WITHDRAW_ADDRESS, and nowhere else.
  */
 import { mkdir } from 'node:fs/promises';
 import { privateKeyToAccount } from 'viem/accounts';
+import { getAddress, isAddress } from 'viem';
+import { defaultControlFile, defaultEventsFile } from './agent/control.ts';
+import { withdrawDir } from './agent/withdrawals.ts';
 import { createWalletClient, http, parseEther, type Hex } from 'viem';
 import { chainByKey, MemoryRfqSlots, TokenRegistry } from '@fisika/core';
 import { createVenues, LiveGraph } from '@fisika/core/setup';
@@ -44,6 +48,9 @@ if (limits.maxTokenExposureUsd < limits.maxTradeUsd && env.ALLOW_TEXTILE !== 'fa
   console.warn('[live] MAX_TOKEN_EXPOSURE_USD < MAX_TRADE_USD: two-transaction (Textile) cycles larger than the exposure cap will be skipped');
 }
 const refreshMs = Number(env.GRAPH_REFRESH_MS ?? 10_000);
+const withdrawTo = env.WITHDRAW_ADDRESS && isAddress(env.WITHDRAW_ADDRESS) ? (getAddress(env.WITHDRAW_ADDRESS).toLowerCase() as Hex) : null;
+if (env.WITHDRAW_ADDRESS && !withdrawTo) die('WITHDRAW_ADDRESS is not a valid address');
+const controlFile = defaultControlFile();
 const chain = chainByKey(env.CHAIN);
 const dataDir = env.DATA_DIR ?? (chain.key === 'celo' ? '/var/lib/fisika' : `/var/lib/fisika/${chain.key}`);
 
@@ -85,12 +92,16 @@ const trader = new LiveTrader(
     killFile: env.KILL_FILE ?? `${dataDir}/KILL`,
     // Gas reserve in the chain's own token: 0.5 CELO on Celo, 0.005 BNB (~$4) on BNB Chain.
     minNativeForGas: parseEther(env.MIN_NATIVE_FOR_GAS ?? env.MIN_CELO_FOR_GAS ?? (chain.key === 'celo' ? '0.5' : '0.005')),
+    controlFile,
+    eventsFile: defaultEventsFile(controlFile),
+    withdrawDir: withdrawDir(dataDir),
+    withdrawTo,
   },
 );
 await trader.restore();
 
 console.log(
-  `fisika LIVE · ${chain.name} · wallet ${account.address} · rpc ${vetting.ok.map(redactRpc).join(', ')} · max trade $${limits.maxTradeUsd} · daily loss limit $${limits.dailyLossLimitUsd} · textile ${textileKey ? 'on' : 'off'}`,
+  `fisika LIVE · ${chain.name} · wallet ${account.address} · ${trader.paused() ? 'PAUSED' : 'active'} · withdrawals to ${withdrawTo ?? 'nowhere (WITHDRAW_ADDRESS unset)'} · rpc ${vetting.ok.map(redactRpc).join(', ')} · max trade $${limits.maxTradeUsd} · daily loss limit $${limits.dailyLossLimitUsd} · textile ${textileKey ? 'on' : 'off'}`,
 );
 
 const timer = setInterval(() => void trader.tick().catch((e: Error) => console.error('[live] tick failed:', e.message)), refreshMs);

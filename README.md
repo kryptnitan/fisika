@@ -43,6 +43,17 @@ Default mode is `PAPER`: everything live except signing. `LIVE` requires `MODE=L
 
 On BNB Chain the naira depth is on Textile; the cNGN AMM pools are dust. Textile swaps from the dashboard need `TEXTILE_API_KEY` on the API, and Textile checks the wallet holds the input before it quotes.
 
+## Agent console (/agent)
+
+Owner-only page for running the bot: an Active/Paused switch (plus one per chain), balances, deposit (address, QR, or straight from your connected wallet), withdraw, and the full trade, funding and pause history with filters and CSV export.
+
+- **Sign-in:** Sign-In With Ethereum, allowed only for `OWNER_ADDRESS`. Nonces are single use, sessions last 30 minutes, and actions are rate-limited. `/v1/agent/*` is not reachable from the internet; only the dashboard's server calls it.
+- **Pause:** stops new trades right before the next one would start. A loop already in flight always finishes. The switch is stored on disk, so it survives restarts. Server fallback: `sudo fisika pause|resume [all|celo|bsc]` and `sudo fisika status`.
+- **Withdraw:** pauses that chain. Then the trader (the only process holding the key) sends the funds between trades, to `WITHDRAW_ADDRESS` from its own settings. A request cannot name a destination. The chain stays paused until you switch it back on.
+- **Keys:** the API and website services can't read `live.env` / `live-bsc.env` (systemd `InaccessiblePaths`).
+
+Set it up with `OWNER=0xYourWallet` on the setup command.
+
 ## Going public (website + agent API)
 
 1. Point your domain's DNS A record at the VPS.
