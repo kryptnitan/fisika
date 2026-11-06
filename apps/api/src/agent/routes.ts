@@ -111,7 +111,7 @@ export function createAgentApp(d: AgentDeps) {
   const auth = new AgentAuth(d.owner, d.domains, now);
   const limits = new Limiter(now);
   const app = new Hono();
-  const byKey = new Map(d.chains.map((c) => [c.chain.key, c]));
+  const byKey = new Map<string, AgentChain>(d.chains.map((c) => [c.chain.key, c]));
 
   app.onError((err, c) => {
     if (err instanceof AuthError) return c.json({ error: err.message }, err.status);
