@@ -243,7 +243,7 @@ jobs:
       - name: Public routing (deploy/Caddyfile) against stub API and web servers
         shell: bash
         run: |
-          sed 's/__DOMAIN__/http:\/\/localhost:8080/' deploy/Caddyfile | awk '/^\tlog \{/{skip=1} !skip{print} skip && /^\t\}$/{skip=0}' > /tmp/Caddyfile
+          awk '/^www\.__DOMAIN__/{w=1} !w{print} w && /^\}$/{w=0}' deploy/Caddyfile | sed 's/__DOMAIN__/http:\/\/localhost:8080/' | awk '/^\tlog \{/{skip=1} !skip{print} skip && /^\t\}$/{skip=0}' > /tmp/Caddyfile
           cat /tmp/Caddyfile
           mkdir -p /tmp/api/v1/admin /tmp/api/bsc/v1 /tmp/web/arb
           echo api-board > /tmp/api/v1/board; echo api-bsc-board > /tmp/api/bsc/v1/board; echo api-admin > /tmp/api/v1/admin/state; echo api-health > /tmp/api/health

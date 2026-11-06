@@ -29,3 +29,8 @@ __DOMAIN__ {
 		}
 	}
 }
+
+# www.<domain> sends visitors to the main address (needs its own A record; without one Caddy just retries quietly).
+www.__DOMAIN__ {
+	redir https://__DOMAIN__{uri} permanent
+}
