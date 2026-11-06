@@ -1,8 +1,8 @@
 PASS funded test wallet with 300 USDT from the fork
-[live] completed USDT→USDm→USDT uniswap-v3,mento realized $-0.0109
-PASS 2-leg cycle USDT→USDm→USDT completed in 4 txs, cost 0.0056 USDT, ledger P&L $-0.0109
-[live] completed USDT→USDm→KESm→USDm→USDT uniswap-v3,mento-v2,mento-v2,mento realized $-0.4089
-PASS 4-leg cycle via Mento v2 completed in 8 txs, ledger P&L $-0.4089
+[live] completed USDT→USDm→USDT uniswap-v3,mento realized $-0.0079
+PASS 2-leg cycle USDT→USDm→USDT completed in 4 txs, cost 0.0026 USDT, ledger P&L $-0.0079
+[live] completed USDT→USDm→KESm→USDm→USDT uniswap-v3,mento-v2,mento-v2,mento realized $-0.4059
+PASS 4-leg cycle via Mento v2 completed in 8 txs, ledger P&L $-0.4059
 PASS ledger and status file written
 PASS impossible minimum output reverts and moves no funds
 PASS Textile leg without a key is refused
@@ -14,10 +14,10 @@ PASS [celo] 3. restarted while paused: still paused, no transactions
 [live] completed USDT→USDm→USDT uniswap-v3,uniswap-v3 realized $-0.0022
 PASS [celo] 6. bsc paused only: celo kept trading; celo paused: celo stopped
 [agent] owner signed in 0x70997970c51812dc3a010c7d01b50e0d17dc79c8
-[agent] withdrawal w_244e5707-5454-497c-a824-5e214fce6fe3 1 USDT on celo requested by owner
-[withdraw] sent w_244e5707-5454-497c-a824-5e214fce6fe3 1 USDT tx 0xb7f17f4188f4d9ab09807f88198a259ab9e4be897a8ca7ecbce1ef6ddaf34398
-[agent] withdrawal w_6a175fac-6e00-49d2-94c6-8f60387b3bd5 max native on celo requested by owner
-[withdraw] sent w_6a175fac-6e00-49d2-94c6-8f60387b3bd5 99.346392072152232298 native tx 0x0eb3d8eb32e1a3b7be5b8e397116a20d7ac5deb07e0666570307707eec2cdcca
-PASS [celo] 5. deposit $1 (0xef8b5dc8…) and withdraw $1 (0xb7f17f41…) to the owner; balances, funding history and trade history updated; Max CELO kept the gas reserve
+[agent] withdrawal w_c22f363c-7ea8-47f6-a5b5-01600d0dfa36 1 USDT on celo requested by owner
+[withdraw] sent w_c22f363c-7ea8-47f6-a5b5-01600d0dfa36 1 USDT tx 0xdd07cb1e570da01a143daff37e99971bdf1b8489bd2c97cc7938ad58047aa274
+[agent] withdrawal w_673a7bac-d6ba-4f03-aa3e-90d8077739b0 max native on celo requested by owner
+[withdraw] sent w_673a7bac-d6ba-4f03-aa3e-90d8077739b0 99.348765734379703009 native tx 0xa05fa3c91f62c6e5711d8942151c8e0ecdefb3091efbf4e472f15c170f21454e
+PASS [celo] 5. deposit $1 (0xc0d143a5…) and withdraw $1 (0xdd07cb1e…) to the owner; balances, funding history and trade history updated; Max CELO kept the gas reserve
 
 11 checks passed
