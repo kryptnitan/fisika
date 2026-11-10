@@ -1,14 +1,14 @@
 # fisika paper trading record
 
-47 sessions over 11.9 days (43.1 hours watched), 2026-10-29T12:56:16.625Z to 2026-11-10T10:39:51.628Z. Live BNB Chain prices on free RPCs, nothing signed.
+48 sessions over 12.2 days (44.0 hours watched), 2026-10-29T12:56:16.625Z to 2026-11-10T18:43:02.313Z. Live BNB Chain prices on free RPCs, nothing signed.
 
 | | |
 |---|---|
-| Opportunities that cleared the first check | 2432 |
+| Opportunities that cleared the first check | 2464 |
 | Paper fills (passed live re-quote and every risk limit) | 0 |
 | Paper P&L | $0.0000 |
 | P&L per watched hour | $0.0000 |
-| RPC requests | 41,664 (0.27/s) |
+| RPC requests | 42,550 (0.27/s) |
 | Venue refresh failures | {"textile":200} |
 
 ## Fills by cycle
@@ -18,7 +18,7 @@
 
 ## Why opportunities were skipped
 
-- edge_bps_below_min: 2302
+- edge_bps_below_min: 2334
 - inventory_exposure: 127
 - after_requote: edge_bps_below_min: 3
 
@@ -26,6 +26,7 @@
 
 | Start | Min | RPCs | Requests | Opps | Fills | P&L |
 |---|---|---|---|---|---|---|
+| 2026-11-10 17:47 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 32 | 0 | $0.0000 |
 | 2026-11-10 09:44 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 0 | 0 | $0.0000 |
 | 2026-11-10 02:04 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 0 | 0 | $0.0000 |
 | 2026-11-09 18:45 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 217 | 0 | $0.0000 |
