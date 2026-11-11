@@ -13,6 +13,7 @@
 #       fisika-api   prices, quotes, dashboard data      fisika-web  dashboard
 #       fisika-live      the LIVE trader on Celo      (starts only after you fund it and run `fisika-start-live`)
 #       fisika-live-bsc  the LIVE trader on BNB Chain (its own wallet; `fisika-start-live bsc`)
+#       fisika-meme      the Solana meme desk, PAPER money only (no wallet); starts at once, idles until switched on
 #   - with DOMAIN: Caddy serves the dashboard and agent API over HTTPS (free automatic certificate);
 #     admin routes are never exposed. Firewall: SSH, plus 80/443 only when DOMAIN is set.
 set -euo pipefail
@@ -137,6 +138,28 @@ ENV
 fi
 chown root:fisika /etc/fisika/api.env /etc/fisika/web.env && chmod 640 /etc/fisika/api.env /etc/fisika/web.env
 
+# Solana meme desk: PAPER only in this version (real prices and quotes, simulated fills, no wallet, no key).
+if [ ! -f /etc/fisika/meme.env ]; then
+  cat > /etc/fisika/meme.env <<ENV
+MEME_MODE=PAPER
+MEME_DATA_DIR=/var/lib/fisika/meme
+CONTROL_FILE=/var/lib/fisika/control.json
+MEME_PAPER_EQUITY=100
+# Rules (the console shows them): 10% size, \$1-\$1000 per trade, 5% daily loss limit, -10% stop, 8% trail, 4h max hold.
+MEME_SIZE_PCT=10
+MEME_MIN_TRADE_USD=1
+MEME_MAX_TRADE_USD=1000
+MEME_DAILY_LOSS_PCT=5
+MEME_STOP_LOSS_PCT=10
+MEME_TRAIL_PCT=8
+MEME_MAX_HOLD_MIN=240
+# Optional: a free Jupiter key (developers.jup.ag/portal) lifts the quote rate from 0.5 to 1 request/s.
+JUPITER_API_KEY=
+ENV
+fi
+chown root:fisika /etc/fisika/meme.env && chmod 640 /etc/fisika/meme.env
+install -d -o fisika -g fisika /var/lib/fisika/meme
+
 unit() { # name, workdir, command, envfile, extra writable paths, extra [Service] lines
   cat > /etc/systemd/system/$1.service <<UNIT
 [Unit]
@@ -172,9 +195,10 @@ NOKEYS="InaccessiblePaths=-/etc/fisika/live.env -/etc/fisika/live-bsc.env"
 unit fisika-api  /opt/fisika/apps/api "$NODE src/server.ts" /etc/fisika/api.env "" "$NOKEYS"
 unit fisika-live /opt/fisika/apps/api "$NODE src/live-trader.ts" /etc/fisika/live.env ""
 unit fisika-live-bsc /opt/fisika/apps/api "$NODE src/live-trader.ts" /etc/fisika/live-bsc.env ""
+unit fisika-meme /opt/fisika/apps/api "$NODE src/meme-desk.ts" /etc/fisika/meme.env "" "$NOKEYS"
 unit fisika-web  /opt/fisika/apps/web "/opt/fisika/apps/web/node_modules/.bin/next start -H 127.0.0.1 -p 3000" /etc/fisika/web.env "/opt/fisika/apps/web/.next" "$NOKEYS"
 systemctl daemon-reload
-systemctl enable -q --now fisika-api fisika-web
+systemctl enable -q --now fisika-api fisika-web fisika-meme   # the meme desk is paper money; it idles while its switch is Paused
 systemctl enable -q fisika-live fisika-live-bsc   # enabled, not started: run fisika-start-live [bsc] after funding
 # Existing installs: make sure the API knows about BNB Chain.
 grep -q '^CHAINS=' /etc/fisika/api.env || printf 'LIVE_STATUS_FILE_BSC=/var/lib/fisika/bsc/live-status.json\nKILL_FILE_BSC=/var/lib/fisika/bsc/KILL\nCHAINS=celo,bsc\n' >> /etc/fisika/api.env
@@ -222,7 +246,7 @@ KEY=$(grep '^ARB_PRIVATE_KEY=' $ENVF | cut -d= -f2) \
 CMD
 cat > /usr/local/bin/fisika <<CMD
 #!/usr/bin/env bash
-# fisika status | pause [all|celo|bsc] | resume [all|celo|bsc]   (same switch as the console's Active/Paused)
+# fisika status | pause [all|celo|bsc|solana] | resume [all|celo|bsc|solana]   (same switch as the console's Active/Paused)
 cd /opt/fisika/apps/api && exec sudo -u fisika env CONTROL_FILE=/var/lib/fisika/control.json $NODE src/cli.ts "\$@"
 CMD
 chmod 755 /usr/local/bin/fisika-start-live /usr/local/bin/fisika-stop-live /usr/local/bin/fisika-wallet /usr/local/bin/fisika
@@ -239,6 +263,7 @@ if [ -n "$OWNER" ]; then
   for f in /etc/fisika/live.env /etc/fisika/live-bsc.env; do [ -f "$f" ] && setenvf "$f" WITHDRAW_ADDRESS "$OWNER"; done
 fi
 grep -q '^CONTROL_FILE=' /etc/fisika/api.env || setenv CONTROL_FILE /var/lib/fisika/control.json
+grep -q '^MEME_DATA_DIR=' /etc/fisika/api.env || setenv MEME_DATA_DIR /var/lib/fisika/meme
 for f in /etc/fisika/live.env /etc/fisika/live-bsc.env; do [ -f "$f" ] && { grep -q '^CONTROL_FILE=' "$f" || setenvf "$f" CONTROL_FILE /var/lib/fisika/control.json; }; done
 # The console shows the bot wallets' balances even before a trader has run.
 setenv AGENT_WALLET_CELO "$(/usr/local/bin/fisika-wallet celo)"
@@ -258,7 +283,7 @@ if [ -n "$DOMAIN" ]; then
   systemctl enable -q caddy && systemctl reload-or-restart caddy
   ufw allow 80/tcp >/dev/null && ufw allow 443/tcp >/dev/null
 fi
-systemctl restart fisika-api fisika-web
+systemctl restart fisika-api fisika-web fisika-meme
 # Running traders pick up new code and settings; stopped ones stay stopped.
 systemctl try-restart fisika-live fisika-live-bsc
 # Traders run all the time once they can (key + Textile key or ALLOW_TEXTILE=false). They idle while the console
@@ -293,8 +318,8 @@ BNB Chain (optional, separate capital):
   1. Send the BNB Chain wallet USDT (BEP-20) and 0.02 BNB for gas on BNB Chain (chain 56).
   2. sudo nano /etc/fisika/live-bsc.env   -> paste TEXTILE_API_KEY
   3. sudo fisika-start-live bsc
-Pause / resume from the server:  sudo fisika pause [all|celo|bsc]   sudo fisika resume [all|celo|bsc]   sudo fisika status
+Meme desk (Solana, PAPER): runs as fisika-meme with \$100 of paper money; switch it in the console (Meme switch) or sudo fisika resume solana.
+Pause / resume from the server:  sudo fisika pause [all|celo|bsc|solana]   sudo fisika resume [all|celo|bsc|solana]   sudo fisika status
 Stop the trader process:  sudo fisika-stop-live [celo|bsc|all] --now
-Logs:  journalctl -u fisika-live -f      (BNB Chain: -u fisika-live-bsc)
-Admin token for the dashboard's Stop button:  sudo grep ADMIN_TOKEN /etc/fisika/api.env
+Logs:  journalctl -u fisika-live -f      (BNB Chain: -u fisika-live-bsc, meme desk: -u fisika-meme)
 DONE

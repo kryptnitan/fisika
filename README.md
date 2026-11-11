@@ -48,11 +48,23 @@ On BNB Chain the naira depth is on Textile; the cNGN AMM pools are dust. Textile
 Owner-only page for running the bot: an Active/Paused switch (plus one per chain), balances, deposit (address, QR, or straight from your connected wallet), withdraw, and the full trade, funding and pause history with filters and CSV export.
 
 - **Sign-in:** Sign-In With Ethereum, allowed only for `OWNER_ADDRESS`. Nonces are single use, sessions last 30 minutes, and actions are rate-limited. `/v1/agent/*` is not reachable from the internet; only the dashboard's server calls it.
-- **Pause:** stops new trades right before the next one would start. A loop already in flight always finishes. The switch is stored on disk, so it survives restarts. Server fallback: `sudo fisika pause|resume [all|celo|bsc]` and `sudo fisika status`.
+- **Pause:** stops new trades right before the next one would start. A loop already in flight always finishes. The switch is stored on disk, so it survives restarts. Server fallback: `sudo fisika pause|resume [all|celo|bsc|solana]` and `sudo fisika status`.
 - **Withdraw:** pauses that chain. Then the trader (the only process holding the key) sends the funds between trades, to `WITHDRAW_ADDRESS` from its own settings. A request cannot name a destination. The chain stays paused until you switch it back on.
 - **Keys:** the API and website services can't read `live.env` / `live-bsc.env` (systemd `InaccessiblePaths`).
 
 Set it up with `OWNER=0xYourWallet` on the setup command.
+
+## Meme desk (Solana, paper)
+
+A second desk in the same agent: it hunts new Solana memecoins and trades them with paper money. It runs as `fisika-meme`, has its own switch in the console (next to Celo and BNB Chain) and its own history tab. No wallet, no key, no real funds; live meme trading is added only after the paper record has been reviewed.
+
+- **Finds:** tokens that DexScreener just listed or boosted, with a SOL/USDC pool of at least $20k, 30 minutes to 7 days old, under $50M market cap, with $25k+ traded in the last hour.
+- **Enters** when buyers are in control (5-minute and 1-hour price rising, buys 1.2× sells, volume accelerating) and the token has not already run more than 150% in the hour. Before every entry it checks the mint on chain (mint and freeze authority gone, no Token-2022 transfer-fee or permanent-delegate extensions, top-10 wallets under 35% after the pool vault) and quotes a buy *and* a sell at Jupiter, skipping anything that loses more than 6% on the round trip or moves the price more than 3%.
+- **Sizes** 10% of the desk's paper equity, between $1 and $1,000, never more than 2% of the pool, at most 3 positions open.
+- **Exits**, in this order, checked every 15 seconds: liquidity pulled (30% below entry) or the token cannot be sold → hard stop at −10% → volume collapse → in profit and the downside starts (sellers in control, 5-minute −3%) or fading within 5% of the all-time high (GeckoTerminal hourly highs) → trailing take-profit 8% off the peak once up 5% → 4-hour max hold → stalled 45 minutes under 2%.
+- **Daily limit:** a 5% loss of the day's starting equity closes everything and stops new entries until the next UTC day.
+
+Pausing the desk stops new entries; open positions are still managed to their exit. Rules are set in `/etc/fisika/meme.env` (`MEME_*`), the paper wallet starts at `MEME_PAPER_EQUITY` (100). Data sources: DexScreener, GeckoTerminal, Jupiter quotes and a public Solana RPC (vetted by genesis hash). CI runs an 8-minute live-data session on every push and publishes `meme-session.md` on the `verification` branch.
 
 ## Going public (website + agent API)
 

@@ -14,7 +14,7 @@ import { chainTrades, defaultControlFile, readControl, setControl, SWITCH_CHAINS
 const [cmd = 'status', arg = 'all'] = process.argv.slice(2);
 const file = defaultControlFile();
 const who = `cli:${process.env.SUDO_USER || process.env.USER || 'root'}`;
-const statusFile = (c: string) => (c === 'celo' ? '/var/lib/fisika/live-status.json' : `/var/lib/fisika/${c}/live-status.json`);
+const statusFile = (c: string) => (c === 'celo' ? '/var/lib/fisika/live-status.json' : c === 'solana' ? '/var/lib/fisika/meme/meme-status.json' : `/var/lib/fisika/${c}/live-status.json`);
 
 async function show() {
   const s = await readControl(file);
@@ -31,14 +31,14 @@ async function show() {
         /* unreadable */
       }
     }
-    console.log(`  ${c.padEnd(5)} switch ${s.chains[c] ? 'on ' : 'off'} -> ${chainTrades(s, c) ? 'trading' : 'paused'}  · ${live}`);
+    console.log(`  ${(c === 'solana' ? 'meme' : c).padEnd(5)} switch ${s.chains[c] ? 'on ' : 'off'} -> ${chainTrades(s, c) ? 'trading' : 'paused'}  · ${live}`);
   }
 }
 
 if (cmd === 'status') await show();
 else if (cmd === 'pause' || cmd === 'resume') {
   if (!['all', ...SWITCH_CHAINS].includes(arg)) {
-    console.error(`usage: fisika ${cmd} [all|${SWITCH_CHAINS.join('|')}]`);
+    console.error(`usage: fisika ${cmd} [all|${SWITCH_CHAINS.join('|')}]   (solana = meme desk)`);
     process.exit(2);
   }
   const active = cmd === 'resume';
@@ -48,6 +48,6 @@ else if (cmd === 'pause' || cmd === 'resume') {
   if (!active) console.log('Paused. A loop already under way finishes first; nothing new starts.');
   await show();
 } else {
-  console.error('usage: fisika status | pause [all|celo|bsc] | resume [all|celo|bsc]');
+  console.error('usage: fisika status | pause [all|celo|bsc|solana] | resume [all|celo|bsc|solana]   (solana = meme desk)');
   process.exit(2);
 }

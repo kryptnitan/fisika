@@ -11,8 +11,9 @@ import { appendFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises
 import { readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-export type ChainSwitchKey = 'celo' | 'bsc';
-export const SWITCH_CHAINS: readonly ChainSwitchKey[] = ['celo', 'bsc'];
+/** 'solana' is the meme desk's switch. */
+export type ChainSwitchKey = 'celo' | 'bsc' | 'solana';
+export const SWITCH_CHAINS: readonly ChainSwitchKey[] = ['celo', 'bsc', 'solana'];
 
 export interface ControlState {
   active: boolean;
@@ -21,7 +22,7 @@ export interface ControlState {
   by: string | null;
 }
 
-export const PAUSED_DEFAULT: ControlState = { active: false, chains: { celo: true, bsc: true }, updatedAt: null, by: null };
+export const PAUSED_DEFAULT: ControlState = { active: false, chains: { celo: true, bsc: true, solana: true }, updatedAt: null, by: null };
 
 export const defaultControlFile = () => process.env.CONTROL_FILE ?? '/var/lib/fisika/control.json';
 export const defaultEventsFile = (controlFile = defaultControlFile()) => process.env.AGENT_EVENTS_FILE ?? `${dirname(controlFile)}/agent-events.jsonl`;
@@ -30,7 +31,7 @@ function parse(raw: string): ControlState {
   const j = JSON.parse(raw) as Partial<ControlState>;
   return {
     active: j.active === true,
-    chains: { celo: j.chains?.celo !== false, bsc: j.chains?.bsc !== false },
+    chains: { celo: j.chains?.celo !== false, bsc: j.chains?.bsc !== false, solana: j.chains?.solana !== false },
     updatedAt: j.updatedAt ?? null,
     by: j.by ?? null,
   };

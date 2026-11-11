@@ -241,6 +241,37 @@ jobs:
         shell: bash
         run: test -f live-fork-bsc.txt && cp live-fork-bsc.txt /tmp/ && bash .github/publish.sh verification "bsc live fork test for ${GITHUB_SHA}" /tmp/live-fork-bsc.txt || true
 
+  meme-paper:
+    runs-on: ubuntu-latest
+    needs: core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install --no-frozen-lockfile
+      - name: Solana meme desk, 8-minute PAPER session on live data (nothing signed)
+        working-directory: apps/api
+        env:
+          MEME_MODE: PAPER
+          MEME_DATA_DIR: /tmp/meme
+          MEME_IGNORE_SWITCH: 'true'
+          MEME_SESSION_MINUTES: 8
+          JUPITER_API_KEY: ${{ secrets.JUPITER_API_KEY }}
+        run: node src/meme-desk.ts 2>&1 | tee /tmp/meme-session.log
+      - name: Report
+        if: always()
+        env:
+          MEME_DATA_DIR: /tmp/meme
+        run: node scripts/meme-session-report.ts && cat verification/meme-session.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          test -f verification/meme-session.md || exit 0
+          cp verification/meme-session.md /tmp/
+          bash .github/publish.sh verification "meme paper session for ${GITHUB_SHA}" /tmp/meme-session.md /tmp/meme-session.log
+
   caddy:
     runs-on: ubuntu-latest
     steps:

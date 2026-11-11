@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
 import { createSiweMessage } from 'viem/siwe';
 import { encodeFunctionData, erc20Abi, getAddress, parseUnits } from 'viem';
-import { agentApi, AgentError, type AgentConfig, type AgentState, type Balances, type EventRow, type Paged, type TradeRow } from '@/lib/agent';
+import { agentApi, AgentError, type AgentConfig, type AgentState, type Balances, type EventRow, type MemeInfo, type MemeTradeRow, type Paged, type TradeRow } from '@/lib/agent';
 import { UI_CHAINS } from '@/lib/chain';
 import { connect, sendTx, signMessage, waitForTx } from '@/lib/wallet';
 
@@ -148,6 +148,7 @@ function Console({ owner, onSignOut }: { owner: string; onSignOut: () => void })
         </p>
       ) : null}
       <Switches state={state} onChange={refreshAll} guard={guard} />
+      <MemePanel refreshKey={tick} onChange={refreshAll} guard={guard} />
       <div className="agent-grid">
         <BalancesCard cfg={cfg} bal={bal} state={state} onRefresh={loadBal} />
         <Funding cfg={cfg} onDone={refreshAll} guard={guard} />
@@ -265,6 +266,165 @@ function BalancesCard({ cfg, bal, state, onRefresh }: { cfg: AgentConfig | null;
       })}
       {state?.chains.some((c) => c.pendingWithdrawals.length) ? <p className="muted small">Pending withdrawals are sent by the trader between trades.</p> : null}
       {bal ? <p className="muted small">As of {new Date(bal.asOf).toLocaleTimeString()}</p> : null}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------------------------------------- meme desk */
+
+const EXIT_LABEL: Record<string, string> = {
+  stop_loss: 'stop-loss',
+  rug_liquidity: 'liquidity pulled',
+  rug_cannot_sell: 'could not sell (rug)',
+  volume_collapse: 'volume collapsed',
+  trend_turned: 'downside started',
+  ath_take_profit: 'take profit near high',
+  trailing_stop: 'trailing take-profit',
+  max_hold: 'max hold time',
+  stalled: 'stalled',
+  daily_loss_limit: 'daily loss limit',
+};
+const exitLabel = (r: string) => EXIT_LABEL[r] ?? r.replace(/_/g, ' ');
+const pct = (n: number) => `${n > 0 ? '+' : ''}${n.toFixed(1)}%`;
+
+function MemePanel({ refreshKey, onChange, guard }: { refreshKey: number; onChange: () => void; guard: Guard }) {
+  const [info, setInfo] = useState<MemeInfo | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [showDecisions, setShowDecisions] = useState(false);
+  const load = useCallback(async () => {
+    const r = await guard(agentApi<MemeInfo>('meme'));
+    if (r) setInfo(r);
+  }, [guard]);
+  useEffect(() => {
+    void load();
+    const t = setInterval(() => void load(), 5_000);
+    return () => clearInterval(t);
+  }, [load, refreshKey]);
+
+  if (!info || !info.configured) return null;
+  const s = info.status;
+  const rules = s?.rules ?? {};
+  const limit = rules.dailyLossPct ?? 5;
+  const status = !info.online ? 'offline' : s?.halted ? 'halted' : info.trading ? 'active' : 'paused';
+  const toggle = async () => {
+    setBusy(true);
+    await guard(agentApi('control', { target: 'solana', active: !info.switchOn }));
+    setBusy(false);
+    onChange();
+    void load();
+  };
+
+  return (
+    <section className="panel agent-switch meme" aria-label="Meme desk">
+      <div className="agent-switch-main">
+        <div>
+          <div className="row-start">
+            <h2>Meme desk · Solana</h2>
+            <span className="badge small paper">{s?.mode ?? 'PAPER'}</span>
+            <span className={`badge small ${status === 'active' ? 'active' : status === 'halted' ? 'stopped' : 'paused'}`} role="status">
+              {status === 'offline' ? 'Desk offline' : status === 'halted' ? 'Halted for today' : status === 'active' ? 'Hunting' : 'Paused'}
+            </span>
+          </div>
+          <p className="muted">
+            {s?.mode === 'PAPER' || !s ? 'Paper money: real Solana prices and quotes, simulated fills. No funds are at risk.' : ''}
+            {status === 'halted' ? ` ${s?.haltReason ?? `Daily loss limit of ${limit}% hit.`} New entries resume at 00:00 UTC.` : status === 'paused' ? ' Opens no new positions; open ones are still managed to exit.' : ''}
+          </p>
+        </div>
+        <label className="chk">
+          <input type="checkbox" checked={!!info.switchOn} disabled={busy} onChange={toggle} />
+          <b>Meme switch</b>
+        </label>
+      </div>
+      {!s ? (
+        <p className="muted small">The meme desk has not reported yet. It starts when the <code>fisika-meme</code> service is running.</p>
+      ) : (
+        <>
+          <div className="stats">
+            <div className="stat">
+              <span className="muted small">Paper equity</span>
+              <b className="num">{usd(s.equityUsd)}</b>
+              <span className={`small ${s.equityUsd - s.startEquityUsd >= 0 ? 'ok' : 'err'}`}>{usd(s.equityUsd - s.startEquityUsd)} since start</span>
+            </div>
+            <div className="stat">
+              <span className="muted small">Today ({s.day} UTC)</span>
+              <b className={`num ${s.dayPnlUsd >= 0 ? 'ok' : 'err'}`}>{usd(s.dayPnlUsd)}</b>
+              <span className="small muted">
+                loss used {s.dayLossPct.toFixed(1)}% of {limit}%
+              </span>
+              <meter min={0} max={limit} value={Math.max(0, s.dayLossPct)} low={limit * 0.5} high={limit * 0.8} optimum={0} aria-label="Daily loss used" />
+            </div>
+            <div className="stat">
+              <span className="muted small">Closed trades</span>
+              <b className="num">{s.stats.trades}</b>
+              <span className="small muted">
+                {s.stats.trades ? `${Math.round((s.stats.wins / s.stats.trades) * 100)}% wins · ${usd(s.stats.realizedUsd)} realized` : 'none yet'}
+              </span>
+            </div>
+            <div className="stat">
+              <span className="muted small">Rules</span>
+              <b className="num">
+                {rules.sizePct}% size · ${rules.minTradeUsd}–${rules.maxTradeUsd}
+              </b>
+              <span className="small muted">
+                stop −{rules.stopLossPct}% · trail {rules.trailPct}% · hold ≤{rules.maxHoldMin}m · {s.watching} watched
+              </span>
+            </div>
+          </div>
+          <h3>Open positions ({s.positions.length}/{rules.maxOpen ?? 3})</h3>
+          {!s.positions.length ? (
+            <p className="muted small">None open. {status === 'active' ? 'Scanning new Solana pairs every minute.' : ''}</p>
+          ) : (
+            <div className="scroll">
+              <table className="board compact">
+                <thead>
+                  <tr>
+                    <th>Token</th>
+                    <th>Opened</th>
+                    <th>Cost</th>
+                    <th>Value</th>
+                    <th>P&amp;L</th>
+                    <th>Off peak</th>
+                    <th>vs ATH</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {s.positions.map((p) => (
+                    <tr key={p.id}>
+                      <td>
+                        <a href={`https://dexscreener.com/solana/${p.pair}`} target="_blank" rel="noreferrer">
+                          {p.symbol}
+                        </a>
+                      </td>
+                      <td>{new Date(p.openedAt).toLocaleTimeString()}</td>
+                      <td>{usd(p.costUsd)}</td>
+                      <td>{usd(p.valueUsd)}</td>
+                      <td className={p.pnlPct >= 0 ? 'ok' : 'err'}>{pct(p.pnlPct)}</td>
+                      <td>{pct(((p.lastPrice - p.peakPrice) / p.peakPrice) * 100)}</td>
+                      <td>{p.athAtEntry ? pct(((p.lastPrice - p.athAtEntry) / p.athAtEntry) * 100) : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <button type="button" className="linkish" onClick={() => setShowDecisions((x) => !x)}>
+            {showDecisions ? 'Hide' : 'Show'} recent decisions ({s.recent.length})
+          </button>
+          {showDecisions ? (
+            <ul className="decisions">
+              {s.recent.map((d, i) => (
+                <li key={`${d.at}-${i}`} className={d.action === 'open' ? 'ok' : d.action === 'close' || d.action === 'halt' ? '' : 'muted'}>
+                  <span className="num small">{new Date(d.at).toLocaleTimeString()}</span> {d.action} {d.symbol}: {d.action === 'close' ? exitLabel(d.reason) : d.reason.replace(/_/g, ' ')}
+                  {d.usd !== undefined ? ` (${usd(d.usd)})` : ''}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <p className="muted small">
+            Exits in order: liquidity pulled or cannot sell → hard stop → volume collapse → in profit and the downside starts, or fading within {rules.athZonePct}% of the all-time high → trailing {rules.trailPct}% off the peak → max hold → stalled. A {limit}% day loss closes everything until the next UTC day. Reported {new Date(s.updatedAt).toLocaleTimeString()}.
+          </p>
+        </>
+      )}
     </section>
   );
 }
@@ -497,24 +657,25 @@ function Withdraw({ cfg, onDone, guard }: { cfg: AgentConfig; onDone: () => void
 /* ------------------------------------------------------------------------------------------------- history */
 
 function History({ cfg, refreshKey, guard }: { cfg: AgentConfig | null; refreshKey: number; guard: Guard }) {
-  const [tab, setTab] = useState<'trades' | 'funding' | 'control'>('trades');
+  const [tab, setTab] = useState<'trades' | 'meme' | 'funding' | 'control'>('trades');
   const [chain, setChain] = useState('');
   const [status, setStatus] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [pageNo, setPageNo] = useState(1);
-  const [data, setData] = useState<Paged<TradeRow | EventRow> & { summary?: { completed: number; pnlUsd: number; feesUsd: number } } | null>(null);
+  const [data, setData] = useState<Paged<TradeRow | EventRow | MemeTradeRow> & { summary?: { completed?: number; trades?: number; wins?: number; pnlUsd: number; feesUsd?: number } } | null>(null);
 
   const qs = useMemo(() => {
     const q = new URLSearchParams();
-    if (chain) q.set('chain', chain);
+    if (chain && tab !== 'meme') q.set('chain', chain);
     if (from) q.set('from', from);
     if (to) q.set('to', to);
     if (tab === 'trades' && status) q.set('status', status);
-    if (tab !== 'trades') q.set('kind', tab);
+    if (tab === 'meme' && status) q.set('result', status);
+    if (tab === 'funding' || tab === 'control') q.set('kind', tab);
     return q;
   }, [chain, from, to, status, tab]);
-  const path = tab === 'trades' ? 'trades' : 'activity';
+  const path = tab === 'trades' ? 'trades' : tab === 'meme' ? 'meme/trades' : 'activity';
 
   useEffect(() => setPageNo(1), [qs]);
   useEffect(() => {
@@ -532,9 +693,18 @@ function History({ cfg, refreshKey, guard }: { cfg: AgentConfig | null; refreshK
     <section className="panel history">
       <div className="row-between">
         <div className="tabs" role="tablist">
-          {(['trades', 'funding', 'control'] as const).map((t) => (
-            <button key={t} role="tab" type="button" aria-selected={tab === t} onClick={() => setTab(t)}>
-              {t === 'trades' ? 'Trades' : t === 'funding' ? 'Deposits & withdrawals' : 'Pause / resume'}
+          {(['trades', 'meme', 'funding', 'control'] as const).map((t) => (
+            <button
+              key={t}
+              role="tab"
+              type="button"
+              aria-selected={tab === t}
+              onClick={() => {
+                setStatus('');
+                setTab(t);
+              }}
+            >
+              {t === 'trades' ? 'FX trades' : t === 'meme' ? 'Meme trades' : t === 'funding' ? 'Deposits & withdrawals' : 'Pause / resume'}
             </button>
           ))}
         </div>
@@ -543,14 +713,22 @@ function History({ cfg, refreshKey, guard }: { cfg: AgentConfig | null; refreshK
         </a>
       </div>
       <div className="filters">
-        <select value={chain} onChange={(e) => setChain(e.target.value)} aria-label="Chain">
-          <option value="">All chains</option>
-          {cfg?.chains.map((c) => (
-            <option key={c.key} value={c.key}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        {tab !== 'meme' ? (
+          <select value={chain} onChange={(e) => setChain(e.target.value)} aria-label="Chain">
+            <option value="">All chains</option>
+            {cfg?.chains.map((c) => (
+              <option key={c.key} value={c.key}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Result">
+            <option value="">Wins and losses</option>
+            <option value="win">Wins</option>
+            <option value="loss">Losses</option>
+          </select>
+        )}
         {tab === 'trades' ? (
           <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status">
             <option value="">All statuses</option>
@@ -571,11 +749,52 @@ function History({ cfg, refreshKey, guard }: { cfg: AgentConfig | null; refreshK
           {data.summary.completed} completed · P&amp;L {usd(data.summary.pnlUsd)} · gas {usd(data.summary.feesUsd)}
         </p>
       ) : null}
+      {tab === 'meme' && data?.summary ? (
+        <p className="muted small">
+          {data.summary.trades} closed · {data.summary.wins} wins · paper P&amp;L {usd(data.summary.pnlUsd)}
+        </p>
+      ) : null}
       <div className="scroll">
         {!data ? (
           <p className="muted">Loading…</p>
         ) : !data.rows.length ? (
-          <p className="muted">{tab === 'trades' ? 'No trades yet. Live trades appear here once the agent is funded and active.' : 'Nothing here yet.'}</p>
+          <p className="muted">{tab === 'trades' ? 'No trades yet. Live trades appear here once the agent is funded and active.' : tab === 'meme' ? 'No closed meme trades yet. Positions show above while open and land here when they close.' : 'Nothing here yet.'}</p>
+        ) : tab === 'meme' ? (
+          <table className="board">
+            <thead>
+              <tr>
+                <th>Closed</th>
+                <th>Token</th>
+                <th>Held</th>
+                <th>Cost</th>
+                <th>Back</th>
+                <th>P&amp;L</th>
+                <th>Exit</th>
+                <th>Peak</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(data.rows as MemeTradeRow[]).map((r, i) => (
+                <tr key={`${r.at}-${i}`}>
+                  <td>{new Date(r.at).toLocaleString()}</td>
+                  <td>
+                    <a href={r.explorer} target="_blank" rel="noreferrer" title={r.mint}>
+                      {r.symbol}
+                    </a>
+                    {r.mode !== 'LIVE' ? <span className="muted small"> paper</span> : null}
+                  </td>
+                  <td>{r.heldMin} min</td>
+                  <td>{usd(r.costUsd)}</td>
+                  <td>{usd(r.proceedsUsd)}</td>
+                  <td className={r.pnlUsd > 0 ? 'ok' : r.pnlUsd < 0 ? 'err' : ''}>
+                    {usd(r.pnlUsd)} <span className="small">({pct(r.pnlPct)})</span>
+                  </td>
+                  <td>{exitLabel(r.reason)}</td>
+                  <td title="How high it went while held, vs entry">{pct(((r.peakPrice - r.entryPrice) / r.entryPrice) * 100)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         ) : tab === 'trades' ? (
           <table className="board">
             <thead>

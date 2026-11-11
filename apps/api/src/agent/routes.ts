@@ -48,6 +48,8 @@ export interface AgentDeps {
   controlFile: string;
   eventsFile: string;
   chains: AgentChain[];
+  /** Solana meme desk data directory (meme-status.json, meme-ledger.jsonl). Null: no meme desk. */
+  memeDir?: string | null;
   now?: () => number;
 }
 
@@ -383,6 +385,43 @@ export function createAgentApp(d: AgentDeps) {
     }
     const completed = rows.filter((r) => r.status === 'completed');
     return c.json({ ...page(rows, q), summary: { completed: completed.length, pnlUsd: completed.reduce((a, r) => a + (r.pnlUsd as number), 0), feesUsd: rows.reduce((a, r) => a + (r.feesUsd as number), 0) } });
+  });
+
+  // ---------------------------------------------------------------- Solana meme desk
+  app.get('/v1/agent/meme', async (c) => {
+    owner(c);
+    if (!d.memeDir) return c.json({ configured: false });
+    const st = await readJson<Record<string, unknown> & { updatedAt?: string }>(`${d.memeDir}/meme-status.json`);
+    const ctl = await readControl(d.controlFile);
+    const online = !!st?.updatedAt && now() - Date.parse(st.updatedAt) < ONLINE_MS;
+    return c.json({ configured: true, online, switchOn: ctl.chains.solana !== false, trading: chainTrades(ctl, 'solana'), status: st });
+  });
+
+  app.get('/v1/agent/meme/trades', async (c) => {
+    owner(c);
+    const q = c.req.query();
+    if (!d.memeDir) return c.json(page([], q));
+    let rows: Record<string, unknown>[] = [];
+    try {
+      rows = (await readFile(`${d.memeDir}/meme-ledger.jsonl`, 'utf8'))
+        .split('\n')
+        .filter(Boolean)
+        .map((l) => JSON.parse(l) as Record<string, unknown>);
+    } catch {
+      rows = [];
+    }
+    rows = rows
+      .filter((r) => inRange(String(r.at), q.from, q.to))
+      .filter((r) => !q.result || (q.result === 'win' ? Number(r.pnlUsd) > 0 : Number(r.pnlUsd) <= 0))
+      .map((r) => ({ ...r, explorer: `https://dexscreener.com/solana/${r.pair}` }))
+      .reverse();
+    if (q.format === 'csv') {
+      c.header('content-type', 'text/csv; charset=utf-8');
+      c.header('content-disposition', `attachment; filename="fisika-meme-trades-${new Date(now()).toISOString().slice(0, 10)}.csv"`);
+      return c.body(toCsv(rows, ['at', 'mode', 'symbol', 'mint', 'openedAt', 'heldMin', 'costUsd', 'proceedsUsd', 'pnlUsd', 'pnlPct', 'reason', 'entryPrice', 'exitPrice', 'peakPrice', 'athAtEntry']));
+    }
+    const sum = rows.reduce((a, r) => a + Number(r.pnlUsd), 0);
+    return c.json({ ...page(rows, q), summary: { trades: rows.length, wins: rows.filter((r) => Number(r.pnlUsd) > 0).length, pnlUsd: sum } });
   });
 
   app.get('/v1/agent/activity', async (c) => {

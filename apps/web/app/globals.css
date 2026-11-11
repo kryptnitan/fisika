@@ -153,3 +153,15 @@ button.primary.narrow { width: auto; }
 .pager { display: flex; justify-content: center; gap: 14px; align-items: center; margin-top: 12px; }
 a.button { display: inline-block; text-decoration: none; border-radius: 6px; padding: 8px 12px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font-size: 13px; }
 .linkish { border: 0; background: none; padding: 0; color: inherit; text-decoration: underline; }
+
+/* meme desk panel */
+.meme .row-start { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.meme .row-start h2 { margin: 0; }
+.badge.paper { background: rgba(120, 150, 255, 0.15); color: #9db4ff; border-color: rgba(120, 150, 255, 0.5); }
+.meme .stats { margin: 14px 0 16px; }
+.meme .stat { display: flex; flex-direction: column; gap: 2px; }
+.meme meter { width: 100%; height: 8px; margin-top: 4px; }
+.meme h3 { margin: 8px 0 6px; font-size: 14px; }
+.decisions { list-style: none; padding: 0; margin: 8px 0; font-size: 13px; max-height: 240px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; }
+.decisions li { padding: 4px 10px; border-bottom: 1px solid var(--line); }
+.decisions li:last-child { border-bottom: 0; }

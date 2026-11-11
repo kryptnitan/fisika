@@ -91,6 +91,7 @@ const agent = createAgentApp({
   controlFile: cfg.agentConsole.controlFile,
   eventsFile: cfg.agentConsole.eventsFile,
   chains: agentChains,
+  memeDir: process.env.MEME_DATA_DIR ?? '/var/lib/fisika/meme',
 });
 serve({ fetch: multiChainFetch(apps, served, 'celo', [{ prefix: '/v1/agent/', app: agent.app }]), port: cfg.port, hostname: cfg.host });
 console.log(`agent console: ${cfg.agentConsole.owner ? `owner ${cfg.agentConsole.owner}, withdrawals to ${cfg.agentConsole.withdrawTo}` : 'OFF (set OWNER_ADDRESS)'}`);

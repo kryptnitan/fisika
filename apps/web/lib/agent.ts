@@ -86,6 +86,53 @@ export interface TradeRow {
   note: string | null;
 }
 
+/** Solana meme desk (paper). `status` is the desk's own status file; null until the service has written one. */
+export interface MemeInfo {
+  configured: boolean;
+  online?: boolean;
+  switchOn?: boolean;
+  trading?: boolean;
+  status?: {
+    mode: 'PAPER' | 'LIVE';
+    updatedAt: string;
+    paused: boolean;
+    halted: boolean;
+    haltReason: string | null;
+    equityUsd: number;
+    startEquityUsd: number;
+    cashUsd: number;
+    day: string;
+    dayStartEquityUsd: number;
+    dayPnlUsd: number;
+    dayLossPct: number;
+    stats: { trades: number; wins: number; realizedUsd: number; scans: number; candidates: number };
+    watching: number;
+    positions: { id: string; mint: string; symbol: string; pair: string; openedAt: string; costUsd: number; valueUsd: number; pnlPct: number; entryPrice: number; lastPrice: number; peakPrice: number; athAtEntry: number | null }[];
+    rules: Record<string, number>;
+    recent: { at: string; mint: string; symbol: string; action: 'skip' | 'open' | 'close' | 'halt'; reason: string; usd?: number }[];
+  } | null;
+}
+
+export interface MemeTradeRow {
+  at: string;
+  mode: string;
+  symbol: string;
+  mint: string;
+  pair: string;
+  openedAt: string;
+  heldMin: number;
+  costUsd: number;
+  proceedsUsd: number;
+  pnlUsd: number;
+  pnlPct: number;
+  reason: string;
+  entryPrice: number;
+  exitPrice: number;
+  peakPrice: number;
+  athAtEntry: number | null;
+  explorer: string;
+}
+
 export interface EventRow {
   at: string;
   type: string;
