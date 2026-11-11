@@ -1,6 +1,6 @@
 # On-chain verification — BNB Chain
 
-Block 132917461 · 2026-11-11T06:07:02.756Z
+Block 132923077 · 2026-11-11T06:49:10.670Z
 
 All hard checks passed.
 
@@ -14,16 +14,16 @@ All hard checks passed.
 ## v3 pools
 | DEX | Pair | Fee | Pool | Balances |
 |---|---|---|---|---|
-| Uniswap | USDT/WBNB | 100 | `0x47a90A2d92A8367A91EfA1906bFc8c1E05bf10c4` | 102025.50 USDT / 678.87 WBNB |
-| Uniswap | USDT/WBNB | 500 | `0x6fe9E9de56356F7eDBfcBB29FAB7cd69471a4869` | 1318022.88 USDT / 5977.92 WBNB |
-| Uniswap | USDT/WBNB | 3000 | `0x7862D9B4bE2156B15d54F41ee4EDE2d5b0b455e4` | 90971.26 USDT / 233.48 WBNB |
+| Uniswap | USDT/WBNB | 100 | `0x47a90A2d92A8367A91EfA1906bFc8c1E05bf10c4` | 83548.40 USDT / 706.08 WBNB |
+| Uniswap | USDT/WBNB | 500 | `0x6fe9E9de56356F7eDBfcBB29FAB7cd69471a4869` | 1150641.18 USDT / 6224.42 WBNB |
+| Uniswap | USDT/WBNB | 3000 | `0x7862D9B4bE2156B15d54F41ee4EDE2d5b0b455e4` | 89296.08 USDT / 235.95 WBNB |
 | Uniswap | USDT/WBNB | 10000 | `0x4d170f8714367C44787AE98259CE8Adb72240067` | 55055.25 USDT / 63.77 WBNB |
 | PancakeSwap | USDT/cNGN | 100 | `0xB84E7C912A1034aD674bba8859Fca84F1F614A29` | 0.00 USDT / 1000000.00 cNGN |
 | PancakeSwap | USDT/cNGN | 500 | `0x7F049051cc191dB9837503f74715D7Ef96BA7626` | 2741.08 USDT / 17257.79 cNGN |
 | PancakeSwap | USDT/cNGN | 2500 | `0x5244AcbeE4CA1Cd899a53132Cec2816A9C547DC4` | 0.15 USDT / 8.39 cNGN |
-| PancakeSwap | USDT/WBNB | 100 | `0x172fcD41E0913e95784454622d1c3724f546f849` | 6935993.32 USDT / 9011.23 WBNB |
-| PancakeSwap | USDT/WBNB | 500 | `0x36696169C63e42cd08ce11f5deeBbCeBae652050` | 5032625.25 USDT / 8937.06 WBNB |
-| PancakeSwap | USDT/WBNB | 2500 | `0x1401ff943D08a7E098328C1d3a9d388923B115D2` | 29400.06 USDT / 182.68 WBNB |
+| PancakeSwap | USDT/WBNB | 100 | `0x172fcD41E0913e95784454622d1c3724f546f849` | 6583436.96 USDT / 9530.39 WBNB |
+| PancakeSwap | USDT/WBNB | 500 | `0x36696169C63e42cd08ce11f5deeBbCeBae652050` | 4738893.83 USDT / 9377.10 WBNB |
+| PancakeSwap | USDT/WBNB | 2500 | `0x1401ff943D08a7E098328C1d3a9d388923B115D2` | 27092.89 USDT / 186.08 WBNB |
 | PancakeSwap | USDT/WBNB | 10000 | `0x6805E0E5333c5c3acCF2930Be4734E2b98f4Ce06` | 2738.32 USDT / 10.38 WBNB |
 
 ## Textile levels
@@ -31,8 +31,8 @@ All hard checks passed.
 [
   {
     "pair": "cNGN->USDT",
-    "min": "1389.261",
-    "max": "62249086.734218",
+    "min": "1389.143",
+    "max": "62242332.886721",
     "sellDecimals": 6,
     "buyDecimals": 18,
     "points": 9
@@ -40,7 +40,7 @@ All hard checks passed.
   {
     "pair": "USDT->cNGN",
     "min": "1",
-    "max": "540595.417122957351339",
+    "max": "540654.064442228464275",
     "sellDecimals": 18,
     "buyDecimals": 6,
     "points": 9
