@@ -35,6 +35,12 @@ function pair(o: Partial<DexPair> & { price?: number; liq?: number; m5?: number;
 const goodMint: MintInfo = { program: TOKEN_PROGRAM, decimals: 6, supply: 1_000_000_000_000_000n, mintAuthority: null, freezeAuthority: null, extensions: [] };
 
 describe('meme desk rules', () => {
+  it('pins the token program ids (verified against the spl-token-2022-interface crate source)', () => {
+    assert.equal(TOKEN_PROGRAM, 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+    assert.equal(TOKEN_2022_PROGRAM, 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
+    assert.equal(safety({ ...goodMint, program: TOKEN_2022_PROGRAM, extensions: [] }, [], 1, R), null, 'a clean Token-2022 mint passes');
+  });
+
   it('sizes at 10% of the wallet, between $1 and $1,000, and never over 2% of the pool', () => {
     assert.equal(tradeSize(100, 100, 1e6, R), 10);
     assert.equal(tradeSize(5, 5, 1e6, R), 0, '$0.50 is under the $1 minimum');

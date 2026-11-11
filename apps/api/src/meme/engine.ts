@@ -123,6 +123,8 @@ export class MemeEngine {
   }
 
   private note(dc: Omit<Decision, 'at'>) {
+    // The same token skipped for the same reason scan after scan is one fact, not forty: keep the latest only.
+    if (dc.action === 'skip') this.recent = this.recent.filter((x) => !(x.action === 'skip' && x.mint === dc.mint && x.reason === dc.reason));
     this.recent.unshift({ at: new Date(this.now()).toISOString(), ...dc });
     this.recent = this.recent.slice(0, 60);
     if (dc.action !== 'skip') this.log(`${dc.action} ${dc.symbol} ${dc.reason}${dc.usd !== undefined ? ` $${dc.usd.toFixed(2)}` : ''}`);
