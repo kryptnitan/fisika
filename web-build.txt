@@ -11,7 +11,7 @@ https://nextjs.org/telemetry
    ▲ Next.js 15.5.29
 
    Creating an optimized production build ...
- ✓ Compiled successfully in 6.1s
+ ✓ Compiled successfully in 7.9s
    Linting and checking validity of types ...
    Collecting page data ...
    Generating static pages (0/8) ...
@@ -25,7 +25,7 @@ https://nextjs.org/telemetry
 Route (app)                                 Size  First Load JS
 ┌ ○ /                                    4.96 kB         107 kB
 ├ ○ /_not-found                            991 B         103 kB
-├ ○ /agent                               28.2 kB         131 kB
+├ ○ /agent                               28.3 kB         131 kB
 ├ ○ /agents                              2.72 kB         105 kB
 ├ ƒ /api/proxy/[...path]                   123 B         102 kB
 ├ ○ /arb                                  3.7 kB         106 kB
