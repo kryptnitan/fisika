@@ -370,7 +370,7 @@ function MemePanel({ refreshKey, onChange, guard }: { refreshKey: number; onChan
               </span>
             </div>
           </div>
-          <h3>Open positions ({s.positions.length}/{rules.maxOpen ?? 3})</h3>
+          <h3>Open positions ({s.positions.length}/{rules.maxOpen ?? 5})</h3>
           {!s.positions.length ? (
             <p className="muted small">None open. {status === 'active' ? 'Scanning new Solana pairs every minute.' : ''}</p>
           ) : (

@@ -48,7 +48,7 @@ export const DEFAULT_RULES: MemeRules = {
   minTradeUsd: 1,
   maxTradeUsd: 1_000,
   dailyLossPct: 5,
-  maxOpen: 3,
+  maxOpen: 5,
   minLiquidityUsd: 20_000,
   maxLiquidityShare: 0.02,
   minVolumeH1Usd: 25_000,

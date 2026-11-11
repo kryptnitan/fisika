@@ -145,7 +145,7 @@ MEME_MODE=PAPER
 MEME_DATA_DIR=/var/lib/fisika/meme
 CONTROL_FILE=/var/lib/fisika/control.json
 MEME_PAPER_EQUITY=100
-# Rules (the console shows them): 10% size, \$1-\$1000 per trade, 5% daily loss limit, -10% stop, 8% trail, 4h max hold.
+# Rules (the console shows them): 10% size, \$1-\$1000 per trade, 5% daily loss limit, -10% stop, 8% trail, 4h max hold, 5 open.
 MEME_SIZE_PCT=10
 MEME_MIN_TRADE_USD=1
 MEME_MAX_TRADE_USD=1000
@@ -153,6 +153,7 @@ MEME_DAILY_LOSS_PCT=5
 MEME_STOP_LOSS_PCT=10
 MEME_TRAIL_PCT=8
 MEME_MAX_HOLD_MIN=240
+MEME_MAX_OPEN=5
 # Optional: a free Jupiter key (developers.jup.ag/portal) lifts the quote rate from 0.5 to 1 request/s.
 JUPITER_API_KEY=
 ENV
