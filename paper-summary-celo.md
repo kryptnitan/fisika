@@ -1,14 +1,14 @@
 # fisika paper trading record
 
-50 sessions over 12.6 days (45.8 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-11T03:45:20.115Z. Live Celo prices on free RPCs, nothing signed.
+51 sessions over 13.0 days (46.8 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-11T11:46:38.117Z. Live Celo prices on free RPCs, nothing signed.
 
 | | |
 |---|---|
-| Opportunities that cleared the first check | 9389 |
+| Opportunities that cleared the first check | 9679 |
 | Paper fills (passed live re-quote and every risk limit) | 17 |
 | Paper P&L | $1.2401 |
-| P&L per watched hour | $0.0271 |
-| RPC requests | 224,750 (1.36/s) |
+| P&L per watched hour | $0.0265 |
+| RPC requests | 229,221 (1.36/s) |
 | Venue refresh failures | {"textile":149} |
 
 ## Fills by cycle
@@ -20,15 +20,16 @@
 
 ## Why opportunities were skipped
 
-- edge_bps_below_min: 8646
-- inventory_exposure: 712
-- after_requote: edge_bps_below_min: 8
+- edge_bps_below_min: 8927
+- inventory_exposure: 720
+- after_requote: edge_bps_below_min: 9
 - edge_usd_below_min: 6
 
 ## Sessions
 
 | Start | Min | RPCs | Requests | Opps | Fills | P&L |
 |---|---|---|---|---|---|---|
+| 2026-11-11 10:51 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4471 | 290 | 0 | $0.0000 |
 | 2026-11-11 02:50 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4973 | 100 | 0 | $0.0000 |
 | 2026-11-10 23:16 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4858 | 118 | 2 | $0.1027 |
 | 2026-11-10 17:47 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4532 | 240 | 0 | $0.0000 |
@@ -76,4 +77,3 @@
 | 2026-10-30 16:41 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4781 | 336 | 0 | $0.0000 |
 | 2026-10-30 09:57 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4533 | 61 | 0 | $0.0000 |
 | 2026-10-30 02:38 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4299 | 138 | 0 | $0.0000 |
-| 2026-10-29 23:16 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4816 | 165 | 0 | $0.0000 |
