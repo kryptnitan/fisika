@@ -75,9 +75,9 @@ describe('meme desk rules', () => {
   });
 
   it('catches honeypots and sell taxes with a buy-then-sell quote', () => {
-    assert.equal(roundTrip(10, 9.7, 0.5, R), null);
+    assert.equal(roundTrip(10, 9.75, 0.5, R), null);
     assert.equal(roundTrip(10, null, 0.5, R), 'cannot_sell');
-    assert.match(roundTrip(10, 8.5, 0.5, R) ?? '', /^round_trip_loss_15\.0pct$/);
+    assert.match(roundTrip(10, 9.5, 0.5, R) ?? '', /^round_trip_loss_5\.0pct$/, 'a 5% sell tax is caught');
     assert.match(roundTrip(10, 9.8, 4, R) ?? '', /^price_impact_4\.0pct$/);
   });
 

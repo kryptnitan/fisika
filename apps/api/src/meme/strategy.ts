@@ -56,7 +56,7 @@ export const DEFAULT_RULES: MemeRules = {
   maxAgeH: 24 * 7,
   maxMarketCapUsd: 50_000_000,
   maxTop10Pct: 35,
-  maxRoundTripLossPct: 6,
+  maxRoundTripLossPct: 3, // fees + spread + impact both ways; more than this eats the +5%/-8% edge (and sell taxes start at 5%)
   maxPriceImpactPct: 3,
   maxPumpH1Pct: 150,
   stopLossPct: 10,
