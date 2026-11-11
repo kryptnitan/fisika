@@ -1,8 +1,8 @@
 {
-  "at": "2026-11-06T15:37:10.654Z",
+  "at": "2026-11-11T05:46:45.936Z",
   "chainId": 42220,
   "chain": "Celo",
-  "block": "82078670",
+  "block": "82475245",
   "codeBytes": {
     "uniswap.factory": 24535,
     "uniswap.quoterV2": 8273,
@@ -141,8 +141,8 @@
       "fee": 100,
       "pool": "0x1a810e0B6c2dd5629AFa2f0c898b9512C6F78846",
       "balances": {
-        "USDT": "166829.630249",
-        "USDC": "21402.892344"
+        "USDT": "167531.186075",
+        "USDC": "20775.589881"
       }
     },
     {
@@ -171,8 +171,8 @@
       "fee": 100,
       "pool": "0x5dC631aD6C26BEA1a59fBF2C2680CF3df43d249f",
       "balances": {
-        "USDT": "627763.059084",
-        "USDm": "16610.879268241308346505"
+        "USDT": "606341.629935",
+        "USDm": "38016.082716619708497117"
       }
     },
     {
@@ -211,8 +211,8 @@
       "fee": 100,
       "pool": "0x6519d56Eb0A69FC0338657784c783B169b8f7d32",
       "balances": {
-        "USDT": "88794.131745",
-        "cNGN": "126251895.988253"
+        "USDT": "79273.173593",
+        "cNGN": "139434146.744601"
       }
     },
     {
@@ -221,8 +221,8 @@
       "fee": 100,
       "pool": "0x1e2F87e1f8056Fcd39695aAeb63cb475E1DD2318",
       "balances": {
-        "USDT": "44430.399101",
-        "NGNm": "28481109.653448547262307577"
+        "USDT": "44430.055693",
+        "NGNm": "28481568.370497806933419127"
       }
     },
     {
@@ -231,8 +231,8 @@
       "fee": 100,
       "pool": "0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F",
       "balances": {
-        "USDT": "926.905688",
-        "KESm": "1371136.523713161453375428"
+        "USDT": "835.857461",
+        "KESm": "1382917.229588906352458931"
       }
     },
     {
@@ -241,8 +241,8 @@
       "fee": 100,
       "pool": "0x6BAB3AfA6d0c42d539bcbc33Ffb68C0406913413",
       "balances": {
-        "USDT": "7299.760022",
-        "GHSm": "158721.553971376517023759"
+        "USDT": "7323.636335",
+        "GHSm": "158444.220209464572304494"
       }
     },
     {
@@ -271,8 +271,8 @@
       "fee": 100,
       "pool": "0x5D8ef8B839be522b9E3d60a51EDB5837CD0b2391",
       "balances": {
-        "USDT": "39858.869184",
-        "wARS": "110179473.526012035098886406"
+        "USDT": "40009.065758",
+        "wARS": "110048659.591751910427219017"
       }
     },
     {
@@ -281,8 +281,8 @@
       "fee": 100,
       "pool": "0x1625fE58Cdb3726e5841Fb2bb367Dde9AAa009B3",
       "balances": {
-        "USDT": "116.678339",
-        "BRLm": "109914.27196840539549285"
+        "USDT": "115.715402",
+        "BRLm": "109919.599402470628945344"
       }
     },
     {
@@ -291,8 +291,8 @@
       "fee": 100,
       "pool": "0x14E577e42d45Fd2200A9B0e31D87Fe826467111a",
       "balances": {
-        "USDT": "18144.025771",
-        "BRLA": "65130.771392332052675275"
+        "USDT": "17049.743374",
+        "BRLA": "71162.317022488753139423"
       }
     },
     {
@@ -331,8 +331,8 @@
       "fee": 100,
       "pool": "0x628Cb3a5a206956423D158009612813B64B19dab",
       "balances": {
-        "USDT": "255.398166",
-        "EURm": "2044.031653295196655924"
+        "USDT": "202.481224",
+        "EURm": "2092.11833076481467636"
       }
     },
     {
@@ -351,8 +351,8 @@
       "fee": 100,
       "pool": "0x34757893070B0FC5de37AaF2844255fF90F7F1E0",
       "balances": {
-        "USDC": "200.314856",
-        "USDm": "121.212925562713241764"
+        "USDC": "210.902729",
+        "USDm": "111.13775473362801347"
       }
     },
     {
@@ -401,8 +401,8 @@
       "fee": 100,
       "pool": "0x116361f4f45e310347B43CD098FDFA459760EA7f",
       "balances": {
-        "USDC": "17.828251",
-        "EURm": "11.415041849090820633"
+        "USDC": "17.791684",
+        "EURm": "11.447605198095244446"
       }
     },
     {
@@ -421,8 +421,8 @@
       "fee": 100,
       "pool": "0x95faa9a91cD6c1C018e4B1a6fC4c89D4F1695e5D",
       "balances": {
-        "USDm": "119.651726218350572899",
-        "KESm": "15219.187590530691950692"
+        "USDm": "119.522340399050343011",
+        "KESm": "15235.919877409458966255"
       }
     },
     {
@@ -431,8 +431,8 @@
       "fee": 100,
       "pool": "0xAA97F0689660eA15b7d6f84F2E5250B63f2b381a",
       "balances": {
-        "USDm": "5598.736174149360248447",
-        "XOFm": "3480919.888030756950190392"
+        "USDm": "5589.562203822015732639",
+        "XOFm": "3486312.062672508792555912"
       }
     },
     {
@@ -441,8 +441,8 @@
       "fee": 100,
       "pool": "0x72Dd8fe09B5b493012e5816068Dfc6Fb26a2A9e6",
       "balances": {
-        "USDm": "740.758394598139003135",
-        "BRLm": "4639.964327302226540767"
+        "USDm": "701.342001179983657046",
+        "BRLm": "4858.506193352004076733"
       }
     },
     {
@@ -471,8 +471,8 @@
       "fee": 100,
       "pool": "0x1c8DafD358d308b880F71eDB5170B010b106Ca60",
       "balances": {
-        "USDm": "88.62916625120282764",
-        "EURm": "42329.75680461382518819"
+        "USDm": "81.354495547277761628",
+        "EURm": "42336.287242205927514158"
       }
     },
     {
@@ -481,8 +481,8 @@
       "fee": 500,
       "pool": "0x1f18CD7D1c7Ba0DbE3D9AbE0D3eC84Ce1ad10066",
       "balances": {
-        "USDm": "662.366194644445482514",
-        "EURm": "25.893580240329881792"
+        "USDm": "661.713498955741632137",
+        "EURm": "26.485417304994688055"
       }
     },
     {
@@ -511,25 +511,25 @@
       "pool": "0x0FEBa760d93423D127DE1B6ABECdB60E5253228D",
       "token0": "USDT",
       "token1": "USDm",
-      "quote": "1 USDT -> 0.998370286 USDm"
+      "quote": "1 USDT -> 0.998446380778 USDm"
     },
     "USDC/USDm": {
       "pool": "0x462fe04b4FD719Cbd04C0310365D421D02AaA19E",
       "token0": "USDm",
       "token1": "USDC",
-      "quote": "1 USDm -> 0.999959 USDC"
+      "quote": "1 USDm -> 1.00009 USDC"
     },
     "axlUSDC/USDm": {
       "pool": "0xb285d4C7133d6f27BfB29224fb0D22E7EC3ddD2D",
       "token0": "USDm",
       "token1": "0xEB466342C4d449BC9f53A865D5Cb90586f405215",
-      "quote": "1 USDm -> 0.000000000000999959 0xEB466342C4d449BC9f53A865D5Cb90586f405215"
+      "quote": "1 USDm -> 0.00000000000100009 0xEB466342C4d449BC9f53A865D5Cb90586f405215"
     },
     "GBPm/USDm": {
       "pool": "0x8C0014afe032E4574481D8934504100bF23fCB56",
       "token0": "USDm",
       "token1": "0xCCF663b1fF11028f0b19058d0f7B674004a40746",
-      "quote": "1 USDm -> 0.745671440858606634 0xCCF663b1fF11028f0b19058d0f7B674004a40746"
+      "quote": "1 USDm -> 0.747068300176089318 0xCCF663b1fF11028f0b19058d0f7B674004a40746"
     },
     "USDm->NGNm": "not routable via default factory: The contract function \"getAmountsOut\" reverted with the following signature:",
     "USDm->KESm": "not routable via default factory: The contract function \"getAmountsOut\" reverted with the following signature:",
@@ -538,13 +538,13 @@
     "USDm->ZARm": "not routable via default factory: The contract function \"getAmountsOut\" reverted with the following signature:",
     "USDm->BRLm": "not routable via default factory: The contract function \"getAmountsOut\" reverted with the following signature:",
     "USDm->COPm": "not routable via default factory: The contract function \"getAmountsOut\" reverted with the following signature:",
-    "USDm->EURm": "1 USDm -> 0.894434331931529818 EURm"
+    "USDm->EURm": "1 USDm -> 0.893733116507855443 EURm"
   },
   "textileLevels": [
     {
       "pair": "cNGN->USDT",
-      "min": "1376.501",
-      "max": "12810355.126948",
+      "min": "1389.151",
+      "max": "4674709.138966",
       "sellDecimals": 6,
       "buyDecimals": 6,
       "points": 9
@@ -552,15 +552,15 @@
     {
       "pair": "USDT->cNGN",
       "min": "1",
-      "max": "82020.302105",
+      "max": "87089.420148",
       "sellDecimals": 6,
       "buyDecimals": 6,
       "points": 9
     },
     {
       "pair": "wARS->USDT",
-      "min": "1642.945",
-      "max": "79160993.768595171427965371",
+      "min": "1642.255",
+      "max": "136708782.969579397858337337",
       "sellDecimals": 18,
       "buyDecimals": 6,
       "points": 9
@@ -568,15 +568,15 @@
     {
       "pair": "USDT->wARS",
       "min": "1",
-      "max": "20543.468325",
+      "max": "42808.694386",
       "sellDecimals": 6,
       "buyDecimals": 18,
       "points": 9
     },
     {
       "pair": "wBRL->USDT",
-      "min": "5.4976",
-      "max": "265104.955703662907319899",
+      "min": "5.5557",
+      "max": "462749.179730364318545722",
       "sellDecimals": 18,
       "buyDecimals": 6,
       "points": 9
@@ -584,15 +584,15 @@
     {
       "pair": "USDT->wBRL",
       "min": "1",
-      "max": "20512.749652",
+      "max": "9484.565259",
       "sellDecimals": 6,
       "buyDecimals": 18,
       "points": 9
     },
     {
       "pair": "USDC->USDT",
-      "min": "0.998731",
-      "max": "172.794927",
+      "min": "0.998971",
+      "max": "252.929488",
       "sellDecimals": 6,
       "buyDecimals": 6,
       "points": 9
@@ -600,15 +600,31 @@
     {
       "pair": "USDT->USDC",
       "min": "1",
-      "max": "3517.561905",
+      "max": "24.763624",
       "sellDecimals": 6,
       "buyDecimals": 6,
-      "points": 9
+      "points": 7
+    },
+    {
+      "pair": "COPM->USDT",
+      "min": "3307.4",
+      "max": "0",
+      "sellDecimals": 18,
+      "buyDecimals": 6,
+      "points": 0
+    },
+    {
+      "pair": "USDT->COPM",
+      "min": "1",
+      "max": "0",
+      "sellDecimals": 6,
+      "buyDecimals": 18,
+      "points": 0
     },
     {
       "pair": "0x7ae4265ecfc1f31bc0e112dfcfe3d78e01f4bb7f->USDT",
-      "min": "0.74695",
-      "max": "11409.456260852582839544",
+      "min": "0.74845",
+      "max": "16214.202749247725753614",
       "sellDecimals": 18,
       "buyDecimals": 6,
       "points": 9
@@ -623,8 +639,8 @@
     },
     {
       "pair": "0xc5ebea9984c485ec5d58ca5a2d376620d93af871->USDT",
-      "min": "0.81898",
-      "max": "12509.694743145514933298",
+      "min": "0.82543",
+      "max": "17881.875040742960533105",
       "sellDecimals": 18,
       "buyDecimals": 6,
       "points": 9
@@ -639,8 +655,8 @@
     },
     {
       "pair": "0x471ece3750da237f93b8e339c536989b8978a438->USDT",
-      "min": "1.452221899506",
-      "max": "697703.795290035374934054",
+      "min": "1.501726986034",
+      "max": "1246875.072451378114346255",
       "sellDecimals": 18,
       "buyDecimals": 6,
       "points": 9
@@ -648,15 +664,15 @@
     {
       "pair": "USDT->0x471ece3750da237f93b8e339c536989b8978a438",
       "min": "0.1",
-      "max": "146.862709",
+      "max": "5.435826",
       "sellDecimals": 6,
       "buyDecimals": 18,
-      "points": 9
+      "points": 8
     },
     {
       "pair": "USAT->USDT",
-      "min": "0.99945",
-      "max": "63287.672002",
+      "min": "0.99965",
+      "max": "104652.813364",
       "sellDecimals": 6,
       "buyDecimals": 6,
       "points": 9
@@ -664,15 +680,15 @@
     {
       "pair": "USDT->USAT",
       "min": "1",
-      "max": "15537.577448",
+      "max": "8237.383177",
       "sellDecimals": 6,
       "buyDecimals": 6,
       "points": 9
     },
     {
       "pair": "0x18bc5bcc660cf2b9ce3cd51a404afe1a0cbd3c22->USDT",
-      "min": "18101",
-      "max": "9044869933.37",
+      "min": "18127",
+      "max": "6035092294.76",
       "sellDecimals": 2,
       "buyDecimals": 6,
       "points": 9
@@ -680,15 +696,15 @@
     {
       "pair": "USDT->0x18bc5bcc660cf2b9ce3cd51a404afe1a0cbd3c22",
       "min": "1",
-      "max": "189825.026858",
+      "max": "345966.650422",
       "sellDecimals": 6,
       "buyDecimals": 2,
       "points": 9
     },
     {
       "pair": "0x8a1d45e102e886510e891d2ec656a708991e2d76->USDT",
-      "min": "3220",
-      "max": "203866100.795586952232227992",
+      "min": "3302",
+      "max": "345668481.681287819478223275",
       "sellDecimals": 18,
       "buyDecimals": 6,
       "points": 9
@@ -696,15 +712,15 @@
     {
       "pair": "USDT->0x8a1d45e102e886510e891d2ec656a708991e2d76",
       "min": "1",
-      "max": "2903.00084",
+      "max": "858.183997",
       "sellDecimals": 6,
       "buyDecimals": 18,
       "points": 9
     },
     {
       "pair": "0xd221812de1bd094f35587ee8e174b07b6167d9af->USDT",
-      "min": "0.000451571242",
-      "max": "0.714247923813903197",
+      "min": "0.000483388359",
+      "max": "0.765149477621255412",
       "sellDecimals": 18,
       "buyDecimals": 6,
       "points": 9
@@ -712,18 +728,18 @@
     {
       "pair": "USDT->0xd221812de1bd094f35587ee8e174b07b6167d9af",
       "min": "1",
-      "max": "30.0052",
+      "max": "17.653948",
       "sellDecimals": 6,
       "buyDecimals": 18,
-      "points": 7
+      "points": 6
     },
     {
       "pair": "0x337e7456b420bd3481e7fa61fa9850343d610d34->USDT",
-      "min": "18.607",
-      "max": "279.216856284384974149",
+      "min": "18.582",
+      "max": "780451.230084899125967557",
       "sellDecimals": 18,
       "buyDecimals": 6,
-      "points": 6
+      "points": 9
     },
     {
       "pair": "USDT->0x337e7456b420bd3481e7fa61fa9850343d610d34",
@@ -751,7 +767,7 @@
     },
     {
       "pair": "0x62b8b11039fcfe5ab0c56e502b1c372a3d2a9c7a->USDT",
-      "min": "8734.854570885502",
+      "min": "8725.389845112169",
       "max": "0",
       "sellDecimals": 18,
       "buyDecimals": 6,
