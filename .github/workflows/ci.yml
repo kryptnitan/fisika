@@ -311,6 +311,17 @@ jobs:
       - uses: foundry-rs/foundry-toolchain@v1
       - run: git clone --depth 1 https://github.com/foundry-rs/forge-std lib/forge-std
       - run: forge build --sizes
+      - name: The committed artifact must match this build (the server deploys from it)
+        run: |
+          if [ -f artifacts/FisikaExecutor.json ]; then
+            a=$(jq -r .bytecode.object out/FisikaExecutor.sol/FisikaExecutor.json)
+            b=$(jq -r .bytecode.object artifacts/FisikaExecutor.json)
+            [ "$a" = "$b" ] || { echo "contracts/artifacts/FisikaExecutor.json is stale: rebuild and commit it"; exit 1; }
+            echo "artifact matches ($(( ${#a} / 2 )) bytes)"
+          else
+            echo "no committed artifact yet"
+          fi
+          jq '{abi, bytecode: {object: .bytecode.object}, metadata: .rawMetadata}' out/FisikaExecutor.sol/FisikaExecutor.json > /tmp/FisikaExecutor.json
       - name: Unit + fork tests
         env:
           CELO_RPC_URL: ${{ secrets.CELO_RPC_URL || 'https://forno.celo.org' }}
@@ -321,4 +332,4 @@ jobs:
         run: |
           test -f contracts/forge-test.txt || exit 0
           cp contracts/forge-test.txt /tmp/forge-test.txt
-          bash .github/publish.sh verification "forge results for ${GITHUB_SHA}" /tmp/forge-test.txt
+          bash .github/publish.sh verification "forge results for ${GITHUB_SHA}" /tmp/forge-test.txt /tmp/FisikaExecutor.json

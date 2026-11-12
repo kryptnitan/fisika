@@ -50,6 +50,8 @@ export interface AgentDeps {
   chains: AgentChain[];
   /** Solana meme desk data directory (meme-status.json, meme-ledger.jsonl). Null: no meme desk. */
   memeDir?: string | null;
+  /** The FisikaExecutor fee contract on Celo, as the API is configured (EXECUTOR_ADDRESS / FEE_TO / SERVICE_FEE_BPS). */
+  executor?: { address: Address | null; feeTo: Address | null; feeBps: number; read: (fn: 'owner' | 'pendingOwner' | 'guardian' | 'paused') => Promise<string | boolean> } | null;
   now?: () => number;
 }
 
@@ -388,6 +390,22 @@ export function createAgentApp(d: AgentDeps) {
   });
 
   // ---------------------------------------------------------------- Solana meme desk
+  /** The fee contract: who owns it, whether the handover to the owner is still pending, and the fee it charges. */
+  app.get('/v1/agent/executor', async (c) => {
+    owner(c);
+    const ex = d.executor;
+    const celoChain = d.chains.find((x) => x.chain.key === 'celo');
+    if (!ex?.address) return c.json({ deployed: false, feeBps: ex?.feeBps ?? 0, feeTo: ex?.feeTo ?? null, explorer: celoChain?.chain.explorer ?? null });
+    try {
+      const [own, pending, guardian, paused] = await Promise.all([ex.read('owner'), ex.read('pendingOwner'), ex.read('guardian'), ex.read('paused')]);
+      const ownerIsUs = !!d.owner && lc(String(own)) === lc(d.owner);
+      const pendingIsUs = !!d.owner && lc(String(pending)) === lc(d.owner);
+      return c.json({ deployed: true, chain: 'celo', address: ex.address, explorer: celoChain?.chain.explorer ?? null, owner: own, pendingOwner: pending, guardian, paused, ownerIsUs, pendingIsUs, feeBps: ex.feeBps, feeTo: ex.feeTo, acceptData: '0x79ba5097' });
+    } catch (e) {
+      return c.json({ deployed: true, chain: 'celo', address: ex.address, error: (e as Error).message, feeBps: ex.feeBps, feeTo: ex.feeTo }, 502);
+    }
+  });
+
   app.get('/v1/agent/meme', async (c) => {
     owner(c);
     if (!d.memeDir) return c.json({ configured: false });

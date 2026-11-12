@@ -6,7 +6,15 @@ import { PaperArbRunner } from './arb.ts';
 import { createApp, multiChainFetch } from './app.ts';
 import { createAgentApp, type AgentChain, type AgentChainClient } from './agent/routes.ts';
 import { dirname } from 'node:path';
-import { parseEther } from 'viem';
+import { parseEther, type Address } from 'viem';
+
+/** Read-only slice of FisikaExecutor's ABI for the console. acceptOwnership() selector is 0x79ba5097. */
+const executorViewAbi = [
+  { type: 'function', name: 'owner', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
+  { type: 'function', name: 'pendingOwner', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
+  { type: 'function', name: 'guardian', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
+  { type: 'function', name: 'paused', stateMutability: 'view', inputs: [], outputs: [{ type: 'bool' }] },
+] as const;
 import { Heatmap } from './heatmap.ts';
 import { loadConfig } from './config.ts';
 import { makePaymentGate } from './x402.ts';
@@ -92,6 +100,16 @@ const agent = createAgentApp({
   eventsFile: cfg.agentConsole.eventsFile,
   chains: agentChains,
   memeDir: process.env.MEME_DATA_DIR ?? '/var/lib/fisika/meme',
+  executor: {
+    address: cfg.executor,
+    feeTo: cfg.feeTo,
+    feeBps: cfg.feeBps,
+    read: async (fn) => {
+      const client = agentChains.find((x) => x.chain.key === 'celo')?.client as unknown as { readContract: (a: { address: Address; abi: typeof executorViewAbi; functionName: typeof fn }) => Promise<string | boolean> } | undefined;
+      if (!client || !cfg.executor) throw new Error('executor not configured on Celo');
+      return client.readContract({ address: cfg.executor, abi: executorViewAbi, functionName: fn });
+    },
+  },
 });
 serve({ fetch: multiChainFetch(apps, served, 'celo', [{ prefix: '/v1/agent/', app: agent.app }]), port: cfg.port, hostname: cfg.host });
 console.log(`agent console: ${cfg.agentConsole.owner ? `owner ${cfg.agentConsole.owner}, withdrawals to ${cfg.agentConsole.withdrawTo}` : 'OFF (set OWNER_ADDRESS)'}`);

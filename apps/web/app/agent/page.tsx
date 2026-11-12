@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
 import { createSiweMessage } from 'viem/siwe';
 import { encodeFunctionData, erc20Abi, getAddress, parseUnits } from 'viem';
-import { agentApi, AgentError, type AgentConfig, type AgentState, type Balances, type EventRow, type MemeInfo, type MemeTradeRow, type Paged, type TradeRow } from '@/lib/agent';
+import { agentApi, AgentError, type AgentConfig, type AgentState, type Balances, type EventRow, type ExecutorInfo, type MemeInfo, type MemeTradeRow, type Paged, type TradeRow } from '@/lib/agent';
 import { UI_CHAINS } from '@/lib/chain';
 import { connect, sendTx, signMessage, waitForTx } from '@/lib/wallet';
 
@@ -149,6 +149,7 @@ function Console({ owner, onSignOut }: { owner: string; onSignOut: () => void })
       ) : null}
       <Switches state={state} onChange={refreshAll} guard={guard} />
       <MemePanel refreshKey={tick} onChange={refreshAll} guard={guard} />
+      <ExecutorPanel refreshKey={tick} guard={guard} account={owner} />
       <div className="agent-grid">
         <BalancesCard cfg={cfg} bal={bal} state={state} onRefresh={loadBal} />
         <Funding cfg={cfg} onDone={refreshAll} guard={guard} />
@@ -423,6 +424,77 @@ function MemePanel({ refreshKey, onChange, guard }: { refreshKey: number; onChan
           <p className="muted small">
             Exits in order: liquidity pulled or cannot sell → hard stop → volume collapse → in profit and the downside starts, or fading within {rules.athZonePct}% of the all-time high → trailing {rules.trailPct}% off the peak → max hold → stalled. A {limit}% day loss closes everything until the next UTC day. Reported {new Date(s.updatedAt).toLocaleTimeString()}.
           </p>
+        </>
+      )}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------------------------------------- fee contract */
+
+function ExecutorPanel({ refreshKey, guard, account }: { refreshKey: number; guard: Guard; account: string }) {
+  const [info, setInfo] = useState<ExecutorInfo | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const load = useCallback(async () => {
+    const r = await guard(agentApi<ExecutorInfo>('executor'));
+    if (r) setInfo(r);
+  }, [guard]);
+  useEffect(() => {
+    void load();
+  }, [load, refreshKey]);
+
+  if (!info) return null;
+  const accept = async () => {
+    if (!info.address || !info.acceptData) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const from = await connect(UI_CHAINS.celo);
+      if (from !== account.toLowerCase()) throw new Error(`Your wallet is on ${short(from)}; sign in with the owner wallet ${short(account)}.`);
+      const hash = await sendTx(from, { to: info.address, data: info.acceptData, value: '0' });
+      setMsg(`Sent ${short(hash)}. Waiting for Celo…`);
+      const st = await waitForTx(hash);
+      setMsg(st === 'success' ? 'You now own the fee contract.' : 'The transaction reverted.');
+      void load();
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="panel" aria-label="Fee contract">
+      <h2>Fee contract · Celo</h2>
+      {!info.deployed ? (
+        <p className="muted">
+          Not deployed yet, so swaps on the site charge no fee. On the server: <code>sudo fisika-deploy-executor</code> (deploys from the bot wallet, fee {info.feeBps / 100}% to {short(info.feeTo)}).
+        </p>
+      ) : info.error ? (
+        <p className="err">{info.address}: {info.error}</p>
+      ) : (
+        <>
+          <p>
+            <a href={`${info.explorer}/address/${info.address}`} target="_blank" rel="noreferrer">
+              {info.address}
+            </a>{' '}
+            · fee <b>{info.feeBps / 100}%</b> of every swap's output, paid to {short(info.feeTo)}
+            {info.paused ? <span className="badge small stopped"> paused</span> : null}
+          </p>
+          {info.pendingIsUs ? (
+            <div className="row-start">
+              <button type="button" className="primary" disabled={busy} onClick={accept}>
+                {busy ? 'Confirm in your wallet…' : 'Accept ownership'}
+              </button>
+              <span className="muted small">The contract was handed to you by the server; one signature from your wallet completes it. Until then the bot wallet ({short(info.owner)}) still owns it.</span>
+            </div>
+          ) : info.ownerIsUs ? (
+            <p className="muted small">Owned by you. Guardian (can only pause): {short(info.guardian)}.</p>
+          ) : (
+            <p className="err small">Owned by {short(info.owner)}, pending {short(info.pendingOwner)} — neither is your wallet. Check EXECUTOR_ADDRESS on the server.</p>
+          )}
+          {msg ? <p className="small">{msg}</p> : null}
         </>
       )}
     </section>

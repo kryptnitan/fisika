@@ -249,12 +249,36 @@ cd /opt/fisika/apps/api
 KEY=$(grep '^ARB_PRIVATE_KEY=' $ENVF | cut -d= -f2) \
   node -e "import('viem/accounts').then(m=>console.log(m.privateKeyToAccount(process.env.KEY).address))"
 CMD
+cat > /usr/local/bin/fisika-deploy-executor <<'CMD'
+#!/usr/bin/env bash
+# Deploys the FisikaExecutor fee contract on Celo, signed by the Celo bot wallet (key read from live.env, never printed),
+# then points the API at it and turns on the service fee. Safe to re-run: a second run only reports the address.
+#   sudo fisika-deploy-executor [fee bps, default 5 = 0.05%]
+set -euo pipefail
+BPS="${1:-5}"
+OWNER=$(grep '^OWNER_ADDRESS=' /etc/fisika/api.env | cut -d= -f2)
+[ -n "$OWNER" ] || { echo "OWNER_ADDRESS is not set in /etc/fisika/api.env"; exit 1; }
+cd /opt/fisika/apps/api
+ARB_PRIVATE_KEY=$(grep '^ARB_PRIVATE_KEY=' /etc/fisika/live.env | cut -d= -f2) OWNER=$OWNER \
+  CELO_RPC_URLS=$(grep '^CELO_RPC_URLS=' /etc/fisika/api.env | cut -d= -f2) \
+  node src/deploy-executor.ts | tee /tmp/fisika-deploy-executor.log
+ADDR=$(grep '^EXECUTOR_ADDRESS=' /tmp/fisika-deploy-executor.log | tail -1 | cut -d= -f2)
+rm -f /tmp/fisika-deploy-executor.log
+[ -n "$ADDR" ] || { echo "no address printed; nothing changed in api.env"; exit 1; }
+setenvf() { grep -q "^$2=" "$1" && sed -i "s|^$2=.*|$2=$3|" "$1" || echo "$2=$3" >> "$1"; }
+setenvf /etc/fisika/api.env EXECUTOR_ADDRESS "$ADDR"
+setenvf /etc/fisika/api.env FEE_TO "$OWNER"
+setenvf /etc/fisika/api.env SERVICE_FEE_BPS "$BPS"
+chown fisika:fisika /var/lib/fisika/executor.json 2>/dev/null || true
+systemctl restart fisika-api
+echo "api now routes through $ADDR with a $BPS bps fee to $OWNER. Accept ownership in the console (Fee contract panel)."
+CMD
 cat > /usr/local/bin/fisika <<CMD
 #!/usr/bin/env bash
 # fisika status | pause [all|celo|bsc|solana] | resume [all|celo|bsc|solana]   (same switch as the console's Active/Paused)
 cd /opt/fisika/apps/api && exec sudo -u fisika env CONTROL_FILE=/var/lib/fisika/control.json $NODE src/cli.ts "\$@"
 CMD
-chmod 755 /usr/local/bin/fisika-start-live /usr/local/bin/fisika-stop-live /usr/local/bin/fisika-wallet /usr/local/bin/fisika
+chmod 755 /usr/local/bin/fisika-start-live /usr/local/bin/fisika-stop-live /usr/local/bin/fisika-wallet /usr/local/bin/fisika /usr/local/bin/fisika-deploy-executor
 chmod 644 /usr/local/bin/fisika-chain
 
 # Settings passed on the command line win over what is in the env files.
@@ -324,6 +348,7 @@ BNB Chain (optional, separate capital):
   2. sudo nano /etc/fisika/live-bsc.env   -> paste TEXTILE_API_KEY
   3. sudo fisika-start-live bsc
 Meme desk (Solana, PAPER): runs as fisika-meme with \$100 of paper money; switch it in the console (Meme switch) or sudo fisika resume solana.
+Fee contract (Celo): sudo fisika-deploy-executor   (deploys FisikaExecutor from the bot wallet, turns on the 0.05% fee; then accept ownership in the console)
 Pause / resume from the server:  sudo fisika pause [all|celo|bsc|solana]   sudo fisika resume [all|celo|bsc|solana]   sudo fisika status
 Stop the trader process:  sudo fisika-stop-live [celo|bsc|all] --now
 Logs:  journalctl -u fisika-live -f      (BNB Chain: -u fisika-live-bsc, meme desk: -u fisika-meme)

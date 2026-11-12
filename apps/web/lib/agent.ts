@@ -113,6 +113,24 @@ export interface MemeInfo {
   } | null;
 }
 
+/** The FisikaExecutor fee contract on Celo, as seen by the API. */
+export interface ExecutorInfo {
+  deployed: boolean;
+  chain?: 'celo';
+  address?: string;
+  explorer?: string | null;
+  owner?: string;
+  pendingOwner?: string;
+  guardian?: string;
+  paused?: boolean;
+  ownerIsUs?: boolean;
+  pendingIsUs?: boolean;
+  feeBps: number;
+  feeTo: string | null;
+  acceptData?: string;
+  error?: string;
+}
+
 export interface MemeTradeRow {
   at: string;
   mode: string;
