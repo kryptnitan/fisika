@@ -1,10 +1,11 @@
 Scope: all 4 workspace projects
 Progress: resolved 1, reused 0, downloaded 0, added 0
-Progress: resolved 27, reused 0, downloaded 12, added 0
-Progress: resolved 95, reused 0, downloaded 67, added 0
+Progress: resolved 15, reused 0, downloaded 12, added 0
+Progress: resolved 65, reused 0, downloaded 25, added 0
+Progress: resolved 120, reused 0, downloaded 49, added 0
 Packages: +91
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Progress: resolved 120, reused 0, downloaded 92, added 89
+Progress: resolved 120, reused 0, downloaded 91, added 89
 Progress: resolved 120, reused 0, downloaded 93, added 91, done
 
 devDependencies:
@@ -12,21 +13,4 @@ devDependencies:
 + typescript 6.0.3 (7.0.2 is available)
 + viem 2.57.19
 
-Done in 4.1s
-
-> fisika@ typecheck /home/runner/work/fisika/fisika
-> pnpm -r typecheck
-
-Scope: 3 of 4 workspace projects
-apps/web typecheck$ tsc --noEmit -p tsconfig.json
-packages/core typecheck$ tsc -p tsconfig.json
-apps/web typecheck: Done
-packages/core typecheck: Done
-apps/api typecheck$ tsc -p tsconfig.json
-apps/api typecheck: src/deploy-executor.ts(110,16): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
-apps/api typecheck: src/server.ts(106,17): error TS2339: Property 'feeBps' does not exist on type 'ApiConfig'.
-apps/api typecheck: Failed
-/home/runner/work/fisika/fisika/apps/api:
- ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @fisika/api@0.1.0 typecheck: `tsc -p tsconfig.json`
-Exit status 2
- ELIFECYCLE  Command failed with exit code 2.
+Done in 5.6s
