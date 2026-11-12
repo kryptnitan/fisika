@@ -98,11 +98,9 @@ for (const [name, v] of Object.entries(VENUES)) {
 await send(`transfer ownership to ${owner}`, () => wallet.writeContract({ address, abi: ABI, functionName: 'transferOwnership', args: [owner] }));
 
 // Read back what the chain says, not what we think we did.
-const [onOwner, pending, guardian] = await Promise.all([
-  pub.readContract({ address, abi: ABI, functionName: 'owner' }),
-  pub.readContract({ address, abi: ABI, functionName: 'pendingOwner' }),
-  pub.readContract({ address, abi: ABI, functionName: 'guardian' }),
-]);
+const onOwner = (await pub.readContract({ address, abi: ABI, functionName: 'owner' })) as Address;
+const pending = (await pub.readContract({ address, abi: ABI, functionName: 'pendingOwner' })) as Address;
+const guardian = (await pub.readContract({ address, abi: ABI, functionName: 'guardian' })) as Address;
 for (const v of Object.values(VENUES)) {
   const [t, s] = await Promise.all([pub.readContract({ address, abi: ABI, functionName: 'allowedTarget', args: [v] }), pub.readContract({ address, abi: ABI, functionName: 'allowedSpender', args: [v] })]);
   if (!t || !s) throw new Error(`allowlist check failed for ${v}`);

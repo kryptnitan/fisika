@@ -103,7 +103,7 @@ const agent = createAgentApp({
   executor: {
     address: cfg.executor,
     feeTo: cfg.feeTo,
-    feeBps: cfg.feeBps,
+    feeBps: cfg.serviceFeeBps,
     read: async (fn) => {
       const client = agentChains.find((x) => x.chain.key === 'celo')?.client as unknown as { readContract: (a: { address: Address; abi: typeof executorViewAbi; functionName: typeof fn }) => Promise<string | boolean> } | undefined;
       if (!client || !cfg.executor) throw new Error('executor not configured on Celo');
