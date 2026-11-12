@@ -253,13 +253,14 @@ cat > /usr/local/bin/fisika-deploy-executor <<'CMD'
 #!/usr/bin/env bash
 # Deploys the FisikaExecutor fee contract on Celo, signed by the Celo bot wallet (key read from live.env, never printed),
 # then points the API at it and turns on the service fee. Safe to re-run: a second run only reports the address.
-#   sudo fisika-deploy-executor [fee bps, default 5 = 0.05%]
+#   sudo fisika-deploy-executor [fee bps, default 5 = 0.05%] [existing contract address to adopt instead of deploying]
 set -euo pipefail
 BPS="${1:-5}"
+ADOPT="${2:-}"
 OWNER=$(grep '^OWNER_ADDRESS=' /etc/fisika/api.env | cut -d= -f2)
 [ -n "$OWNER" ] || { echo "OWNER_ADDRESS is not set in /etc/fisika/api.env"; exit 1; }
 cd /opt/fisika/apps/api
-ARB_PRIVATE_KEY=$(grep '^ARB_PRIVATE_KEY=' /etc/fisika/live.env | cut -d= -f2) OWNER=$OWNER \
+ARB_PRIVATE_KEY=$(grep '^ARB_PRIVATE_KEY=' /etc/fisika/live.env | cut -d= -f2) OWNER=$OWNER EXECUTOR_ADDRESS=$ADOPT \
   CELO_RPC_URLS=$(grep '^CELO_RPC_URLS=' /etc/fisika/api.env | cut -d= -f2) \
   node src/deploy-executor.ts | tee /tmp/fisika-deploy-executor.log
 ADDR=$(grep '^EXECUTOR_ADDRESS=' /tmp/fisika-deploy-executor.log | tail -1 | cut -d= -f2)

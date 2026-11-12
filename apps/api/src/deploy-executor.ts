@@ -15,6 +15,11 @@
  *   6. Writes /var/lib/fisika/executor.json and prints the address for setup.sh to put in api.env.
  *
  * Idempotent: if executor.json already names a deployed contract, it reports it and exits 0.
+ * Adopt: EXECUTOR_ADDRESS=0x… skips deployment and only verifies an existing contract (owner, pending owner,
+ * allowlists) before writing the record — for when a deploy finished on chain but the record was not written.
+ *
+ * Celo's public RPC is a pool of nodes, so a read right after a write may land on a node that is a block behind:
+ * every verification read is retried until it is consistent.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createPublicClient, createWalletClient, formatEther, getAddress, http, isAddress, type Address, type Hex } from 'viem';
@@ -77,6 +82,17 @@ for (const [name, addr] of Object.entries(VENUES)) {
   console.log(`venue ok: ${name} ${addr} (${(code.length - 2) / 2} bytes)`);
 }
 
+/** Read a view until it returns `want` (or, with no `want`, a non-empty value), allowing lagging RPC nodes to catch up. */
+async function readUntil<T>(label: string, fn: () => Promise<T>, want?: T, tries = 15): Promise<T> {
+  let last: T | undefined;
+  for (let i = 0; i < tries; i++) {
+    last = await fn();
+    if (want === undefined ? last !== undefined : String(last).toLowerCase() === String(want).toLowerCase()) return last;
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  throw new Error(`${label}: chain says ${String(last)}${want !== undefined ? `, expected ${String(want)}` : ''} after ${tries} reads`);
+}
+
 const send = async (label: string, fn: () => Promise<Hex>) => {
   const hash = await fn();
   const r = await pub.waitForTransactionReceipt({ hash });
@@ -85,30 +101,49 @@ const send = async (label: string, fn: () => Promise<Hex>) => {
   return r;
 };
 
-const deployHash = await wallet.deployContract({ abi: ABI, bytecode, args: [account.address, account.address] });
-const deployed = await pub.waitForTransactionReceipt({ hash: deployHash });
-if (deployed.status !== 'success' || !deployed.contractAddress) throw new Error(`deployment reverted: ${deployHash}`);
-const address = getAddress(deployed.contractAddress);
-console.log(`FisikaExecutor deployed at ${address} (tx ${deployHash}, gas ${deployed.gasUsed})`);
+const adopt = process.env.EXECUTOR_ADDRESS && isAddress(process.env.EXECUTOR_ADDRESS) ? getAddress(process.env.EXECUTOR_ADDRESS) : null;
+let address: Address;
+let deployHash: Hex | null = null;
+if (adopt) {
+  const code = await pub.getCode({ address: adopt });
+  if (!code || code === '0x') throw new Error(`no contract at ${adopt}`);
+  address = adopt;
+  console.log(`adopting existing FisikaExecutor at ${address} (${(code.length - 2) / 2} bytes); verifying its state`);
+} else {
+  deployHash = await wallet.deployContract({ abi: ABI, bytecode, args: [account.address, account.address] });
+  const deployed = await pub.waitForTransactionReceipt({ hash: deployHash });
+  if (deployed.status !== 'success' || !deployed.contractAddress) throw new Error(`deployment reverted: ${deployHash}`);
+  address = getAddress(deployed.contractAddress);
+  console.log(`FisikaExecutor deployed at ${address} (tx ${deployHash}, gas ${deployed.gasUsed})`);
+}
 
+if (!adopt) {
+  for (const [name, v] of Object.entries(VENUES)) {
+    await send(`allow target ${name}`, () => wallet.writeContract({ address, abi: ABI, functionName: 'setTarget', args: [v, true] }));
+    await send(`allow spender ${name}`, () => wallet.writeContract({ address, abi: ABI, functionName: 'setSpender', args: [v, true] }));
+  }
+  await send(`transfer ownership to ${owner}`, () => wallet.writeContract({ address, abi: ABI, functionName: 'transferOwnership', args: [owner] }));
+}
+
+// Read back what the chain says, not what we think we did (retrying past lagging nodes).
 for (const [name, v] of Object.entries(VENUES)) {
-  await send(`allow target ${name}`, () => wallet.writeContract({ address, abi: ABI, functionName: 'setTarget', args: [v, true] }));
-  await send(`allow spender ${name}`, () => wallet.writeContract({ address, abi: ABI, functionName: 'setSpender', args: [v, true] }));
+  await readUntil(`allowedTarget ${name}`, () => pub.readContract({ address, abi: ABI, functionName: 'allowedTarget', args: [v] }), true);
+  await readUntil(`allowedSpender ${name}`, () => pub.readContract({ address, abi: ABI, functionName: 'allowedSpender', args: [v] }), true);
 }
-await send(`transfer ownership to ${owner}`, () => wallet.writeContract({ address, abi: ABI, functionName: 'transferOwnership', args: [owner] }));
-
-// Read back what the chain says, not what we think we did.
-const onOwner = (await pub.readContract({ address, abi: ABI, functionName: 'owner' })) as Address;
-const pending = (await pub.readContract({ address, abi: ABI, functionName: 'pendingOwner' })) as Address;
-const guardian = (await pub.readContract({ address, abi: ABI, functionName: 'guardian' })) as Address;
-for (const v of Object.values(VENUES)) {
-  const [t, s] = await Promise.all([pub.readContract({ address, abi: ABI, functionName: 'allowedTarget', args: [v] }), pub.readContract({ address, abi: ABI, functionName: 'allowedSpender', args: [v] })]);
-  if (!t || !s) throw new Error(`allowlist check failed for ${v}`);
+const onOwner = (await readUntil('owner', () => pub.readContract({ address, abi: ABI, functionName: 'owner' }))) as Address;
+const guardian = (await readUntil('guardian', () => pub.readContract({ address, abi: ABI, functionName: 'guardian' }))) as Address;
+// Either the handover is still pending (owner = bot, pending = OWNER) or the owner already accepted it.
+let pending: Address;
+if (getAddress(onOwner) === owner) {
+  pending = (await pub.readContract({ address, abi: ABI, functionName: 'pendingOwner' })) as Address;
+  console.log(`ownership already accepted by ${owner}`);
+} else {
+  if (getAddress(onOwner) !== account.address) throw new Error(`owner is ${onOwner}: neither the bot wallet nor ${owner}; refusing to adopt`);
+  pending = (await readUntil('pendingOwner', () => pub.readContract({ address, abi: ABI, functionName: 'pendingOwner' }), owner)) as Address;
 }
-if (getAddress(pending) !== owner) throw new Error(`pendingOwner is ${pending}, expected ${owner}`);
 
-const record = { chainId, address, deployTx: deployHash, deployer: account.address, owner: onOwner, pendingOwner: pending, guardian, venues: VENUES, at: new Date().toISOString() };
+const record = { chainId, address, deployTx: deployHash, adopted: !!adopt, deployer: account.address, owner: onOwner, pendingOwner: pending, guardian, venues: VENUES, at: new Date().toISOString() };
 writeFileSync(out, JSON.stringify(record, null, 2));
 console.log(JSON.stringify(record, null, 2));
-console.log(`\nNext: the owner ${owner} accepts ownership from their wallet (console → Fee contract → Accept ownership).`);
+if (getAddress(onOwner) !== owner) console.log(`\nNext: the owner ${owner} accepts ownership from their wallet (console → Fee contract → Accept ownership).`);
 console.log(`EXECUTOR_ADDRESS=${address}`);
