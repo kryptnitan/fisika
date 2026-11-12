@@ -14,7 +14,7 @@
 import { appendFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { chainTrades, readControlSync } from '../agent/control.ts';
-import { bestPairs, type DexPair, type DexScreener, type GeckoTerminal, type Jupiter, type SolanaRpc, USDC_MINT } from './sources.ts';
+import { bestPairs, type DexPair, type DexScreener, type GeckoTerminal, type JupQuote as Quote, type Jupiter, type SolanaRpc, USDC_MINT } from './sources.ts';
 import { dayLossPct, entrySignal, exitDecision, roundTrip, safety, screen, tradeSize, type ExitReason, type MemeRules, type Position } from './strategy.ts';
 
 export interface MemeDeps {
@@ -67,7 +67,7 @@ interface State {
   dayStartEquity: number;
   halted: boolean;
   haltReason: string | null;
-  cooldown: Record<string, number>;
+  cooldown: Record<string, number>; // mint -> ms timestamp before which it is not re-entered
   watch: Record<string, number>; // token -> last seen ms
   stats: { trades: number; wins: number; realizedUsd: number; scans: number; candidates: number };
 }
@@ -159,13 +159,26 @@ export class MemeEngine {
         const byPair = new Map(pairs.map((p) => [p.pairAddress, p]));
         for (const pos of [...this.s.positions]) {
           const p = byPair.get(pos.pair) ?? null;
-          if (p && Number(p.priceUsd)) {
-            pos.lastPrice = Number(p.priceUsd);
+          // Mark to the real sellable value: a Jupiter sell quote for exactly our tokens. null = no route = cannot sell.
+          let q: Quote | null | undefined;
+          try {
+            q = await this.d.jup.quote(pos.mint, USDC_MINT, BigInt(pos.tokensRaw));
+          } catch {
+            q = undefined; // transient (rate limit, outage): keep the last mark, decide again next tick
+          }
+          if (q === null) {
+            await this.close(pos, 'rug_cannot_sell', null);
+            continue;
+          }
+          if (q) {
+            const value = Math.max(0, Number(q.outAmount) / 1e6 - this.d.swapCostUsd);
+            const tokens = Number(pos.tokensRaw) / 10 ** pos.decimals;
+            pos.lastValueUsd = value;
+            pos.lastPrice = tokens > 0 ? value / tokens : 0;
             pos.peakPrice = Math.max(pos.peakPrice, pos.lastPrice);
-            pos.lastValueUsd = (Number(pos.tokensRaw) / 10 ** pos.decimals) * pos.lastPrice;
           }
           const why = exitDecision(pos, p, this.now(), this.d.rules);
-          if (why) await this.close(pos, why);
+          if (why) await this.close(pos, why, q ?? null);
         }
       }
       // Daily loss limit on realized + open: close everything, stop until tomorrow.
@@ -173,7 +186,7 @@ export class MemeEngine {
         this.s.halted = true;
         this.s.haltReason = 'daily_loss_limit';
         this.note({ mint: '-', symbol: '-', action: 'halt', reason: `daily loss ${dayLossPct(this.s.dayStartEquity, this.equity()).toFixed(2)}% ≥ ${this.d.rules.dailyLossPct}%` });
-        for (const pos of [...this.s.positions]) await this.close(pos, 'daily_loss_limit');
+        for (const pos of [...this.s.positions]) await this.close(pos, 'daily_loss_limit', null);
       }
       await this.persist();
       await this.writeStatus();
@@ -182,8 +195,9 @@ export class MemeEngine {
     }
   }
 
-  private async close(pos: Position, reason: ExitReason): Promise<void> {
-    const q = await this.d.jup.quote(pos.mint, USDC_MINT, BigInt(pos.tokensRaw)).catch(() => null);
+  private async close(pos: Position, reason: ExitReason, mark: Quote | null): Promise<void> {
+    // Sell at the quote that triggered the decision; fetch one only when the trigger had none (daily halt, rug).
+    const q = mark ?? (reason === 'rug_cannot_sell' ? null : await this.d.jup.quote(pos.mint, USDC_MINT, BigInt(pos.tokensRaw)).catch(() => null));
     const sellable = q !== null;
     const proceeds = sellable ? Number(q!.outAmount) / 1e6 - this.d.swapCostUsd : 0;
     const why: ExitReason = sellable ? reason : 'rug_cannot_sell';
@@ -209,7 +223,8 @@ export class MemeEngine {
     };
     this.s.cashUsd += t.proceedsUsd;
     this.s.positions = this.s.positions.filter((p) => p.id !== pos.id);
-    this.s.cooldown[pos.mint] = this.now();
+    // Off the list until: a day after a loss, the cooldown after a win.
+    this.s.cooldown[pos.mint] = this.now() + (t.pnlUsd < 0 ? this.d.rules.lossBlockMin : this.d.rules.cooldownMin) * 60_000;
     this.s.stats.trades += 1;
     if (t.pnlUsd > 0) this.s.stats.wins += 1;
     this.s.stats.realizedUsd += t.pnlUsd;
@@ -232,18 +247,18 @@ export class MemeEngine {
         await this.writeStatus();
         return;
       }
-      const tokens = Object.keys(this.s.watch).slice(-150);
+      const tokens = Object.keys(this.s.watch).slice(-240);
       const pairs = bestPairs(await this.d.dex.pairsFor(tokens));
       const ranked: DexPair[] = [];
       for (const p of pairs.values()) {
         if (this.s.positions.some((x) => x.mint === p.baseToken.address)) continue;
-        if (t - (this.s.cooldown[p.baseToken.address] ?? 0) < this.d.rules.cooldownMin * 60_000) continue;
+        if (t < (this.s.cooldown[p.baseToken.address] ?? 0)) continue;
         if (screen(p, this.d.rules, t) || entrySignal(p, this.d.rules)) continue;
         ranked.push(p);
       }
       this.s.stats.candidates += ranked.length;
       ranked.sort((a, b) => (b.volume?.m5 ?? 0) - (a.volume?.m5 ?? 0));
-      for (const p of ranked.slice(0, 3)) {
+      for (const p of ranked.slice(0, 5)) {
         if (this.s.positions.length >= this.d.rules.maxOpen || this.paused()) break;
         await this.consider(p).catch((e: Error) => this.note({ mint: p.baseToken.address, symbol: p.baseToken.symbol, action: 'skip', reason: `error: ${e.message.slice(0, 80)}` }));
       }
@@ -298,7 +313,7 @@ export class MemeEngine {
       athAtEntry: ath,
       liquidityAtEntry: p.liquidity?.usd ?? 0,
       lastPrice: entry,
-      lastValueUsd: size,
+      lastValueUsd: Math.max(0, Number(sell!.outAmount) / 1e6 - this.d.swapCostUsd), // what we could sell for right now
     };
     this.s.cashUsd -= cost;
     this.s.positions.push(pos);

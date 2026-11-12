@@ -41,6 +41,7 @@ export interface MemeRules {
   stallPct: number;
   liquidityDropPct: number; // rug: liquidity down this much from entry
   cooldownMin: number; // don't re-enter a token this soon after exiting it
+  lossBlockMin: number; // a token that lost us money is off the list for this long
 }
 
 export const DEFAULT_RULES: MemeRules = {
@@ -56,18 +57,19 @@ export const DEFAULT_RULES: MemeRules = {
   maxAgeH: 24 * 7,
   maxMarketCapUsd: 50_000_000,
   maxTop10Pct: 35,
-  maxRoundTripLossPct: 3, // fees + spread + impact both ways; more than this eats the +5%/-8% edge (and sell taxes start at 5%)
+  maxRoundTripLossPct: 3, // fees + spread + impact both ways; more than this eats the edge (and sell taxes start at 5%)
   maxPriceImpactPct: 3,
   maxPumpH1Pct: 150,
   stopLossPct: 10,
-  trailActivatePct: 5,
-  trailPct: 8,
+  trailActivatePct: 15, // a real move, not a 30-second wiggle; below this only the stop, the rug checks and "downside started" apply
+  trailPct: 10,
   athZonePct: 5,
   maxHoldMin: 240,
   stallMin: 45,
   stallPct: 2,
   liquidityDropPct: 30,
   cooldownMin: 120,
+  lossBlockMin: 24 * 60,
 };
 
 const n = (x: number | null | undefined) => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
@@ -166,12 +168,12 @@ export interface Position {
   costUsd: number;
   tokensRaw: string;
   decimals: number;
-  entryPrice: number;
-  peakPrice: number;
+  entryPrice: number; // effective fill price: usd spent / tokens received
+  peakPrice: number; // highest *sellable* price seen (from Jupiter sell quotes), not a chart wick
   athAtEntry: number | null;
   liquidityAtEntry: number;
-  lastPrice: number;
-  lastValueUsd: number;
+  lastPrice: number; // sellable price at the last mark
+  lastValueUsd: number; // what selling the whole position would bring now, after swap cost
 }
 
 export type ExitReason = 'stop_loss' | 'rug_liquidity' | 'rug_cannot_sell' | 'volume_collapse' | 'trend_turned' | 'ath_take_profit' | 'trailing_stop' | 'max_hold' | 'stalled' | 'daily_loss_limit';
@@ -182,10 +184,11 @@ export type ExitReason = 'stop_loss' | 'rug_liquidity' | 'rug_cannot_sell' | 'vo
  */
 export function exitDecision(pos: Position, p: DexPair | null, nowMs: number, r: MemeRules): ExitReason | null {
   if (!p) return 'rug_liquidity'; // pair vanished
-  const price = Number(p.priceUsd) || 0;
   const liq = n(p.liquidity?.usd);
   if (liq < pos.liquidityAtEntry * (1 - r.liquidityDropPct / 100)) return 'rug_liquidity';
-  const pnlPct = ((price - pos.entryPrice) / pos.entryPrice) * 100;
+  // Every P&L number here is what a sale would actually bring (the position's marks come from Jupiter sell quotes),
+  // never DexScreener's last-trade print, which lags a pump and wicks on a single small trade.
+  const pnlPct = ((pos.lastValueUsd - pos.costUsd) / pos.costUsd) * 100;
   if (pnlPct <= -r.stopLossPct) return 'stop_loss';
 
   const m5 = tx(p, 'm5');
@@ -194,9 +197,10 @@ export function exitDecision(pos: Position, p: DexPair | null, nowMs: number, r:
   // Volume collapse: the last 5 minutes trade at under a fifth of the hour's pace while price is falling.
   if (vol(p, 'm5') * 12 < vol(p, 'h1') * 0.2 && chg(p, 'm5') < 0) return 'volume_collapse';
 
-  const peak = Math.max(pos.peakPrice, price);
+  const price = pos.lastPrice;
+  const peak = pos.peakPrice;
   const upFromEntry = ((peak - pos.entryPrice) / pos.entryPrice) * 100;
-  const offPeak = ((peak - price) / peak) * 100;
+  const offPeak = peak > 0 ? ((peak - price) / peak) * 100 : 0;
 
   if (pnlPct > 0) {
     // In profit and the downside is starting: sell immediately.

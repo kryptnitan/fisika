@@ -5,7 +5,7 @@
  *
  * Env (all optional): MEME_DATA_DIR (/var/lib/fisika/meme), MEME_PAPER_EQUITY (100), SOLANA_RPC_URLS,
  * JUPITER_API_KEY, CONTROL_FILE, MEME_SESSION_MINUTES (stop after N minutes; CI), and rule overrides:
- * MEME_SIZE_PCT, MEME_MIN_TRADE_USD, MEME_MAX_TRADE_USD, MEME_DAILY_LOSS_PCT, MEME_STOP_LOSS_PCT, MEME_TRAIL_PCT,
+ * MEME_SIZE_PCT, MEME_MIN_TRADE_USD, MEME_MAX_TRADE_USD, MEME_DAILY_LOSS_PCT, MEME_STOP_LOSS_PCT, MEME_TRAIL_PCT, MEME_TRAIL_ACTIVATE_PCT,
  * MEME_MAX_HOLD_MIN, MEME_MAX_OPEN, MEME_SWAP_COST_USD.
  */
 import { defaultControlFile } from './agent/control.ts';
@@ -29,6 +29,7 @@ const rules: MemeRules = {
   dailyLossPct: num('MEME_DAILY_LOSS_PCT', DEFAULT_RULES.dailyLossPct),
   stopLossPct: num('MEME_STOP_LOSS_PCT', DEFAULT_RULES.stopLossPct),
   trailPct: num('MEME_TRAIL_PCT', DEFAULT_RULES.trailPct),
+  trailActivatePct: num('MEME_TRAIL_ACTIVATE_PCT', DEFAULT_RULES.trailActivatePct),
   maxHoldMin: num('MEME_MAX_HOLD_MIN', DEFAULT_RULES.maxHoldMin),
   maxOpen: num('MEME_MAX_OPEN', DEFAULT_RULES.maxOpen),
 };

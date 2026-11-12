@@ -81,19 +81,22 @@ describe('meme desk rules', () => {
     assert.match(roundTrip(10, 9.8, 4, R) ?? '', /^price_impact_4\.0pct$/);
   });
 
-  it('exits: rug first, then the stop, then profit-taking near the high or when the trend turns', () => {
-    const pos = (o: Partial<Position> = {}): Position => ({ id: 'p', mint: MINT, symbol: 'MEME', pair: PAIR, openedMs: NOW - 10 * 60_000, costUsd: 10, tokensRaw: '10000000000', decimals: 6, entryPrice: 0.001, peakPrice: 0.001, athAtEntry: 0.002, liquidityAtEntry: 100_000, lastPrice: 0.001, lastValueUsd: 10, ...o });
-    assert.equal(exitDecision(pos(), null, NOW, R), 'rug_liquidity', 'pair gone');
-    assert.equal(exitDecision(pos(), pair({ liq: 60_000 }), NOW, R), 'rug_liquidity', 'liquidity -40%');
-    assert.equal(exitDecision(pos(), pair({ price: 0.00089 }), NOW, R), 'stop_loss');
-    assert.equal(exitDecision(pos(), pair({ price: 0.0011, v5: 1_000, vh1: 200_000, m5: -1 }), NOW, R), 'volume_collapse');
-    assert.equal(exitDecision(pos(), pair({ price: 0.0012, b5: 10, s5: 40, m5: -5 }), NOW, R), 'trend_turned', 'in profit, sellers took over: sell now');
-    assert.equal(exitDecision(pos({ peakPrice: 0.00198 }), pair({ price: 0.00195, m5: -0.5, b5: 30, s5: 35 }), NOW, R), 'ath_take_profit');
-    assert.equal(exitDecision(pos({ peakPrice: 0.00198 }), pair({ price: 0.00197, m5: 3, b5: 80, s5: 20 }), NOW, R), null, 'at the high but still pushing: hold');
-    assert.equal(exitDecision(pos({ peakPrice: 0.0015, athAtEntry: 0.01 }), pair({ price: 0.00137, m5: 1 }), NOW, R), 'trailing_stop', 'up 50% then -8.7% off the peak');
-    assert.equal(exitDecision(pos({ openedMs: NOW - 241 * 60_000, athAtEntry: 0.01 }), pair({ price: 0.00104 }), NOW, R), 'max_hold');
-    assert.equal(exitDecision(pos({ openedMs: NOW - 50 * 60_000, athAtEntry: 0.01 }), pair({ price: 0.00101 }), NOW, R), 'stalled');
-    assert.equal(exitDecision(pos({ athAtEntry: 0.01 }), pair({ price: 0.00103 }), NOW, R), null, 'young, small gain, momentum fine: hold');
+  it('exits: rug first, then the stop, then profit-taking near the high or when the trend turns (all on sellable marks)', () => {
+    // A position marked at a sellable price (what a Jupiter sell quote says we would get), 10,000 tokens, $10 cost.
+    const at = (price: number, o: Partial<Position> = {}): Position => ({ id: 'p', mint: MINT, symbol: 'MEME', pair: PAIR, openedMs: NOW - 10 * 60_000, costUsd: 10, tokensRaw: '10000000000', decimals: 6, entryPrice: 0.001, peakPrice: Math.max(0.001, price), athAtEntry: 0.002, liquidityAtEntry: 100_000, lastPrice: price, lastValueUsd: price * 10_000, ...o });
+    assert.equal(exitDecision(at(0.001), null, NOW, R), 'rug_liquidity', 'pair gone');
+    assert.equal(exitDecision(at(0.001), pair({ liq: 60_000 }), NOW, R), 'rug_liquidity', 'liquidity -40%');
+    assert.equal(exitDecision(at(0.00089), pair({ price: 0.0012 }), NOW, R), 'stop_loss', 'the chart says +20% but we could only sell at -11%: the stop is on what we would get');
+    assert.equal(exitDecision(at(0.00102), pair({ price: 0.00085 }), NOW, R), null, 'the chart prints a dip we cannot sell into; our sale price is fine: hold');
+    assert.equal(exitDecision(at(0.0011), pair({ v5: 1_000, vh1: 200_000, m5: -1 }), NOW, R), 'volume_collapse');
+    assert.equal(exitDecision(at(0.0012), pair({ b5: 10, s5: 40, m5: -5 }), NOW, R), 'trend_turned', 'in profit, sellers took over: sell now');
+    assert.equal(exitDecision(at(0.00195, { peakPrice: 0.00198 }), pair({ m5: -0.5, b5: 30, s5: 35 }), NOW, R), 'ath_take_profit');
+    assert.equal(exitDecision(at(0.00197, { peakPrice: 0.00198 }), pair({ m5: 3, b5: 80, s5: 20 }), NOW, R), null, 'at the high but still pushing: hold');
+    assert.equal(exitDecision(at(0.00133, { peakPrice: 0.0015, athAtEntry: 0.01 }), pair({ m5: 1 }), NOW, R), 'trailing_stop', 'up 50% then -11% off the peak');
+    assert.equal(exitDecision(at(0.00102, { peakPrice: 0.00108, athAtEntry: 0.01 }), pair({ m5: 1 }), NOW, R), null, 'up 8% then back: a wiggle, not a trail (trail starts at +15%)');
+    assert.equal(exitDecision(at(0.00104, { openedMs: NOW - 241 * 60_000, athAtEntry: 0.01 }), pair(), NOW, R), 'max_hold');
+    assert.equal(exitDecision(at(0.00101, { openedMs: NOW - 50 * 60_000, athAtEntry: 0.01 }), pair(), NOW, R), 'stalled');
+    assert.equal(exitDecision(at(0.00103, { athAtEntry: 0.01 }), pair(), NOW, R), null, 'young, small gain, momentum fine: hold');
   });
 });
 
@@ -142,6 +145,13 @@ describe('meme desk paper engine', () => {
     assert.ok(e.state.stats.realizedUsd < -1 && e.state.stats.realizedUsd > -2, `lost about 12% of $10: ${e.state.stats.realizedUsd}`);
     const ledger = (await readFile(join((e as any).d.dataDir, 'meme-ledger.jsonl'), 'utf8')).trim().split('\n').map((l) => JSON.parse(l));
     assert.equal(ledger[0].reason, 'stop_loss');
+    p = 0.001;
+    r.tick(3 * 3_600_000);
+    await e.scan();
+    assert.equal(e.state.positions.length, 0, 'a token that lost us money is not re-entered for a day');
+    r.tick(22 * 3_600_000);
+    await e.scan();
+    assert.equal(e.state.positions.length, 1, 'a day later it is eligible again');
   });
 
   it('cannot sell → books a total loss as rug_cannot_sell', async () => {
