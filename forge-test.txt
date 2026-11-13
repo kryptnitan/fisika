@@ -1,7 +1,7 @@
 No files changed, compilation skipped
 
 Ran 14 tests for test/FisikaExecutor.t.sol:FisikaExecutorTest
-[PASS] testFuzz_feeNeverExceedsCap(uint96,uint16) (runs: 512, μ: 288236, ~: 290179)
+[PASS] testFuzz_feeNeverExceedsCap(uint96,uint16) (runs: 512, μ: 288612, ~: 290377)
 [PASS] test_badPatchOffset() (gas: 154660)
 [PASS] test_deadline() (gas: 48922)
 [PASS] test_feeCap() (gas: 48820)
@@ -15,36 +15,18 @@ Ran 14 tests for test/FisikaExecutor.t.sol:FisikaExecutorTest
 [PASS] test_reentrancyBlocked() (gas: 1305013)
 [PASS] test_singleLeg() (gas: 281130)
 [PASS] test_targetMustBeAllowlisted() (gas: 68110)
-Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 92.24ms (96.45ms CPU time)
+Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 55.21ms (57.44ms CPU time)
 
-Ran 5 tests for test/FisikaExecutor.fork.t.sol:FisikaExecutorForkTest
-[PASS] test_fork_crossVenueTwoHopAtomic() (gas: 943187)
-Logs:
-  USDT->USDC->USDm out 99767646083207511021
-
-[PASS] test_fork_mentoQuoteMatchesExecution() (gas: 884513)
-Logs:
-  FPMM USDC/USDm holds USDm 29044 USDC 32113
-  FPMM USDT/USDm holds USDm 24675 USDT 37047
-  USDC->USDm mento quoted 99959182164400000000 executed 99959182164400000000
-
-[PASS] test_fork_mentoV3ThenV2BrokerAtomic() (gas: 1084745)
-Logs:
-  USDC->USDm->KESm out 6432373372279139421086
-
-[PASS] test_fork_slippageGuardRevertsWholeRoute() (gas: 747957)
-[PASS] test_fork_uniswapSingleLeg() (gas: 637080)
-Logs:
-  USDT->USDC uni fee 100 out 99908294
-
-Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 15.47s (36.43s CPU time)
+Ran 1 test for test/FisikaExecutor.fork.t.sol:FisikaExecutorForkTest
+[FAIL: EVM error; database error: failed to get account for 0x4200000000000000000000000000000000000011: server returned an error response: error code -32001: block not found: hash 0x059c56c27831f3ee286c23d0247cbe272f3bee3acc0b3863ba84ccb41a5cb34d] setUp() (gas: 0)
+Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 1.01s (0.00ns CPU time)
 
 ╭------------------------------------------------+-----------------+--------+--------+--------+---------╮
 | src/FisikaExecutor.sol:FisikaExecutor Contract |                 |        |        |        |         |
 +=======================================================================================================+
 | Deployment Cost                                | Deployment Size |        |        |        |         |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
-|                                        1537386 |            6987 |        |        |        |         |
+|                                        1536966 |            6987 |        |        |        |         |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 |                                                |                 |        |        |        |         |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
@@ -52,7 +34,7 @@ Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 15.47s (36.43s CPU 
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | acceptOwnership                                |           33065 |  33065 |  33065 |  33065 |       1 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
-| execute                                        |           31306 | 225851 | 226742 | 747223 |     274 |
+| execute                                        |           31306 | 221400 | 226742 | 383601 |     269 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | owner                                          |            2391 |   2391 |   2391 |   2391 |       2 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
@@ -60,9 +42,9 @@ Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 15.47s (36.43s CPU 
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | paused                                         |            2343 |   2343 |   2343 |   2343 |       1 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
-| setSpender                                     |           47823 |  47832 |  47835 |  47835 |      58 |
+| setSpender                                     |           47823 |  47831 |  47835 |  47835 |      43 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
-| setTarget                                      |           47874 |  47883 |  47886 |  47886 |      58 |
+| setTarget                                      |           47874 |  47882 |  47886 |  47886 |      43 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | transferOwnership                              |           47528 |  47528 |  47528 |  47528 |       1 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
@@ -112,7 +94,7 @@ Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 15.47s (36.43s CPU 
 |----------------------------------+-----------------+-------+--------+-------+---------|
 | allowance                        |            2732 |  2732 |   2732 |  2732 |       1 |
 |----------------------------------+-----------------+-------+--------+-------+---------|
-| approve                          |           24267 | 34378 |  44356 | 44380 |     525 |
+| approve                          |           24267 | 34379 |  44356 | 44380 |     525 |
 |----------------------------------+-----------------+-------+--------+-------+---------|
 | balanceOf                        |             529 |   555 |    529 |  2529 |     530 |
 |----------------------------------+-----------------+-------+--------+-------+---------|
@@ -144,4 +126,13 @@ Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 15.47s (36.43s CPU 
 ╰----------------------------------------+-----------------+--------+--------+--------+---------╯
 
 
-Ran 2 test suites in 15.47s (15.56s CPU time): 19 tests passed, 0 failed, 0 skipped (19 total tests)
+Ran 2 test suites in 1.02s (1.07s CPU time): 14 tests passed, 1 failed, 0 skipped (15 total tests)
+
+Failing tests:
+Encountered 1 failing test in test/FisikaExecutor.fork.t.sol:FisikaExecutorForkTest
+[FAIL: EVM error; database error: failed to get account for 0x4200000000000000000000000000000000000011: server returned an error response: error code -32001: block not found: hash 0x059c56c27831f3ee286c23d0247cbe272f3bee3acc0b3863ba84ccb41a5cb34d] setUp() (gas: 0)
+
+Encountered a total of 1 failing tests, 14 tests succeeded
+
+Tip: Run `forge test --rerun` to retry only the 1 failed test
+Tip: Run `forge test --debug --match-test <TEST_NAME>` to inspect one failing test in the debugger
