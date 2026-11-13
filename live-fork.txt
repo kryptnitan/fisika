@@ -6,3 +6,18 @@ PASS 4-leg cycle via Mento v2 completed in 8 txs, ledger P&L $-0.4130
 PASS ledger and status file written
 PASS impossible minimum output reverts and moves no funds
 PASS Textile leg without a key is refused
+[live] completed USDT→USDm→USDT uniswap-v3,uniswap-v3 realized $-0.0027
+PASS [celo] 1. paused for 60 ticks (=10 min): 0 transactions; resumed: next loop ran (5 txs)
+[live] completed USDT→USDm→USDT uniswap-v3,uniswap-v3 realized $-0.0024
+PASS [celo] 2. paused during leg 1: loop completed back to USDT, no new loop started
+PASS [celo] 3. restarted while paused: still paused, no transactions
+[live] completed USDT→USDm→USDT uniswap-v3,uniswap-v3 realized $-0.0022
+PASS [celo] 6. bsc paused only: celo kept trading; celo paused: celo stopped
+[agent] owner signed in 0x70997970c51812dc3a010c7d01b50e0d17dc79c8
+[agent] withdrawal w_a1ec7019-d1ce-44a7-8efd-94ce96c6800f 1 USDT on celo requested by owner
+[withdraw] sent w_a1ec7019-d1ce-44a7-8efd-94ce96c6800f 1 USDT tx 0xecad471e0dddeb6b78bd07a981119feab990ac43db00bded6ec26840b2ada2a9
+[agent] withdrawal w_0c1efd5c-f74a-4bc5-bc23-b43aa6ade717 max native on celo requested by owner
+[withdraw] sent w_0c1efd5c-f74a-4bc5-bc23-b43aa6ade717 99.350453189692477314 native tx 0x8e22564b9f2b3014c7592a2f2668eb27f1b4a08e466e2dad612711cbccc3fd33
+PASS [celo] 5. deposit $1 (0x2d5cf447…) and withdraw $1 (0xecad471e…) to the owner; balances, funding history and trade history updated; Max CELO kept the gas reserve
+
+11 checks passed
