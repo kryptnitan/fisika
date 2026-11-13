@@ -1,6 +1,6 @@
 # On-chain verification — Celo
 
-Block 82657842 · 2026-11-13T08:30:05.094Z
+Block 82657958 · 2026-11-13T08:32:00.435Z
 
 All hard checks passed.
 
@@ -28,20 +28,20 @@ All hard checks passed.
 ## v3 pools
 | DEX | Pair | Fee | Pool | Balances |
 |---|---|---|---|---|
-| Uniswap | USDT/USDC | 100 | `0x1a810e0B6c2dd5629AFa2f0c898b9512C6F78846` | 157768.72 USDT / 30545.96 USDC |
+| Uniswap | USDT/USDC | 100 | `0x1a810e0B6c2dd5629AFa2f0c898b9512C6F78846` | 157833.06 USDT / 30481.67 USDC |
 | Uniswap | USDT/USDC | 500 | `0x2392AE4Ba6Daf181CE7343d237b695CdF525E233` | 0.00 USDT / 0.00 USDC |
 | Uniswap | USDT/USDC | 3000 | `0x9AfAc41cbd701a184a74475Aa8BDcda6a1a564a1` | 3.50 USDT / 3.50 USDC |
 | Uniswap | USDT/USDm | 100 | `0x5dC631aD6C26BEA1a59fBF2C2680CF3df43d249f` | 609776.10 USDT / 34590.93 USDm |
 | Uniswap | USDT/USDm | 500 | `0x13E726e06C4a1f21668173ba9134926eb74e95bD` | 0.00 USDT / 0.00 USDm |
 | Uniswap | USDT/USDm | 3000 | `0x110ebF7E9244a6Cc5d2060E0DEd2d01C1075E5af` | 3.10 USDT / 3.14 USDm |
 | Uniswap | USDT/USDm | 10000 | `0x6a33ddcBD1d9F8Eb14B8aC150D5e0244e707cd52` | 0.02 USDT / 0.02 USDm |
-| Uniswap | USDT/cNGN | 100 | `0x6519d56Eb0A69FC0338657784c783B169b8f7d32` | 67475.81 USDT / 155967190.02 cNGN |
+| Uniswap | USDT/cNGN | 100 | `0x6519d56Eb0A69FC0338657784c783B169b8f7d32` | 67737.60 USDT / 155598268.35 cNGN |
 | Uniswap | USDT/NGNm | 100 | `0x1e2F87e1f8056Fcd39695aAeb63cb475E1DD2318` | 44430.06 USDT / 28481568.37 NGNm |
 | Uniswap | USDT/KESm | 100 | `0x61Ef8708fc240DC7f9F2c0d81c3124Df2fd8829F` | 770.01 USDT / 1391435.00 KESm |
 | Uniswap | USDT/GHSm | 100 | `0x6BAB3AfA6d0c42d539bcbc33Ffb68C0406913413` | 7283.64 USDT / 158910.80 GHSm |
 | Uniswap | USDT/ZARm | 100 | `0xb793ff8031FCe64b3f553DBf40a70370FDEAC1C7` | 530.89 USDT / 8842.90 ZARm |
 | Uniswap | USDT/wBRL | 100 | `0x01c3cf91cdf7B34181C7eC8566c0236951FEA40F` | 23.22 USDT / 147084.38 wBRL |
-| Uniswap | USDT/wARS | 100 | `0x5D8ef8B839be522b9E3d60a51EDB5837CD0b2391` | 29761.60 USDT / 127049439.66 wARS |
+| Uniswap | USDT/wARS | 100 | `0x5D8ef8B839be522b9E3d60a51EDB5837CD0b2391` | 29762.31 USDT / 127048259.98 wARS |
 | Uniswap | USDT/BRLm | 100 | `0x1625fE58Cdb3726e5841Fb2bb367Dde9AAa009B3` | 115.08 USDT / 109923.16 BRLm |
 | Uniswap | USDT/BRLA | 100 | `0x14E577e42d45Fd2200A9B0e31D87Fe826467111a` | 15684.53 USDT / 78799.90 BRLA |
 | Uniswap | USDT/COPM | 100 | `0x4495F525C4ECaCF9713a51eC3e8d1e81d7dFf870` | 16933.10 USDT / 24371449.87 COPM |
@@ -110,7 +110,7 @@ All hard checks passed.
   {
     "pair": "cNGN->USDT",
     "min": "1408.199",
-    "max": "87357044.686849",
+    "max": "87174568.635532",
     "sellDecimals": 6,
     "buyDecimals": 6,
     "points": 9
@@ -118,15 +118,15 @@ All hard checks passed.
   {
     "pair": "USDT->cNGN",
     "min": "1",
-    "max": "74218.405495",
+    "max": "74326.474907",
     "sellDecimals": 6,
     "buyDecimals": 6,
     "points": 9
   },
   {
     "pair": "wARS->USDT",
-    "min": "1662.925",
-    "max": "78587086.938402371336981585",
+    "min": "1663.415",
+    "max": "78571382.67342341196177853",
     "sellDecimals": 18,
     "buyDecimals": 6,
     "points": 9
@@ -134,7 +134,7 @@ All hard checks passed.
   {
     "pair": "USDT->wARS",
     "min": "1",
-    "max": "25331.10671",
+    "max": "25336.254746",
     "sellDecimals": 6,
     "buyDecimals": 18,
     "points": 9
@@ -142,7 +142,7 @@ All hard checks passed.
   {
     "pair": "wBRL->USDT",
     "min": "5.6763",
-    "max": "261737.127151861790671505",
+    "max": "261746.346217125450618675",
     "sellDecimals": 18,
     "buyDecimals": 6,
     "points": 9
@@ -150,14 +150,14 @@ All hard checks passed.
   {
     "pair": "USDT->wBRL",
     "min": "1",
-    "max": "28.097168",
+    "max": "28.097165",
     "sellDecimals": 6,
     "buyDecimals": 18,
     "points": 7
   },
   {
     "pair": "USDC->USDT",
-    "min": "0.9992",
+    "min": "0.99919",
     "max": "3545.964915",
     "sellDecimals": 6,
     "buyDecimals": 6,
@@ -166,7 +166,7 @@ All hard checks passed.
   {
     "pair": "USDT->USDC",
     "min": "1",
-    "max": "25.025679",
+    "max": "25.025719",
     "sellDecimals": 6,
     "buyDecimals": 6,
     "points": 7
@@ -189,8 +189,8 @@ All hard checks passed.
   },
   {
     "pair": "0x7ae4265ecfc1f31bc0e112dfcfe3d78e01f4bb7f->USDT",
-    "min": "0.75465",
-    "max": "16364.08457563012265169",
+    "min": "0.75475",
+    "max": "16366.253001670765797357",
     "sellDecimals": 18,
     "buyDecimals": 6,
     "points": 9
@@ -205,8 +205,8 @@ All hard checks passed.
   },
   {
     "pair": "0xc5ebea9984c485ec5d58ca5a2d376620d93af871->USDT",
-    "min": "0.83558",
-    "max": "18118.997925614757314897",
+    "min": "0.83561",
+    "max": "18119.64845603888855202",
     "sellDecimals": 18,
     "buyDecimals": 6,
     "points": 9
@@ -254,7 +254,7 @@ All hard checks passed.
   {
     "pair": "0x18bc5bcc660cf2b9ce3cd51a404afe1a0cbd3c22->USDT",
     "min": "18288",
-    "max": "11823662356.33",
+    "max": "11823662434.34",
     "sellDecimals": 2,
     "buyDecimals": 6,
     "points": 9
@@ -269,8 +269,8 @@ All hard checks passed.
   },
   {
     "pair": "0x8a1d45e102e886510e891d2ec656a708991e2d76->USDT",
-    "min": "3349",
-    "max": "226034170.276928768363208723",
+    "min": "3345",
+    "max": "225764148.043755267988159621",
     "sellDecimals": 18,
     "buyDecimals": 6,
     "points": 9
@@ -278,15 +278,15 @@ All hard checks passed.
   {
     "pair": "USDT->0x8a1d45e102e886510e891d2ec656a708991e2d76",
     "min": "1",
-    "max": "91.504277",
+    "max": "91.613624",
     "sellDecimals": 6,
     "buyDecimals": 18,
     "points": 8
   },
   {
     "pair": "0xd221812de1bd094f35587ee8e174b07b6167d9af->USDT",
-    "min": "0.000517346633",
-    "max": "15.7216521648528278",
+    "min": "0.000516993579",
+    "max": "15.663074362594066859",
     "sellDecimals": 18,
     "buyDecimals": 6,
     "points": 9
@@ -294,15 +294,15 @@ All hard checks passed.
   {
     "pair": "USDT->0xd221812de1bd094f35587ee8e174b07b6167d9af",
     "min": "1",
-    "max": "16.508844",
+    "max": "16.509101",
     "sellDecimals": 6,
     "buyDecimals": 18,
     "points": 6
   },
   {
     "pair": "0x337e7456b420bd3481e7fa61fa9850343d610d34->USDT",
-    "min": "18.616",
-    "max": "4096.562065077051051413",
+    "min": "18.617",
+    "max": "4096.762118330916134938",
     "sellDecimals": 18,
     "buyDecimals": 6,
     "points": 9
@@ -333,7 +333,7 @@ All hard checks passed.
   },
   {
     "pair": "0x62b8b11039fcfe5ab0c56e502b1c372a3d2a9c7a->USDT",
-    "min": "8708.536025977128",
+    "min": "8708.538194893612",
     "max": "0",
     "sellDecimals": 18,
     "buyDecimals": 6,
