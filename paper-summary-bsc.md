@@ -1,14 +1,14 @@
 # fisika paper trading record
 
-57 sessions over 14.8 days (52.3 hours watched), 2026-10-29T12:56:16.625Z to 2026-11-13T07:34:21.512Z. Live BNB Chain prices on free RPCs, nothing signed.
+58 sessions over 15.1 days (53.2 hours watched), 2026-10-29T12:56:16.625Z to 2026-11-13T16:17:24.453Z. Live BNB Chain prices on free RPCs, nothing signed.
 
 | | |
 |---|---|
-| Opportunities that cleared the first check | 3553 |
+| Opportunities that cleared the first check | 3780 |
 | Paper fills (passed live re-quote and every risk limit) | 0 |
 | Paper P&L | $0.0000 |
 | P&L per watched hour | $0.0000 |
-| RPC requests | 50,524 (0.27/s) |
+| RPC requests | 51,486 (0.27/s) |
 | Venue refresh failures | {"textile":205} |
 
 ## Fills by cycle
@@ -18,14 +18,15 @@
 
 ## Why opportunities were skipped
 
-- edge_bps_below_min: 3423
+- edge_bps_below_min: 3641
 - inventory_exposure: 127
-- after_requote: edge_bps_below_min: 3
+- after_requote: edge_bps_below_min: 12
 
 ## Sessions
 
 | Start | Min | RPCs | Requests | Opps | Fills | P&L |
 |---|---|---|---|---|---|---|
+| 2026-11-13 15:22 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 962 | 227 | 0 | $0.0000 |
 | 2026-11-13 06:39 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 223 | 0 | $0.0000 |
 | 2026-11-12 23:40 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 220 | 0 | $0.0000 |
 | 2026-11-12 18:16 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 0 | 0 | $0.0000 |
@@ -73,4 +74,3 @@
 | 2026-11-01 05:58 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 0 | 0 | $0.0000 |
 | 2026-10-31 23:22 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 0 | 0 | $0.0000 |
 | 2026-10-31 19:57 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 11 | 0 | $0.0000 |
-| 2026-10-31 15:18 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 27 | 0 | $0.0000 |
