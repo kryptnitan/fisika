@@ -60,7 +60,7 @@ const engine = new MemeEngine({
 });
 await engine.restore();
 await engine.writeStatus();
-console.log(`fisika meme desk · PAPER · equity $${engine.equity().toFixed(2)} · size ${rules.sizePct}% ($${rules.minTradeUsd}–$${rules.maxTradeUsd}) · daily loss ${rules.dailyLossPct}% · stop ${rules.stopLossPct}% · trail ${rules.trailPct}% · ${engine.paused() ? 'PAUSED (switch on in My agent)' : 'active'} · rpc ${ok.map((u) => new URL(u).host).join(', ')}`);
+console.log(`fisika meme desk · PAPER · equity $${engine.equity().toFixed(2)} · size ${rules.sizePct}% ($${rules.minTradeUsd}–$${rules.maxTradeUsd}) · daily loss ${rules.dailyLossPct}% · stop ${rules.stopLossPct}% · trail ${rules.trailPct}% after +${rules.trailActivatePct}% · max ${rules.maxOpen} open · jupiter ${process.env.JUPITER_API_KEY ? 'key on' : 'keyless'} · ${engine.paused() ? 'PAUSED (switch on in My agent)' : 'active'} · rpc ${ok.map((u) => new URL(u).host).join(', ')}`);
 
 const safe = (f: () => Promise<void>, what: string) => () => void f().catch((e: Error) => console.error(`[meme] ${what} failed: ${e.message}`));
 const watch = safe(() => engine.watch(), 'watch');

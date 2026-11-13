@@ -1,0 +1,17 @@
+{
+  "chainId": 42220,
+  "FisikaExecutor": {
+    "address": "0x38dADc2171A1e9A9B30C04E58109886A7715D18b",
+    "deployTx": "0x356b5ef6a647f3993bd9a16c5b552459c8d769cbf8dccc7d4e2711c26c4413ba",
+    "deployer": "0x27BA209163C1D8e7B19C69144B46eE7A2B91C0B4",
+    "owner": "0x96fc4551eea01c7ca55833152186b058b919264e",
+    "guardian": "0x27BA209163C1D8e7B19C69144B46eE7A2B91C0B4",
+    "constructorArgs": ["0x27BA209163C1D8e7B19C69144B46eE7A2B91C0B4", "0x27BA209163C1D8e7B19C69144B46eE7A2B91C0B4"],
+    "deployedAt": "2026-11-12T22:23:00Z",
+    "venues": {
+      "Uniswap SwapRouter02": "0x5615CDAb10dc425a742d643d949a7F474C01abc4",
+      "Mento router": "0x4861840C2EfB2b98312B0aE34d86fD73E8f9B6f6",
+      "Mento broker": "0x777A8255cA72412f0d706dc03C9D1987306B4CaD"
+    }
+  }
+}

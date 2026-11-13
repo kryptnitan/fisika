@@ -326,6 +326,13 @@ jobs:
         env:
           CELO_RPC_URL: ${{ secrets.CELO_RPC_URL || 'https://forno.celo.org' }}
         run: forge test -vv --gas-report | tee forge-test.txt
+      - name: Verify the deployed Celo contract's source on Sourcify (keyless; a no-op once verified)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          addr=$(jq -r .FisikaExecutor.address deployments/celo.json)
+          args=$(cast abi-encode "constructor(address,address)" $(jq -r '.FisikaExecutor.constructorArgs[]' deployments/celo.json))
+          forge verify-contract --verifier sourcify --chain 42220 --constructor-args "$args" "$addr" src/FisikaExecutor.sol:FisikaExecutor 2>&1 | tee sourcify.txt || true
+          grep -qiE "verified|already" sourcify.txt || { echo "::warning::Sourcify verification did not confirm; see output above"; }
       - name: Publish forge results to the verification branch
         if: always() && github.ref == 'refs/heads/main'
         working-directory: .

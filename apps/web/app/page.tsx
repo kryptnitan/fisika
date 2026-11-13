@@ -41,16 +41,18 @@ function BoardTable({ board, error, onPick, selected, chainName }: { board: Boar
     <div className="scroll">
       <table className="board">
         <caption className="muted" style={{ textAlign: 'left', padding: '0 0 8px', fontFamily: 'var(--sans)' }}>
-          Output per 1 unit sold, after venue fees. Updated {ago(board.asOf)}. Select a pair to quote it.
+          Output per 1 unit sold, after venue fees, at three order sizes. A rate in red is worse than the $10 rate by the shown amount (price impact); “no fill” means no venue can take that size right now. Updated {ago(board.asOf)}. Select a pair to quote it.
         </caption>
         <thead>
           <tr>
             <th scope="col">Pair</th>
-            <th scope="col">$10</th>
+            <th scope="col" className="c-s10">$10</th>
             <th scope="col">$100</th>
             <th scope="col">$1,000</th>
-            <th scope="col">Route at $100</th>
-            <th scope="col">Venue spread</th>
+            <th scope="col" className="c-route">Route at $100</th>
+            <th scope="col" title="How far apart the venues' own direct prices are at $100, in basis points. Wide = arbitrage room.">
+              Spread
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -67,10 +69,24 @@ function BoardTable({ board, error, onPick, selected, chainName }: { board: Boar
                     </span>
                   </button>
                 </td>
-                {r.sizes.map((s) => (
-                  <td key={s.usd}>{fmtRate(s.rate)}</td>
-                ))}
-                <td className="venues">
+                {r.sizes.map((s, i) => {
+                  const base = r.sizes[0]?.rate;
+                  const impact = s.rate !== null && base && i > 0 ? ((s.rate - base) / base) * 100 : 0;
+                  const bad = impact <= -0.5;
+                  return (
+                    <td key={s.usd} className={i === 0 ? 'c-s10' : undefined}>
+                      {s.rate === null ? (
+                        <span className="muted">no fill</span>
+                      ) : (
+                        <>
+                          <span className={bad ? 'impact' : undefined}>{fmtRate(s.rate)}</span>
+                          {bad ? <span className="impact-note">{impact.toFixed(1)}%</span> : null}
+                        </>
+                      )}
+                    </td>
+                  );
+                })}
+                <td className="venues c-route">
                   {s100?.venues?.map((v) => VENUE_LABEL[v] ?? v).join(' + ') ?? '—'}
                   {s100?.split ? <span className="tag">split</span> : null}
                   {s100 && s100.hops && s100.hops > 1 ? <span className="tag">{s100.hops} hops</span> : null}

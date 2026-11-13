@@ -8,7 +8,8 @@ import { UI_CHAINS } from '@/lib/chain';
 import { connect, sendTx, signMessage, waitForTx } from '@/lib/wallet';
 
 const short = (a: string | null | undefined) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '—');
-const usd = (n: number | null | undefined) => (n === null || n === undefined ? '—' : `$${n.toLocaleString('en-US', { maximumFractionDigits: n < 10 ? 4 : 2 })}`);
+/** Dollars to the cent; sub-cent amounts (gas) keep four decimals so they don't round to $0. */
+const usd = (n: number | null | undefined) => (n === null || n === undefined ? '—' : `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: Math.abs(n) < 0.01 && n !== 0 ? 4 : 2 })}`);
 const num = (s: string | null | undefined) => (s === null || s === undefined ? '—' : Number(s).toLocaleString('en-US', { maximumFractionDigits: 6 }));
 
 export default function AgentPage() {
@@ -363,8 +364,8 @@ function MemePanel({ refreshKey, onChange, guard }: { refreshKey: number; onChan
             </div>
             <div className="stat">
               <span className="muted small">Rules</span>
-              <b className="num">
-                {rules.sizePct}% size · ${rules.minTradeUsd}–${rules.maxTradeUsd}
+              <b className="num rules">
+                {rules.sizePct}% · ${rules.minTradeUsd}–${rules.maxTradeUsd.toLocaleString('en-US')}
               </b>
               <span className="small muted">
                 stop −{rules.stopLossPct}% · trail {rules.trailPct}% · hold ≤{rules.maxHoldMin}m · {s.watching} watched
