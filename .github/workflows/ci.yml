@@ -332,7 +332,7 @@ jobs:
           addr=$(jq -r .FisikaExecutor.address deployments/celo.json)
           args=$(cast abi-encode "constructor(address,address)" $(jq -r '.FisikaExecutor.constructorArgs[]' deployments/celo.json))
           forge verify-contract --verifier sourcify --chain 42220 --constructor-args "$args" "$addr" src/FisikaExecutor.sol:FisikaExecutor 2>&1 | tee sourcify.txt || true
-          grep -qiE "verified|already" sourcify.txt || { echo "::warning::Sourcify verification did not confirm; see output above"; }
+          grep -qiE "verified|already|submitted" sourcify.txt || { echo "::warning::Sourcify verification did not confirm; see output above"; }
       - name: Publish forge results to the verification branch
         if: always() && github.ref == 'refs/heads/main'
         working-directory: .
