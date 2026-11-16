@@ -172,6 +172,15 @@ function Switches({ state, onChange, guard }: { state: AgentState | null; onChan
     setBusy(null);
     onChange();
   };
+  const [reqMsg, setReqMsg] = useState<string | null>(null);
+  const request = async (kind: 'unwind' | 'clear-halt', chain: string) => {
+    if (kind === 'unwind' && !window.confirm('Sell the held tokens back at the best live quote now? This pauses the chain first.')) return;
+    setBusy(`${kind}-${chain}`);
+    const r = await guard(agentApi<{ note: string }>(`request/${kind}`, { chain }));
+    setReqMsg(r ? r.note : null);
+    setBusy(null);
+    onChange();
+  };
   if (!state) return <section className="panel">Loading status…</section>;
   return (
     <section className="panel agent-switch" aria-label="Trading switch">
@@ -205,12 +214,32 @@ function Switches({ state, onChange, guard }: { state: AgentState | null; onChan
             <span className={`badge small ${c.status}`}>{BADGE[c.status]}</span>
             <span className="muted small">
               {c.trader === 'online' ? (c.inFlight ? 'trade in flight' : 'trader running') : c.trader === 'offline' ? 'trader not responding' : c.trader === 'never_started' ? 'trader not started' : 'no trader configured'}
-              {c.halted ? ` · halted: ${c.haltReason}` : ''}
               {c.pendingWithdrawals.length ? ` · ${c.pendingWithdrawals.length} withdrawal(s) pending` : ''}
             </span>
+            {c.halted || (c.stranded?.length ?? 0) > 0 ? (
+              <div className="halt-row">
+                <span className="err small">
+                  {c.stranded?.length ? `Holding ${c.stranded.map((h) => `${Number(h.amount).toLocaleString('en-US', { maximumFractionDigits: 2 })} ${h.symbol}`).join(', ')} from an unfinished loop.` : ''}
+                  {c.halted ? ` Halted: ${c.haltReason}` : ''}
+                </span>
+                <span className="row-start">
+                  {c.stranded?.length ? (
+                    <button type="button" disabled={busy === `unwind-${c.key}`} onClick={() => request('unwind', c.key)}>
+                      Sell back to {c.startToken ?? 'USDT'}
+                    </button>
+                  ) : null}
+                  {c.halted ? (
+                    <button type="button" disabled={busy === `clear-halt-${c.key}`} onClick={() => request('clear-halt', c.key)}>
+                      Clear halt
+                    </button>
+                  ) : null}
+                </span>
+              </div>
+            ) : null}
           </div>
         ))}
       </div>
+      {reqMsg ? <p className="small">{reqMsg}</p> : null}
       <p className="muted small">A chain trades only when the main switch and its own switch are both on. Pausing never cuts a loop in half: the one in flight finishes first. Server fallback: <code>sudo fisika pause</code> / <code>sudo fisika resume</code>.</p>
     </section>
   );
@@ -332,10 +361,27 @@ function MemePanel({ refreshKey, onChange, guard }: { refreshKey: number; onChan
             {status === 'halted' ? ` ${s?.haltReason ?? `Daily loss limit of ${limit}% hit.`} New entries resume at 00:00 UTC.` : status === 'paused' ? ' Opens no new positions; open ones are still managed to exit.' : ''}
           </p>
         </div>
-        <label className="chk">
-          <input type="checkbox" checked={!!info.switchOn} disabled={busy} onChange={toggle} />
-          <b>Meme switch</b>
-        </label>
+        <span className="row-start">
+          {status === 'halted' ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={async () => {
+                if (!window.confirm('Lift the daily-loss halt and let the desk open new positions again today?')) return;
+                setBusy(true);
+                await guard(agentApi('request/clear-halt', { chain: 'solana' }));
+                setBusy(false);
+                void load();
+              }}
+            >
+              Clear halt
+            </button>
+          ) : null}
+          <label className="chk">
+            <input type="checkbox" checked={!!info.switchOn} disabled={busy} onChange={toggle} />
+            <b>Meme switch</b>
+          </label>
+        </span>
       </div>
       {!s ? (
         <p className="muted small">The meme desk has not reported yet. It starts when the <code>fisika-meme</code> service is running.</p>
@@ -374,7 +420,10 @@ function MemePanel({ refreshKey, onChange, guard }: { refreshKey: number; onChan
           </div>
           <h3>Open positions ({s.positions.length}/{rules.maxOpen ?? 5})</h3>
           {!s.positions.length ? (
-            <p className="muted small">None open. {status === 'active' ? 'Scanning new Solana pairs every minute.' : ''}</p>
+            <p className="muted small">
+              None open.{' '}
+              {status === 'active' ? (s.market ? `Not buying right now: ${s.market === 'sol_falling_5m' ? 'SOL is falling (5 min)' : 'SOL is falling (1 h)'} — memecoins dump together.` : 'Scanning new Solana pairs every minute.') : ''}
+            </p>
           ) : (
             <div className="scroll">
               <table className="board compact">

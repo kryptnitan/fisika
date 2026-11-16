@@ -30,6 +30,9 @@ const rules: MemeRules = {
   stopLossPct: num('MEME_STOP_LOSS_PCT', DEFAULT_RULES.stopLossPct),
   trailPct: num('MEME_TRAIL_PCT', DEFAULT_RULES.trailPct),
   trailActivatePct: num('MEME_TRAIL_ACTIVATE_PCT', DEFAULT_RULES.trailActivatePct),
+  maxExposurePct: num('MEME_MAX_EXPOSURE_PCT', DEFAULT_RULES.maxExposurePct),
+  maxPumpM5Pct: num('MEME_MAX_PUMP_M5_PCT', DEFAULT_RULES.maxPumpM5Pct),
+  cutLossPct: num('MEME_CUT_LOSS_PCT', DEFAULT_RULES.cutLossPct),
   maxHoldMin: num('MEME_MAX_HOLD_MIN', DEFAULT_RULES.maxHoldMin),
   maxOpen: num('MEME_MAX_OPEN', DEFAULT_RULES.maxOpen),
 };
@@ -66,7 +69,8 @@ const safe = (f: () => Promise<void>, what: string) => () => void f().catch((e: 
 const watch = safe(() => engine.watch(), 'watch');
 const scan = safe(() => engine.scan(), 'scan');
 scan();
-const t1 = setInterval(watch, 15_000);
+// With a Jupiter key (1 quote/s) positions are checked every 10 s; keyless, 15 s keeps within the 0.5/s limit.
+const t1 = setInterval(watch, process.env.JUPITER_API_KEY ? 10_000 : 15_000);
 const t2 = setInterval(scan, 60_000);
 
 const minutes = num('MEME_SESSION_MINUTES', 0);

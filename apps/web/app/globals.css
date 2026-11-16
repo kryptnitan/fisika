@@ -176,3 +176,6 @@ a.button { display: inline-block; text-decoration: none; border-radius: 6px; pad
   .board th, .board td { padding: 8px 6px; }
 }
 .meme .stat b.rules { font-size: 17px; }
+
+.halt-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; width: 100%; margin-top: 6px; }
+.row-start { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

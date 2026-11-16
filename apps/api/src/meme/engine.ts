@@ -11,11 +11,12 @@
  * The console switch (control file, key "solana") stops NEW entries. Open positions keep being managed and closed by
  * their exit rules, so pausing never leaves a position unattended.
  */
-import { appendFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { chainTrades, readControlSync } from '../agent/control.ts';
-import { bestPairs, type DexPair, type DexScreener, type GeckoTerminal, type JupQuote as Quote, type Jupiter, type SolanaRpc, USDC_MINT } from './sources.ts';
-import { dayLossPct, entrySignal, exitDecision, roundTrip, safety, screen, tradeSize, type ExitReason, type MemeRules, type Position } from './strategy.ts';
+import { bestPairs, type DexPair, type DexScreener, type GeckoTerminal, type JupQuote as Quote, type Jupiter, type SolanaRpc, SOL_MINT, USDC_MINT } from './sources.ts';
+import { dayLossPct, entrySignal, exitDecision, marketOk, roundTrip, safety, screen, tradeSize, type EntrySnapshot, type ExitReason, type MemeRules, type Position } from './strategy.ts';
 
 export interface MemeDeps {
   dex: Pick<DexScreener, 'latestSolanaTokens' | 'pairsFor'>;
@@ -58,6 +59,7 @@ export interface ClosedTrade {
   exitPrice: number;
   peakPrice: number;
   athAtEntry: number | null;
+  entry?: EntrySnapshot;
 }
 
 interface State {
@@ -81,6 +83,8 @@ export class MemeEngine {
   private readonly log: (m: string) => void;
   recent: Decision[] = [];
   private safeCache = new Map<string, { atMs: number; verdict: string | null }>();
+  /** Why the market filter is blocking entries right now, if it is. */
+  lastMarket: string | null = null;
   private busy = false;
 
   constructor(d: MemeDeps) {
@@ -154,6 +158,7 @@ export class MemeEngine {
     this.busy = true;
     try {
       this.rollDay();
+      await this.clearHaltRequest();
       if (this.s.positions.length) {
         const pairs = await this.d.dex.pairsFor(this.s.positions.map((p) => p.mint));
         const byPair = new Map(pairs.map((p) => [p.pairAddress, p]));
@@ -195,6 +200,22 @@ export class MemeEngine {
     }
   }
 
+  /** The owner lifted the daily halt from the console (a file the API dropped; the desk owns its state). */
+  private async clearHaltRequest(): Promise<void> {
+    const f = this.file('clear-halt.request');
+    if (!existsSync(f)) return;
+    const by = await readFile(f, 'utf8').catch(() => 'console');
+    await unlink(f).catch(() => undefined);
+    if (this.s.halted) {
+      this.s.halted = false;
+      this.s.haltReason = null;
+      // The day's budget restarts from here: a second 5% loss today halts again.
+      this.s.dayStartEquity = this.equity();
+      this.note({ mint: '-', symbol: '-', action: 'halt', reason: `halt cleared by ${by.trim().slice(0, 12)}; day budget reset at $${this.equity().toFixed(2)}` });
+      this.d.log(`[meme] halt cleared by owner; day budget reset`);
+    }
+  }
+
   private async close(pos: Position, reason: ExitReason, mark: Quote | null): Promise<void> {
     // Sell at the quote that triggered the decision; fetch one only when the trigger had none (daily halt, rug).
     const q = mark ?? (reason === 'rug_cannot_sell' ? null : await this.d.jup.quote(pos.mint, USDC_MINT, BigInt(pos.tokensRaw)).catch(() => null));
@@ -220,6 +241,7 @@ export class MemeEngine {
       exitPrice: tokens > 0 ? Math.max(0, proceeds) / tokens : 0,
       peakPrice: pos.peakPrice,
       athAtEntry: pos.athAtEntry,
+      entry: pos.entry,
     };
     this.s.cashUsd += t.proceedsUsd;
     this.s.positions = this.s.positions.filter((p) => p.id !== pos.id);
@@ -247,6 +269,15 @@ export class MemeEngine {
         await this.writeStatus();
         return;
       }
+      // The whole market first: SOL's deepest pool tells whether memecoins are being sold across the board.
+      const sol = bestPairs(await this.d.dex.pairsFor([SOL_MINT]).catch(() => [] as DexPair[])).get(SOL_MINT) ?? null;
+      const market = marketOk(sol, this.d.rules);
+      if (market) {
+        this.lastMarket = market;
+        await this.writeStatus();
+        return;
+      }
+      this.lastMarket = null;
       const tokens = Object.keys(this.s.watch).slice(-240);
       const pairs = bestPairs(await this.d.dex.pairsFor(tokens));
       const ranked: DexPair[] = [];
@@ -284,8 +315,9 @@ export class MemeEngine {
     }
     if (verdict.verdict) return skip(verdict.verdict);
 
-    const size = tradeSize(this.equity(), this.s.cashUsd, p.liquidity?.usd ?? 0, r);
-    if (!size) return skip('size_below_minimum');
+    const openUsd = this.s.positions.reduce((a, x) => a + x.lastValueUsd, 0);
+    const size = tradeSize(this.equity(), this.s.cashUsd, p.liquidity?.usd ?? 0, r, openUsd);
+    if (!size) return skip(openUsd > 0 ? 'exposure_cap' : 'size_below_minimum');
 
     const buy = await this.d.jup.quote(USDC_MINT, mint, BigInt(Math.round(size * 1e6)));
     if (!buy) return skip('no_buy_route');
@@ -314,6 +346,8 @@ export class MemeEngine {
       liquidityAtEntry: p.liquidity?.usd ?? 0,
       lastPrice: entry,
       lastValueUsd: Math.max(0, Number(sell!.outAmount) / 1e6 - this.d.swapCostUsd), // what we could sell for right now
+      // What the market looked like at entry, kept so the record can say which setups win.
+      entry: { m5: p.priceChange?.m5 ?? null, h1: p.priceChange?.h1 ?? null, h6: p.priceChange?.h6 ?? null, buys5: p.txns?.m5?.buys ?? null, sells5: p.txns?.m5?.sells ?? null, vol5: p.volume?.m5 ?? null, volH1: p.volume?.h1 ?? null, liquidityUsd: p.liquidity?.usd ?? null, mcap: p.marketCap ?? null, ageMin: p.pairCreatedAt ? Math.round((this.now() - p.pairCreatedAt) / 60_000) : null, impactPct: Math.abs(Number(buy.priceImpactPct)) || 0 },
     };
     this.s.cashUsd -= cost;
     this.s.positions.push(pos);
@@ -339,6 +373,7 @@ export class MemeEngine {
       dayLossPct: dayLossPct(this.s.dayStartEquity, eq),
       stats: this.s.stats,
       watching: Object.keys(this.s.watch).length,
+      market: this.lastMarket,
       positions: this.s.positions.map((p) => ({
         id: p.id,
         mint: p.mint,

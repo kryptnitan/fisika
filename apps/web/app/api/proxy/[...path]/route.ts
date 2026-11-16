@@ -16,7 +16,7 @@ const GET_ALLOWED = [
   /^v1\/agent\/(nonce|session|config|state|balances|trades|activity|meme|meme\/trades|executor)$/,
   /^v1\/agent\/withdrawals\/(celo|bsc)\/w_[0-9a-z-]{8,64}$/,
 ];
-const POST_ALLOWED = [/^v1\/(quote|build|receipts)$/, /^v1\/admin\/kill$/, /^v1\/agent\/(login|logout|control|deposits|withdraw)$/];
+const POST_ALLOWED = [/^v1\/(quote|build|receipts)$/, /^v1\/admin\/kill$/, /^v1\/agent\/(login|logout|control|deposits|withdraw|request\/(unwind|clear-halt))$/];
 const AGENT_COOKIE = 'fisika_agent';
 
 async function forward(req: NextRequest, path: string[], method: 'GET' | 'POST') {

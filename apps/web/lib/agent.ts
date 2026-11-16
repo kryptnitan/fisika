@@ -43,6 +43,8 @@ export interface AgentState {
     killFileOn: boolean;
     halted: boolean;
     haltReason: string | null;
+    stranded?: { symbol: string; amount: string }[];
+    startToken?: string;
     lastSkip: Record<string, number>;
     pendingWithdrawals: { id: string; token: string; amount: string; status: string }[];
   }[];
@@ -107,6 +109,7 @@ export interface MemeInfo {
     dayLossPct: number;
     stats: { trades: number; wins: number; realizedUsd: number; scans: number; candidates: number };
     watching: number;
+    market?: string | null;
     positions: { id: string; mint: string; symbol: string; pair: string; openedAt: string; costUsd: number; valueUsd: number; pnlPct: number; entryPrice: number; lastPrice: number; peakPrice: number; athAtEntry: number | null }[];
     rules: Record<string, number>;
     recent: { at: string; mint: string; symbol: string; action: 'skip' | 'open' | 'close' | 'halt'; reason: string; usd?: number }[];

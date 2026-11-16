@@ -76,7 +76,7 @@ export async function setControl(file: string, target: ControlTarget, active: bo
 
 export interface AgentEvent {
   at: string;
-  type: 'pause' | 'resume' | 'deposit' | 'withdraw_requested' | 'withdraw_sent' | 'withdraw_failed';
+  type: 'pause' | 'resume' | 'deposit' | 'withdraw_requested' | 'withdraw_sent' | 'withdraw_failed' | 'halt_cleared' | 'unwind' | 'unwind_requested' | 'clear_halt_requested';
   chain: string;
   by?: string;
   token?: string;

@@ -7,12 +7,16 @@
  *   A Textile API response pointing anywhere else is refused.
  * - Approvals are exact (the leg's input), reset to 0 first when a different allowance exists (USDT rule).
  * - Every swap carries an on-chain minimum output.
- * - The amount received is measured from the wallet's balance change, never trusted from a quote.
+ * - The amount received is read from the swap receipt's Transfer logs (what the chain says we got), never trusted
+ *   from a quote. A balance read is only a fallback, retried, because a public RPC pool can answer a block behind:
+ *   the first live loop was wrongly booked as "not filled" when a lagging node reported the old balance.
+ * - Any transaction that was actually sent travels on the error (`sent`), so the caller never mistakes a filled
+ *   leg for one that never happened.
  */
 import { CELO, MENTO, type Address, type ChainConfig, type Edge, type TextileAdapter } from '@fisika/core';
 import { encodeV3ExactInputSingle } from '@fisika/core/build';
 import { brokerAbi, erc20Abi, mentoRouterAbi } from '@fisika/core/viem';
-import { encodeFunctionData, zeroAddress, type Hex, type PublicClient, type WalletClient } from 'viem';
+import { decodeEventLog, encodeFunctionData, zeroAddress, type Hex, type Log, type PublicClient, type WalletClient } from 'viem';
 
 const lc = (a: string) => a.toLowerCase();
 const allowedCache = new Map<string, Set<string>>();
@@ -41,6 +45,19 @@ export interface TxCost {
   hash: Hex;
   gasUsed: bigint;
   effectiveGasPrice: bigint;
+  /** Logs of the mined transaction; the swap's Transfer events tell how much the wallet received. */
+  logs?: Log[];
+}
+
+/** An error from a leg; `sent` lists every transaction that was broadcast before it, mined or not. */
+export class LegError extends Error {
+  readonly retryable: boolean;
+  sent: TxCost[] = [];
+  constructor(message: string, retryable: boolean, sent: TxCost[] = []) {
+    super(message);
+    this.retryable = retryable;
+    this.sent = sent;
+  }
 }
 
 export interface LegResult {
@@ -48,13 +65,6 @@ export interface LegResult {
   txs: TxCost[];
 }
 
-export class LegError extends Error {
-  readonly retryable: boolean;
-  constructor(message: string, retryable: boolean) {
-    super(message);
-    this.retryable = retryable;
-  }
-}
 
 export interface Chain {
   pub: PublicClient;
@@ -83,10 +93,49 @@ async function send(c: Chain, to: Address, data: Hex): Promise<TxCost> {
     const msg = (e as { shortMessage?: string }).shortMessage ?? (e as Error).message.split('\n')[0]!;
     throw new LegError(`not sent: ${msg}`, true);
   }
-  const r = await c.pub.waitForTransactionReceipt({ hash, timeout: (c.receiptTimeoutSec ?? 90) * 1000 });
-  const cost = { hash, gasUsed: r.gasUsed, effectiveGasPrice: r.effectiveGasPrice };
-  if (r.status !== 'success') throw Object.assign(new LegError(`transaction reverted: ${hash}`, true), { cost });
+  let r;
+  try {
+    r = await c.pub.waitForTransactionReceipt({ hash, timeout: (c.receiptTimeoutSec ?? 90) * 1000 });
+  } catch (e) {
+    // No receipt in time does not mean no transaction: it was broadcast and may well mine. Never retry on top of it.
+    throw new LegError(`no receipt for ${hash} within ${c.receiptTimeoutSec ?? 90}s: ${(e as Error).message.split('\n')[0]}`, false, [{ hash, gasUsed: 0n, effectiveGasPrice: 0n }]);
+  }
+  const cost: TxCost = { hash, gasUsed: r.gasUsed, effectiveGasPrice: r.effectiveGasPrice, logs: r.logs };
+  if (r.status !== 'success') throw Object.assign(new LegError(`transaction reverted: ${hash}`, true, [cost]), { cost });
   return cost;
+}
+
+const transferAbi = [{ type: 'event', name: 'Transfer', inputs: [{ indexed: true, name: 'from', type: 'address' }, { indexed: true, name: 'to', type: 'address' }, { indexed: false, name: 'value', type: 'uint256' }] }] as const;
+
+/** Sum of `token` Transfer events into the wallet in these logs: the chain's own statement of what the swap paid. */
+export function receivedFromLogs(logs: Log[] | undefined, token: Address, account: Address): bigint | null {
+  if (!logs) return null;
+  let sum = 0n;
+  let seen = false;
+  for (const l of logs) {
+    if (lc(l.address) !== lc(token)) continue;
+    try {
+      const ev = decodeEventLog({ abi: transferAbi, data: l.data, topics: l.topics });
+      if (ev.eventName === 'Transfer' && lc(ev.args.to) === lc(account)) {
+        sum += ev.args.value;
+        seen = true;
+      }
+    } catch {
+      /* not a Transfer */
+    }
+  }
+  return seen ? sum : null;
+}
+
+/** Balance read that waits for a lagging node: returns once the balance is at least `atLeast`, or the last reading. */
+async function balanceAtLeast(c: Chain, token: Address, atLeast: bigint, tries = 10): Promise<bigint> {
+  let last = 0n;
+  for (let i = 0; i < tries; i++) {
+    last = await balanceOf(c, token);
+    if (last >= atLeast) return last;
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  return last;
 }
 
 /** Approvals go to token contracts; only tokens the registry knows are passed in by the trader. */
@@ -110,9 +159,22 @@ async function approveExact(c: Chain, token: Address, spender: Address, amount: 
 
 /** Run one leg: spend exactly `amountIn` of e.tokenIn, require at least `minOut` of e.tokenOut. */
 export async function executeLeg(c: Chain, e: Edge, amountIn: bigint, minOut: bigint, textile: TextileAdapter | null, deadlineSec: number): Promise<LegResult> {
+  const txs: TxCost[] = [];
+  try {
+    return await runLeg(c, e, amountIn, minOut, textile, deadlineSec, txs);
+  } catch (err) {
+    // Whatever went wrong, the caller must know what was broadcast.
+    if (err instanceof LegError) {
+      for (const t of txs) if (!err.sent.some((x) => x.hash === t.hash)) err.sent.push(t);
+      throw err;
+    }
+    throw new LegError((err as Error).message.split('\n')[0]!, false, [...txs]);
+  }
+}
+
+async function runLeg(c: Chain, e: Edge, amountIn: bigint, minOut: bigint, textile: TextileAdapter | null, deadlineSec: number, txs: TxCost[]): Promise<LegResult> {
   const cfg = cfgOf(c);
   const before = await balanceOf(c, e.tokenOut);
-  const txs: TxCost[] = [];
   const deadline = BigInt(deadlineSec);
 
   switch (e.venue) {
@@ -176,7 +238,11 @@ export async function executeLeg(c: Chain, e: Edge, amountIn: bigint, minOut: bi
       throw new LegError(`no live execution for venue ${e.venue}`, false);
   }
 
-  const received = (await balanceOf(c, e.tokenOut)) - before;
-  if (received < minOut) throw new LegError(`received ${received}, below minimum ${minOut}`, false);
+  // What did the swap pay? The receipt's Transfer events are authoritative; a balance read is the fallback and is
+  // retried because a public RPC pool can answer from a node that has not seen the block yet.
+  const swapTx = txs[txs.length - 1];
+  const fromLogs = receivedFromLogs(swapTx?.logs, e.tokenOut, c.account);
+  const received = fromLogs ?? (await balanceAtLeast(c, e.tokenOut, before + minOut)) - before;
+  if (received < minOut) throw new LegError(`received ${received}, below minimum ${minOut} (${fromLogs === null ? 'balance' : 'receipt'})`, false, [...txs]);
   return { amountOut: received, txs };
 }

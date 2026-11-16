@@ -31,6 +31,12 @@ export interface MemeRules {
   maxRoundTripLossPct: number; // buy then sell quote: catches sell taxes and honeypots
   maxPriceImpactPct: number;
   maxPumpH1Pct: number; // already up this much in an hour: too late
+  maxPumpM5Pct: number; // a 5-minute spike bigger than this is a blow-off, not a trend: do not chase it
+  minPumpM5Pct: number; // and the last 5 minutes must show a real move, not noise
+  maxExposurePct: number; // all open positions together, as % of equity
+  marketDropM5Pct: number; // no new entries when SOL itself fell more than this in 5 minutes…
+  marketDropH1Pct: number; // …or this in the hour: memecoins all dump together
+  cutLossPct: number; // in loss by this much with sellers in control and price falling: get out before the hard stop
   // exits
   stopLossPct: number;
   trailActivatePct: number;
@@ -59,7 +65,13 @@ export const DEFAULT_RULES: MemeRules = {
   maxTop10Pct: 35,
   maxRoundTripLossPct: 3, // fees + spread + impact both ways; more than this eats the edge (and sell taxes start at 5%)
   maxPriceImpactPct: 3,
-  maxPumpH1Pct: 150,
+  maxPumpH1Pct: 80,
+  maxPumpM5Pct: 12,
+  minPumpM5Pct: 1,
+  maxExposurePct: 30,
+  marketDropM5Pct: 1,
+  marketDropH1Pct: 2.5,
+  cutLossPct: 5,
   stopLossPct: 10,
   trailActivatePct: 15, // a real move, not a 30-second wiggle; below this only the stop, the rug checks and "downside started" apply
   trailPct: 10,
@@ -101,13 +113,27 @@ export function screen(p: DexPair, r: MemeRules, nowMs: number): string | null {
 export function entrySignal(p: DexPair, r: MemeRules): string | null {
   const m5 = tx(p, 'm5');
   const h1 = tx(p, 'h1');
-  if (chg(p, 'm5') <= 0) return 'not_rising_5m';
+  const c5 = chg(p, 'm5');
+  if (c5 < r.minPumpM5Pct) return 'not_rising_5m';
+  // The first live week showed it: nearly half of all entries went straight to the stop, and they were bought on
+  // 5-minute spikes of +15% to +70%. A spike that size is the top of a move, not the start of one.
+  if (c5 > r.maxPumpM5Pct) return 'spiking_5m';
   if (chg(p, 'h1') <= 0) return 'not_rising_1h';
   if (chg(p, 'h1') > r.maxPumpH1Pct) return 'already_pumped';
   if (m5.buys < Math.max(10, m5.sells * 1.2)) return 'buyers_not_in_control';
-  if (h1.buys < h1.sells) return 'more_sellers_this_hour';
-  // Last 5 minutes trading faster than the hour's average pace.
-  if (vol(p, 'm5') * 12 < vol(p, 'h1') * 1.2) return 'volume_not_accelerating';
+  if (h1.buys < h1.sells * 1.2) return 'buyers_not_in_control_1h';
+  // Last 5 minutes trading faster than the hour's average pace, but not a one-candle blow-off (over 4x).
+  const pace = vol(p, 'h1') > 0 ? (vol(p, 'm5') * 12) / vol(p, 'h1') : 0;
+  if (pace < 1.2) return 'volume_not_accelerating';
+  if (pace > 4) return 'volume_blowoff';
+  return null;
+}
+
+/** The whole market: when SOL is falling, new memecoins fall harder and together. `sol` is SOL's deepest USD pair. */
+export function marketOk(sol: DexPair | null, r: MemeRules): string | null {
+  if (!sol) return null; // unknown: do not block on a data gap
+  if (chg(sol, 'm5') < -r.marketDropM5Pct) return 'sol_falling_5m';
+  if (chg(sol, 'h1') < -r.marketDropH1Pct) return 'sol_falling_1h';
   return null;
 }
 
@@ -147,8 +173,9 @@ export function roundTrip(spentUsd: number, backUsd: number | null, buyImpactPct
 
 /* ----------------------------------------------------------------------------------------------- sizing */
 
-export function tradeSize(equityUsd: number, cashUsd: number, liquidityUsd: number, r: MemeRules): number {
-  const raw = Math.min((equityUsd * r.sizePct) / 100, r.maxTradeUsd, cashUsd, liquidityUsd * r.maxLiquidityShare);
+export function tradeSize(equityUsd: number, cashUsd: number, liquidityUsd: number, r: MemeRules, openUsd = 0): number {
+  const room = (equityUsd * r.maxExposurePct) / 100 - openUsd; // five positions must not be able to gap down together
+  const raw = Math.min((equityUsd * r.sizePct) / 100, r.maxTradeUsd, cashUsd, liquidityUsd * r.maxLiquidityShare, room);
   return raw >= r.minTradeUsd ? Math.floor(raw * 100) / 100 : 0;
 }
 
@@ -174,9 +201,27 @@ export interface Position {
   liquidityAtEntry: number;
   lastPrice: number; // sellable price at the last mark
   lastValueUsd: number; // what selling the whole position would bring now, after swap cost
+  /** Market snapshot at entry, so the record can say which setups win. */
+  entry?: EntrySnapshot;
 }
 
-export type ExitReason = 'stop_loss' | 'rug_liquidity' | 'rug_cannot_sell' | 'volume_collapse' | 'trend_turned' | 'ath_take_profit' | 'trailing_stop' | 'max_hold' | 'stalled' | 'daily_loss_limit';
+export interface EntrySnapshot {
+  m5: number | null;
+  h1: number | null;
+  h6: number | null;
+  buys5: number | null;
+  sells5: number | null;
+  vol5: number | null;
+  volH1: number | null;
+  liquidityUsd: number | null;
+  mcap: number | null;
+  ageMin: number | null;
+  impactPct: number;
+}
+
+export type ExitReason =
+  | 'cut_loss'
+  | 'stop_loss' | 'rug_liquidity' | 'rug_cannot_sell' | 'volume_collapse' | 'trend_turned' | 'ath_take_profit' | 'trailing_stop' | 'max_hold' | 'stalled' | 'daily_loss_limit';
 
 /**
  * What to do with an open position right now. `p` is the fresh pair data; price is the pair's USD price.
@@ -194,6 +239,9 @@ export function exitDecision(pos: Position, p: DexPair | null, nowMs: number, r:
   const m5 = tx(p, 'm5');
   const sellersInControl = m5.sells > Math.max(5, m5.buys * 1.5);
   const falling5m = chg(p, 'm5') < -3;
+  // Stops averaged -15.8% on a -10% rule: these tokens gap. A loss that already has sellers in control and a falling
+  // 5-minute candle rarely recovers; leave at -5% instead of waiting to be gapped through -10%.
+  if (pnlPct <= -r.cutLossPct && sellersInControl && falling5m) return 'cut_loss';
   // Volume collapse: the last 5 minutes trade at under a fifth of the hour's pace while price is falling.
   if (vol(p, 'm5') * 12 < vol(p, 'h1') * 0.2 && chg(p, 'm5') < 0) return 'volume_collapse';
 

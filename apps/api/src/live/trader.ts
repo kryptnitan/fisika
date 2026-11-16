@@ -20,12 +20,14 @@
  *
  * Withdrawals queued by the console are sent at the start of a tick, which is always between cycles.
  */
-import { appendFile, readFile, writeFile } from 'node:fs/promises';
+import { appendFile, readFile, unlink, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { formatUnits } from 'viem';
 import { ArbEngine, RiskGate, type Address, type ArbConfig, type Edge, type Opportunity, type TextileAdapter, type TokenRegistry, type VenueAdapter, type VenueId } from '@fisika/core';
 import type { GraphState } from '@fisika/core/setup';
 import { balanceOf, executeLeg, LegError, type Chain, type TxCost } from './legs.ts';
-import { chainTrades, readControlSync } from '../agent/control.ts';
+import { chainTrades, logEvent, readControlSync } from '../agent/control.ts';
 import { listRequests, processWithdrawals } from '../agent/withdrawals.ts';
 
 export interface LiveConfig extends Omit<ArbConfig, 'gasPriceWei' | 'nativeUsd'> {
@@ -50,7 +52,7 @@ export interface LedgerEntry {
   at: string;
   /** Chain key (celo, bsc). Missing on entries written before the agent console existed. */
   chain?: string;
-  status: 'completed' | 'aborted_before_spend' | 'stuck';
+  status: 'completed' | 'aborted_before_spend' | 'stuck' | 'unwound';
   path: string;
   venues: VenueId[];
   amountIn: string;
@@ -88,6 +90,9 @@ export class LiveTrader {
   recent: LedgerEntry[] = [];
   lastSkip: Record<string, number> = {};
   stuck: string | null = null;
+  /** Tokens other than the start token the wallet holds (a half-finished loop): symbol → raw amount. */
+  stranded: { symbol: string; token: Address; amount: bigint }[] = [];
+  private strandedCheckedMs = 0;
 
   constructor(chain: Chain, state: () => GraphState, tokens: TokenRegistry, adapters: ReadonlyMap<VenueId, VenueAdapter>, textile: TextileAdapter | null, cfg: LiveConfig) {
     this.chain = chain;
@@ -152,12 +157,123 @@ export class LiveTrader {
     this.pendingWithdrawals = (await listRequests(this.cfg.withdrawDir)).filter((r) => r.status === 'requested').length;
   }
 
+  private get dataDir(): string {
+    return dirname(this.cfg.ledgerPath);
+  }
+  private get eventsFile(): string {
+    return this.cfg.eventsFile ?? `${this.dataDir}/agent-events.jsonl`;
+  }
+
+  /** Dust: below 0.01 of a token is residue from rounding, not a position. */
+  private dust(token: Address): bigint {
+    const d = this.tokens.get(token)?.decimals ?? 18;
+    return 10n ** BigInt(Math.max(0, d - 2));
+  }
+
+  /**
+   * A wallet holding anything but the start token is a loop that did not finish. Found at startup, after a crash,
+   * or after the RPC lied about a fill: halt and say exactly what is held, so nothing new starts on top of it.
+   * Checked once a minute; it is a read per token.
+   */
+  async checkStranded(nowMs = Date.now()): Promise<void> {
+    if (nowMs - this.strandedCheckedMs < 60_000) return;
+    this.strandedCheckedMs = nowMs;
+    const start = this.cfg.startTokens[0]!;
+    const held: typeof this.stranded = [];
+    for (const t of this.tokens.all()) {
+      if (t.address.toLowerCase() === start.toLowerCase()) continue;
+      const bal = await balanceOf(this.chain, t.address).catch(() => 0n);
+      if (bal > this.dust(t.address)) held.push({ symbol: t.symbol, token: t.address, amount: bal });
+    }
+    this.stranded = held;
+    if (held.length && !this.stuck) {
+      const note = `holding ${held.map((h) => `${h.symbol} ${formatUnits(h.amount, this.tokens.get(h.token)?.decimals ?? 18)}`).join(', ')} from an unfinished loop; sell it back to ${this.sym(start)} (console: Sell back) then clear the halt`;
+      this.stuck = note;
+      if (this.risk) {
+        this.risk.state.halted = true;
+        this.risk.state.haltReason = note;
+      }
+      console.error(`[live] ${note}`);
+    }
+    if (!held.length && this.stuck?.startsWith('holding ')) this.stuck = null;
+  }
+
+  /** Console requests dropped as files by the API (which never holds the key): clear the halt, or sell back held tokens. */
+  private async requests(nowMs = Date.now()): Promise<void> {
+    const clear = `${this.dataDir}/clear-halt.request`;
+    if (existsSync(clear)) {
+      const by = await readFile(clear, 'utf8').catch(() => 'console');
+      await unlink(clear).catch(() => undefined);
+      this.stuck = null;
+      if (this.risk) {
+        this.risk.state.halted = false;
+        this.risk.state.haltReason = undefined;
+      }
+      this.strandedCheckedMs = 0; // re-check at once: if tokens are still held, the halt comes straight back
+      await logEvent(this.eventsFile, { type: 'halt_cleared', chain: this.chainKey, by: by.trim() || 'console' });
+      console.log('[live] halt cleared from the console');
+    }
+    const unwind = `${this.dataDir}/unwind.request`;
+    if (existsSync(unwind)) {
+      await unlink(unwind).catch(() => undefined);
+      await this.unwind(nowMs);
+    }
+  }
+
+  /** Sell every held non-start token back to the start token at the best live quote. Owner-triggered. */
+  async unwind(nowMs = Date.now()): Promise<void> {
+    this.strandedCheckedMs = 0;
+    await this.checkStranded(nowMs);
+    const start = this.cfg.startTokens[0]!;
+    const st = this.state();
+    for (const h of this.stranded) {
+      const edges = st.graph.between(h.token, start, nowMs, 10 * 60_000);
+      let best: { e: Edge; out: bigint } | null = null;
+      for (const e of edges) {
+        const ad = this.adapters.get(e.venue);
+        const q = ad && (await ad.quote(h.token, start, h.amount).catch(() => null));
+        if (q && q.amountOut > 0n && (!best || q.amountOut > best.out)) best = { e, out: q.amountOut };
+      }
+      const txs: TxCost[] = [];
+      const base = { at: new Date(nowMs).toISOString(), chain: this.chainKey, path: `${h.symbol}→${this.sym(start)}`, amountIn: h.amount.toString(), amountOut: null as string | null, startDecimals: this.tokens.get(start)?.decimals ?? undefined, startToken: this.sym(start), expectedNetBps: 0, realizedStart: null as string | null, gasUsd: 0, realizedUsd: 0 };
+      if (!best) {
+        await this.log({ ...base, status: 'stuck', venues: [], txs: [], note: `unwind: no venue quotes ${h.symbol}→${this.sym(start)} right now` });
+        continue;
+      }
+      const minOut = (best.out * (10_000n - BigInt(this.cfg.slippageBps))) / 10_000n;
+      try {
+        this.inFlight = true;
+        const r = await executeLeg(this.chain, best.e, h.amount, minOut, this.textile, Math.floor(nowMs / 1000) + 120);
+        txs.push(...r.txs);
+        const gasUsd = txs.reduce((a, t) => a + Number(t.gasUsed * t.effectiveGasPrice) / 1e18, 0) * st.nativeUsd;
+        await this.log({ ...base, status: 'unwound', venues: [best.e.venue], amountOut: r.amountOut.toString(), txs: txs.map((t) => t.hash), gasUsd, realizedUsd: -gasUsd, note: `sold back ${h.symbol} on ${best.e.venue}` });
+        await logEvent(this.eventsFile, { type: 'unwind', chain: this.chainKey, token: h.symbol, amount: h.amount.toString(), txHash: txs[txs.length - 1]?.hash });
+      } catch (err) {
+        const sent = err instanceof LegError ? err.sent : [];
+        await this.log({ ...base, status: 'stuck', venues: [best.e.venue], txs: sent.map((t) => t.hash), note: `unwind failed: ${(err as Error).message}` });
+      } finally {
+        this.inFlight = false;
+      }
+    }
+    this.strandedCheckedMs = 0;
+    await this.checkStranded(nowMs);
+    if (!this.stranded.length) {
+      this.stuck = null;
+      if (this.risk && this.risk.state.haltReason?.startsWith('holding ')) {
+        this.risk.state.halted = false;
+        this.risk.state.haltReason = undefined;
+      }
+    }
+  }
+
   async tick(nowMs = Date.now()): Promise<void> {
     if (this.busy || this.stopping) return;
     this.busy = true;
     try {
-      // Between trades by construction (busy): safe point to send queued withdrawals.
+      // Between trades by construction (busy): safe point to send queued withdrawals and act on console requests.
       await this.withdrawals();
+      await this.requests(nowMs);
+      await this.checkStranded(nowMs);
       if (this.paused()) {
         this.lastSkip = { paused: 1 };
         return;
@@ -286,15 +402,18 @@ export class LiveTrader {
     for (let i = 0; i < cycle.length; i++) {
       const e = cycle[i]!;
       let done = false;
+      let sentAny = false;
       for (let attempt = 1; attempt <= 3 && !done; attempt++) {
         const ad = this.adapters.get(e.venue);
         const q = ad && (await ad.quote(e.tokenIn, e.tokenOut, amount).catch(() => null));
         if (!q) {
-          if (i === 0) return this.log(entry('aborted_before_spend', null, `leg 1 (${e.venue}) could not be quoted`));
+          if (i === 0 && !sentAny) return this.log(entry('aborted_before_spend', null, `leg 1 (${e.venue}) could not be quoted`));
           await sleep(2_000);
           continue;
         }
         const minOut = (q.amountOut * (10_000n - slip)) / 10_000n;
+        const inBefore = await balanceOf(this.chain, e.tokenIn);
+        const outBefore = await balanceOf(this.chain, e.tokenOut);
         try {
           const r = await executeLeg(this.chain, e, amount, minOut, this.textile, Math.floor(Date.now() / 1000) + 120);
           txs.push(...r.txs);
@@ -302,18 +421,35 @@ export class LiveTrader {
           done = true;
           await this.cfg.afterLeg?.(i);
         } catch (err) {
+          const sent = err instanceof LegError ? err.sent : [];
+          for (const t of sent) if (!txs.some((x) => x.hash === t.hash)) txs.push(t);
           const cost = (err as { cost?: TxCost }).cost;
-          if (cost) txs.push(cost);
+          if (cost && !txs.some((x) => x.hash === cost.hash)) txs.push(cost);
+          if (sent.length > 0) {
+            sentAny = true;
+            // Something was broadcast. The chain, not the error message, says whether the leg filled.
+            const fill = await this.reconcile(e, amount, inBefore, outBefore);
+            if (fill === 'filled') {
+              const got = (await balanceOf(this.chain, e.tokenOut)) - outBefore;
+              amount = got;
+              done = true;
+              console.warn(`[live] leg ${i + 1} reported "${(err as Error).message}" but the chain shows it filled (received ${got}); continuing`);
+              await this.cfg.afterLeg?.(i);
+              continue;
+            }
+            if (fill === 'unknown') break; // a transaction may still mine: never retry on top of it
+            // 'not_filled': the transaction reverted or never mined; fall through to the retry rules
+          }
           const retry = err instanceof LegError && err.retryable;
-          if (i === 0 && (!retry || attempt === 3)) return this.log(entry('aborted_before_spend', null, `leg 1 failed: ${(err as Error).message}`));
+          if (i === 0 && !sentAny && (!retry || attempt === 3)) return this.log(entry('aborted_before_spend', null, `leg 1 failed: ${(err as Error).message}`));
           if (!retry) break;
           await sleep(2_000);
         }
       }
       if (!done) {
-        // 4. Stuck holding an intermediate token: halt and say exactly what is held.
+        // 4. Stuck holding an intermediate token (or unsure): halt and say exactly what is held.
         const held = await balanceOf(this.chain, e.tokenIn);
-        const note = `stuck after leg ${i}: holding ${held} (atomic) ${this.sym(e.tokenIn)}; sell it back to ${this.sym(start)} manually, then clear the halt`;
+        const note = `stuck after leg ${i}: holding ${held} (atomic) ${this.sym(e.tokenIn)}; sell it back to ${this.sym(start)} (console: Sell back), then clear the halt`;
         this.stuck = note;
         if (this.risk) {
           this.risk.state.halted = true;
@@ -328,6 +464,24 @@ export class LiveTrader {
     const e = entry('completed', endBal - startBal);
     this.risk?.record(e.realizedUsd, Date.now());
     return this.log(e);
+  }
+
+  /**
+   * Did a leg whose transaction was broadcast actually fill? Read the wallet (retrying past lagging nodes):
+   * input spent and output received → filled; input untouched after the wait → not filled; anything else → unknown.
+   */
+  private async reconcile(e: Edge, amountIn: bigint, inBefore: bigint, outBefore: bigint): Promise<'filled' | 'not_filled' | 'unknown'> {
+    for (let i = 0; i < 12; i++) {
+      const [inNow, outNow] = await Promise.all([balanceOf(this.chain, e.tokenIn).catch(() => null), balanceOf(this.chain, e.tokenOut).catch(() => null)]);
+      if (inNow !== null && outNow !== null) {
+        const spent = inBefore - inNow;
+        if (spent >= (amountIn * 99n) / 100n && outNow > outBefore) return 'filled';
+      }
+      await sleep(2_500);
+    }
+    const inNow = await balanceOf(this.chain, e.tokenIn).catch(() => null);
+    if (inNow !== null && inNow >= inBefore) return 'not_filled';
+    return 'unknown';
   }
 
   private async log(e: LedgerEntry): Promise<LedgerEntry> {
@@ -352,6 +506,7 @@ export class LiveTrader {
       pendingWithdrawals: this.pendingWithdrawals,
       updatedAt: new Date().toISOString(),
       killed: this.killed(),
+      stranded: this.stranded.map((h) => ({ symbol: h.symbol, amount: formatUnits(h.amount, this.tokens.get(h.token)?.decimals ?? 18) })),
       halted: this.risk?.state.halted ?? false,
       haltReason: this.risk?.state.haltReason ?? null,
       todayUsd: this.risk?.state.realizedUsd ?? 0,

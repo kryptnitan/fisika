@@ -6,7 +6,7 @@ import { describe, it } from 'node:test';
 import { setControl } from '../src/agent/control.ts';
 import { MemeEngine } from '../src/meme/engine.ts';
 import { TOKEN_2022_PROGRAM, TOKEN_PROGRAM, USDC_MINT, type DexPair, type MintInfo } from '../src/meme/sources.ts';
-import { DEFAULT_RULES, entrySignal, exitDecision, roundTrip, safety, screen, tradeSize, type Position } from '../src/meme/strategy.ts';
+import { DEFAULT_RULES, entrySignal, exitDecision, marketOk, roundTrip, safety, screen, tradeSize, type Position } from '../src/meme/strategy.ts';
 
 const R = DEFAULT_RULES;
 const NOW = Date.parse('2026-11-11T12:00:00Z');
@@ -59,6 +59,24 @@ describe('meme desk rules', () => {
     assert.equal(entrySignal(pair({ b5: 20, s5: 40 }), R), 'buyers_not_in_control');
     assert.equal(entrySignal(pair({ v5: 5_000, vh1: 200_000 }), R), 'volume_not_accelerating');
     assert.equal(entrySignal(pair({ m5: -1 }), R), 'not_rising_5m');
+    assert.equal(entrySignal(pair({ m5: 25 }), R), 'spiking_5m', 'a +25% five-minute candle is the top, not the start');
+    assert.equal(entrySignal(pair({ h1: 90 }), R), 'already_pumped');
+    assert.equal(entrySignal(pair({ v5: 60_000 }), R), 'volume_blowoff', '6x the hourly pace in one candle');
+    assert.equal(entrySignal(pair({ txns: { m5: { buys: 60, sells: 30 }, h1: { buys: 500, sells: 480 }, h6: { buys: 1, sells: 1 }, h24: { buys: 1, sells: 1 } } }), R), 'buyers_not_in_control_1h');
+  });
+
+  it('does not open anything while SOL itself is falling', () => {
+    assert.equal(marketOk(null, R), null, 'no data: do not block');
+    assert.equal(marketOk(pair({ m5: 0.2, h1: -1 }), R), null);
+    assert.equal(marketOk(pair({ m5: -1.5 }), R), 'sol_falling_5m');
+    assert.equal(marketOk(pair({ m5: 0, h1: -3 }), R), 'sol_falling_1h');
+  });
+
+  it('caps total exposure at 30% of equity, so five positions cannot gap down together', () => {
+    assert.equal(tradeSize(100, 100, 1e6, R, 0), 10);
+    assert.equal(tradeSize(100, 80, 1e6, R, 20), 10);
+    assert.equal(tradeSize(100, 70, 1e6, R, 29.5), 0, 'only $0.50 of room: under the $1 minimum');
+    assert.equal(tradeSize(100, 70, 1e6, R, 25), 5);
   });
 
   it('refuses tokens that can be minted, frozen, taxed, or are held by a few wallets', () => {
@@ -87,6 +105,8 @@ describe('meme desk rules', () => {
     assert.equal(exitDecision(at(0.001), null, NOW, R), 'rug_liquidity', 'pair gone');
     assert.equal(exitDecision(at(0.001), pair({ liq: 60_000 }), NOW, R), 'rug_liquidity', 'liquidity -40%');
     assert.equal(exitDecision(at(0.00089), pair({ price: 0.0012 }), NOW, R), 'stop_loss', 'the chart says +20% but we could only sell at -11%: the stop is on what we would get');
+    assert.equal(exitDecision(at(0.00094), pair({ b5: 10, s5: 40, m5: -5 }), NOW, R), 'cut_loss', '-6% with sellers in control and a falling candle: leave before the gap');
+    assert.equal(exitDecision(at(0.00094), pair({ b5: 50, s5: 20, m5: 1 }), NOW, R), null, '-6% but buyers still there: hold for the stop or the recovery');
     assert.equal(exitDecision(at(0.00102), pair({ price: 0.00085 }), NOW, R), null, 'the chart prints a dip we cannot sell into; our sale price is fine: hold');
     assert.equal(exitDecision(at(0.0011), pair({ v5: 1_000, vh1: 200_000, m5: -1 }), NOW, R), 'volume_collapse');
     assert.equal(exitDecision(at(0.0012), pair({ b5: 10, s5: 40, m5: -5 }), NOW, R), 'trend_turned', 'in profit, sellers took over: sell now');

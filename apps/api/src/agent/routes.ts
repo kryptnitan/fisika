@@ -9,7 +9,7 @@
 import { Hono, type Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { randomUUID } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { erc20Abi, formatUnits, parseEventLogs, type Hex } from 'viem';
 import type { Address, ChainConfig, TokenRegistry } from '@fisika/core';
 import type { GraphState } from '@fisika/core/setup';
@@ -67,6 +67,7 @@ interface TraderStatus {
   lastSkip?: Record<string, number>;
   pendingWithdrawals?: number;
   killed?: boolean;
+  stranded?: { symbol: string; amount: string }[];
 }
 
 async function readJson<T>(f: string): Promise<T | null> {
@@ -219,6 +220,8 @@ export function createAgentApp(d: AgentDeps) {
           killFileOn: !!st?.killed,
           halted: !!st?.halted,
           haltReason: st?.haltReason ?? null,
+          stranded: st?.stranded ?? [],
+          startToken: ch.chain.startTokens[0] ?? null,
           lastSkip: st?.lastSkip ?? {},
           pendingWithdrawals: pending,
         };
@@ -331,6 +334,34 @@ export function createAgentApp(d: AgentDeps) {
     const online = !!st?.updatedAt && now() - Date.parse(st.updatedAt) < ONLINE_MS;
     console.log(`[agent] withdrawal ${r.id} ${amount} ${r.token} on ${ch.chain.key} requested by owner`);
     return c.json({ ...r, to: d.withdrawTo, traderOnline: online, note: online ? 'the trader sends it after any trade in flight' : 'the trader is not running; it sends this as soon as it starts' });
+  });
+
+  /**
+   * Owner requests the trader (key holder) act: 'unwind' sells any held non-start token back to the start token,
+   * 'clear-halt' lifts a daily-loss or stuck halt. Both are files the trader picks up between trades; the API
+   * never touches the key. Target 'solana' addresses the meme desk (clear-halt only).
+   */
+  app.post('/v1/agent/request/:kind', async (c) => {
+    const kind = c.req.param('kind');
+    if (kind !== 'unwind' && kind !== 'clear-halt') throw new HttpError(404, 'unknown request');
+    const s = act(c, kind, 10);
+    const body = (await c.req.json().catch(() => null)) as { chain?: string } | null;
+    const chainKey = body?.chain ?? '';
+    let dir: string | null = null;
+    if (chainKey === 'solana') {
+      if (kind !== 'clear-halt') throw new HttpError(400, 'the meme desk holds no tokens to sell back');
+      dir = d.memeDir ?? null;
+    } else {
+      const ch = chainOf(chainKey);
+      dir = ch.dataDir;
+      if (kind === 'unwind') await setControl(d.controlFile, ch.chain.key as 'celo' | 'bsc', false, `${s.address} (unwind)`, d.eventsFile);
+    }
+    if (!dir) throw new HttpError(409, `nothing is configured for ${chainKey}`);
+    await mkdir(dir, { recursive: true });
+    await writeFile(`${dir}/${kind}.request`, s.address);
+    await logEvent(d.eventsFile, { type: kind === 'unwind' ? 'unwind_requested' : 'clear_halt_requested', chain: chainKey, by: s.address });
+    console.log(`[agent] ${kind} on ${chainKey} requested by owner`);
+    return c.json({ ok: true, kind, chain: chainKey, note: kind === 'unwind' ? 'the trader sells held tokens back at the best live quote within a minute' : 'the halt lifts within a minute; if tokens are still held it comes straight back' });
   });
 
   app.get('/v1/agent/withdrawals/:chain/:id', async (c) => {
