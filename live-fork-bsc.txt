@@ -1,22 +1,24 @@
 PASS funded test wallet with 300 USDT on the BNB Chain fork
-PASS graph built from PancakeSwap + Uniswap on the fork (BNB $590.30)
-[live] completed USDT→WBNB→USDT pancake-v3,uniswap-v3 realized $-0.2130
-PASS 2-leg cycle USDT→WBNB (PancakeSwap)→USDT (Uniswap) completed in 4 txs, cost 0.0064 USDT
+PASS graph built from PancakeSwap + Uniswap on the fork (BNB $590.79)
+[live] completed USDT→WBNB→USDT pancake-v3,uniswap-v3 realized $-0.2266
+PASS 2-leg cycle USDT→WBNB (PancakeSwap)→USDT (Uniswap) completed in 4 txs, cost 0.0199 USDT
 PASS impossible minimum output reverts and moves no funds
 PASS a Celo-only venue is refused on BNB Chain
-PASS dashboard swap 25 USDT → 0.042351526814073063 WBNB via pancake-v3 (direct router build, receipt verified)
-[live] completed USDT→WBNB→USDT pancake-v3,uniswap-v3 realized $-0.2026
-PASS [bsc] 1. paused for 60 ticks (=10 min): 0 transactions; resumed: next loop ran (4 txs)
-[live] completed USDT→WBNB→USDT pancake-v3,uniswap-v3 realized $-0.2026
+PASS dashboard swap 25 USDT → 0.042316136773745676 WBNB via uniswap-v3 (direct router build, receipt verified)
+[live] holding WBNB 0.042316136773745676 from an unfinished loop; sell it back to USDT (console: Sell back) then clear the halt
+[live] completed USDT→WBNB→USDT pancake-v3,uniswap-v3 realized $-0.2237
+PASS [bsc] 1. paused for 60 ticks (=10 min): 0 transactions; resumed: next loop ran (5 txs)
+[live] completed USDT→WBNB→USDT pancake-v3,uniswap-v3 realized $-0.2094
 PASS [bsc] 2. paused during leg 1: loop completed back to USDT, no new loop started
+[live] holding WBNB 0.042316136773745676 from an unfinished loop; sell it back to USDT (console: Sell back) then clear the halt
 PASS [bsc] 3. restarted while paused: still paused, no transactions
-[live] completed USDT→WBNB→USDT pancake-v3,uniswap-v3 realized $-0.2026
+[live] completed USDT→WBNB→USDT pancake-v3,uniswap-v3 realized $-0.2094
 PASS [bsc] 6. celo paused only: bsc kept trading; bsc paused: bsc stopped
 [agent] owner signed in 0x70997970c51812dc3a010c7d01b50e0d17dc79c8
-[agent] withdrawal w_c737af8d-db27-4c42-b462-082b9e46cfb9 1 USDT on bsc requested by owner
-[withdraw] sent w_c737af8d-db27-4c42-b462-082b9e46cfb9 1 USDT tx 0xcfdcc9c9f5c05a80cf80bcc41e1398105905594bca758fcfa55aeed16fd898f4
-[agent] withdrawal w_878df29d-ab80-4cbf-aa52-c8e6f69e7510 max native on bsc requested by owner
-[withdraw] sent w_878df29d-ab80-4cbf-aa52-c8e6f69e7510 9.993275445 native tx 0x284335a3fe156867aad8f282a1f9802426ad8813af9eee9beafa187aad160017
-PASS [bsc] 5. deposit $1 (0x98e0db12…) and withdraw $1 (0xcfdcc9c9…) to the owner; balances, funding history and trade history updated; Max BNB kept the gas reserve
+[agent] withdrawal w_62ea3818-c451-4eb0-b7ed-85b4b40c1403 1 USDT on bsc requested by owner
+[withdraw] sent w_62ea3818-c451-4eb0-b7ed-85b4b40c1403 1 USDT tx 0x723b4561ac1669664e2782e1f2729169e67f3d3d98b35fbe67915cbfd4d15373
+[agent] withdrawal w_e193aa6c-41e6-4dc0-9979-9707a090197d max native on bsc requested by owner
+[withdraw] sent w_e193aa6c-41e6-4dc0-9979-9707a090197d 9.993268507 native tx 0xdce1e78ec3337edb95e24e2709f18fd4cda8eb918259ec161b6a9a45ed72537a
+PASS [bsc] 5. deposit $1 (0x98e0db12…) and withdraw $1 (0x723b4561…) to the owner; balances, funding history and trade history updated; Max BNB kept the gas reserve
 
 11 checks passed
