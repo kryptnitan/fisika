@@ -286,8 +286,8 @@ const EXIT_LABEL: Record<string, string> = {
   stalled: 'stalled',
   daily_loss_limit: 'daily loss limit',
 };
-const exitLabel = (r: string) => EXIT_LABEL[r] ?? r.replace(/_/g, ' ');
-const pct = (n: number) => `${n > 0 ? '+' : ''}${n.toFixed(1)}%`;
+const exitLabel = (r: string | undefined) => (r ? (EXIT_LABEL[r] ?? r.replace(/_/g, ' ')) : '—');
+const pct = (n: number | null | undefined) => (typeof n === 'number' && Number.isFinite(n) ? `${n > 0 ? '+' : ''}${n.toFixed(1)}%` : '—');
 
 function MemePanel({ refreshKey, onChange, guard }: { refreshKey: number; onChange: () => void; guard: Guard }) {
   const [info, setInfo] = useState<MemeInfo | null>(null);
@@ -774,6 +774,7 @@ function History({ cfg, refreshKey, guard }: { cfg: AgentConfig | null; refreshK
               aria-selected={tab === t}
               onClick={() => {
                 setStatus('');
+                setData(null); // the old tab's rows must not be drawn with the new tab's layout
                 setTab(t);
               }}
             >
@@ -897,9 +898,9 @@ function History({ cfg, refreshKey, guard }: { cfg: AgentConfig | null; refreshK
                   <td>{r.amountOut ? `${num(r.amountOut)} ${r.token}` : '—'}</td>
                   <td className={r.pnlUsd > 0 ? 'ok' : r.pnlUsd < 0 ? 'err' : ''}>{r.status === 'completed' ? usd(r.pnlUsd) : '—'}</td>
                   <td>{usd(r.feesUsd)}</td>
-                  <td title={r.note ?? ''}>{r.status.replace(/_/g, ' ')}</td>
+                  <td title={r.note ?? ''}>{(r.status ?? '').replace(/_/g, ' ')}</td>
                   <td>
-                    {r.explorer.length
+                    {Array.isArray(r.explorer) && r.explorer.length
                       ? r.explorer.map((u, j) => (
                           <a key={u} href={u} target="_blank" rel="noreferrer">
                             {j ? ' ' : ''}
@@ -928,7 +929,7 @@ function History({ cfg, refreshKey, guard }: { cfg: AgentConfig | null; refreshK
               {(data.rows as EventRow[]).map((r, i) => (
                 <tr key={`${r.at}-${i}`}>
                   <td>{new Date(r.at).toLocaleString()}</td>
-                  <td title={r.note ?? ''}>{r.type.replace(/_/g, ' ')}</td>
+                  <td title={r.note ?? ''}>{(r.type ?? '').replace(/_/g, ' ')}</td>
                   <td>{r.chain === 'all' ? 'All chains' : chainName(r.chain)}</td>
                   <td>{r.amount ? `${r.amount === 'max' ? 'max' : num(r.amount)} ${r.token ?? ''}` : '—'}</td>
                   <td>{r.by?.startsWith('0x') ? short(r.by) : (r.by ?? '—')}</td>
