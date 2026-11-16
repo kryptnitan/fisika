@@ -212,7 +212,7 @@ export class MemeEngine {
       // The day's budget restarts from here: a second 5% loss today halts again.
       this.s.dayStartEquity = this.equity();
       this.note({ mint: '-', symbol: '-', action: 'halt', reason: `halt cleared by ${by.trim().slice(0, 12)}; day budget reset at $${this.equity().toFixed(2)}` });
-      this.d.log(`[meme] halt cleared by owner; day budget reset`);
+      this.log(`[meme] halt cleared by owner; day budget reset`);
     }
   }
 
