@@ -23,7 +23,7 @@
 import { appendFile, readFile, unlink, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { formatUnits, parseAbiItem } from 'viem';
+import { formatUnits, parseAbiItem, type Hex } from 'viem';
 import { ArbEngine, RiskGate, type Address, type ArbConfig, type Edge, type Opportunity, type TextileAdapter, type TokenRegistry, type VenueAdapter, type VenueId } from '@fisika/core';
 import type { GraphState } from '@fisika/core/setup';
 import { balanceOf, executeLeg, LegError, type Chain, type TxCost } from './legs.ts';
@@ -159,6 +159,7 @@ export class LiveTrader {
       eventsFile: this.cfg.eventsFile ?? `${this.cfg.withdrawDir}/../agent-events.jsonl`,
     }).catch((e: Error) => console.error('[withdraw] failed:', e.message));
     this.pendingWithdrawals = (await listRequests(this.cfg.withdrawDir)).filter((r) => r.status === 'requested').length;
+    return pending > 0;
   }
 
   private get dataDir(): string {
@@ -221,7 +222,7 @@ export class LiveTrader {
       const before = this.baseline.get(addr) ?? 0n;
       if (bal <= before) continue;
       const t = this.tokens.get(addr as Address);
-      if (!t || bal - before <= this.dust(addr as Address)) continue;
+      if (!t || t.decimals === null || bal - before <= this.dust(addr as Address)) continue;
       const amount = formatUnits(bal - before, t.decimals);
       let txHash: Hex | undefined;
       let from: string | undefined;

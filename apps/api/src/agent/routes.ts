@@ -555,8 +555,8 @@ export function createAgentApp(d: AgentDeps) {
 }
 
 export class HttpError extends Error {
-  readonly status: 400 | 401 | 404 | 409 | 422 | 429;
-  constructor(status: 400 | 401 | 404 | 409 | 422 | 429, message: string) {
+  readonly status: 400 | 401 | 403 | 404 | 409 | 422 | 429;
+  constructor(status: 400 | 401 | 403 | 404 | 409 | 422 | 429, message: string) {
     super(message);
     this.status = status;
   }
