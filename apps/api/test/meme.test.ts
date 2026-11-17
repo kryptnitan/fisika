@@ -113,7 +113,9 @@ describe('meme desk rules', () => {
     assert.equal(exitDecision(at(0.00195, { peakPrice: 0.00198 }), pair({ m5: -0.5, b5: 30, s5: 35 }), NOW, R), 'ath_take_profit');
     assert.equal(exitDecision(at(0.00197, { peakPrice: 0.00198 }), pair({ m5: 3, b5: 80, s5: 20 }), NOW, R), null, 'at the high but still pushing: hold');
     assert.equal(exitDecision(at(0.00133, { peakPrice: 0.0015, athAtEntry: 0.01 }), pair({ m5: 1 }), NOW, R), 'trailing_stop', 'up 50% then -11% off the peak');
-    assert.equal(exitDecision(at(0.00102, { peakPrice: 0.00108, athAtEntry: 0.01 }), pair({ m5: 1 }), NOW, R), null, 'up 8% then back: a wiggle, not a trail (trail starts at +15%)');
+    assert.equal(exitDecision(at(0.00104, { peakPrice: 0.00107, athAtEntry: 0.01 }), pair({ m5: 1 }), NOW, R), null, 'up 7% then back to +4%: a wiggle, below the breakeven arming point');
+    assert.equal(exitDecision(at(0.001003, { peakPrice: 0.00109, athAtEntry: 0.01 }), pair({ m5: 1 }), NOW, R), 'breakeven_stop', 'was up 9%, now flat: do not let it become a loss');
+    assert.equal(exitDecision(at(0.00103, { peakPrice: 0.00109, athAtEntry: 0.01 }), pair({ m5: 1 }), NOW, R), null, 'was up 9%, still +3%: hold');
     assert.equal(exitDecision(at(0.00104, { openedMs: NOW - 241 * 60_000, athAtEntry: 0.01 }), pair(), NOW, R), 'max_hold');
     assert.equal(exitDecision(at(0.00101, { openedMs: NOW - 50 * 60_000, athAtEntry: 0.01 }), pair(), NOW, R), 'stalled');
     assert.equal(exitDecision(at(0.00103, { athAtEntry: 0.01 }), pair(), NOW, R), null, 'young, small gain, momentum fine: hold');

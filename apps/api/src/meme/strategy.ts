@@ -37,6 +37,7 @@ export interface MemeRules {
   marketDropM5Pct: number; // no new entries when SOL itself fell more than this in 5 minutes…
   marketDropH1Pct: number; // …or this in the hour: memecoins all dump together
   cutLossPct: number; // in loss by this much with sellers in control and price falling: get out before the hard stop
+  breakevenAtPct: number; // once up this much, the position may not turn into a loss: flat is the floor
   // exits
   stopLossPct: number;
   trailActivatePct: number;
@@ -72,6 +73,7 @@ export const DEFAULT_RULES: MemeRules = {
   marketDropM5Pct: 1,
   marketDropH1Pct: 2.5,
   cutLossPct: 5,
+  breakevenAtPct: 8,
   stopLossPct: 10,
   trailActivatePct: 15, // a real move, not a 30-second wiggle; below this only the stop, the rug checks and "downside started" apply
   trailPct: 10,
@@ -221,6 +223,7 @@ export interface EntrySnapshot {
 
 export type ExitReason =
   | 'cut_loss'
+  | 'breakeven_stop'
   | 'stop_loss' | 'rug_liquidity' | 'rug_cannot_sell' | 'volume_collapse' | 'trend_turned' | 'ath_take_profit' | 'trailing_stop' | 'max_hold' | 'stalled' | 'daily_loss_limit';
 
 /**
@@ -260,6 +263,9 @@ export function exitDecision(pos: Position, p: DexPair | null, nowMs: number, r:
     if (nearAth && fading && pos.athAtEntry !== null) return 'ath_take_profit';
   }
   if (upFromEntry >= r.trailActivatePct && offPeak >= r.trailPct) return 'trailing_stop';
+  // Below the trail's arming point there was nothing between a +9% peak and the -10% stop: four of the first five
+  // losers on the strict entries peaked at +5..10% and gave it all back. Once up 8%, flat is the floor.
+  if (upFromEntry >= r.breakevenAtPct && pnlPct <= 0.5) return 'breakeven_stop';
   const heldMin = (nowMs - pos.openedMs) / 60_000;
   if (heldMin >= r.maxHoldMin) return 'max_hold';
   if (heldMin >= r.stallMin && Math.abs(pnlPct) < r.stallPct && upFromEntry < r.trailActivatePct) return 'stalled';

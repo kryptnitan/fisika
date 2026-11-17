@@ -33,6 +33,7 @@ const rules: MemeRules = {
   maxExposurePct: num('MEME_MAX_EXPOSURE_PCT', DEFAULT_RULES.maxExposurePct),
   maxPumpM5Pct: num('MEME_MAX_PUMP_M5_PCT', DEFAULT_RULES.maxPumpM5Pct),
   cutLossPct: num('MEME_CUT_LOSS_PCT', DEFAULT_RULES.cutLossPct),
+  breakevenAtPct: num('MEME_BREAKEVEN_AT_PCT', DEFAULT_RULES.breakevenAtPct),
   maxHoldMin: num('MEME_MAX_HOLD_MIN', DEFAULT_RULES.maxHoldMin),
   maxOpen: num('MEME_MAX_OPEN', DEFAULT_RULES.maxOpen),
 };

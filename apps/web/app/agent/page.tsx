@@ -312,6 +312,8 @@ const EXIT_LABEL: Record<string, string> = {
   trend_turned: 'downside started',
   ath_take_profit: 'take profit near high',
   trailing_stop: 'trailing take-profit',
+  breakeven_stop: 'breakeven floor',
+  cut_loss: 'early cut',
   max_hold: 'max hold time',
   stalled: 'stalled',
   daily_loss_limit: 'daily loss limit',
@@ -473,7 +475,7 @@ function MemePanel({ refreshKey, onChange, guard }: { refreshKey: number; onChan
             </ul>
           ) : null}
           <p className="muted small">
-            Exits in order: liquidity pulled or cannot sell → hard stop → volume collapse → in profit and the downside starts, or fading within {rules.athZonePct}% of the all-time high → trailing {rules.trailPct}% off the peak → max hold → stalled. A {limit}% day loss closes everything until the next UTC day. Reported {new Date(s.updatedAt).toLocaleTimeString()}.
+            Exits in order: liquidity pulled or cannot sell → hard stop → volume collapse → in profit and the downside starts, or fading within {rules.athZonePct}% of the all-time high → once up {rules.breakevenAtPct ?? 8}%, flat is the floor → trailing {rules.trailPct}% off the peak → max hold → stalled. A {limit}% day loss closes everything until the next UTC day. Reported {new Date(s.updatedAt).toLocaleTimeString()}.
           </p>
         </>
       )}
