@@ -1,7 +1,7 @@
 No files changed, compilation skipped
 
 Ran 14 tests for test/FisikaExecutor.t.sol:FisikaExecutorTest
-[PASS] testFuzz_feeNeverExceedsCap(uint96,uint16) (runs: 512, μ: 288836, ~: 290377)
+[PASS] testFuzz_feeNeverExceedsCap(uint96,uint16) (runs: 512, μ: 288387, ~: 290377)
 [PASS] test_badPatchOffset() (gas: 154660)
 [PASS] test_deadline() (gas: 48922)
 [PASS] test_feeCap() (gas: 48820)
@@ -15,12 +15,12 @@ Ran 14 tests for test/FisikaExecutor.t.sol:FisikaExecutorTest
 [PASS] test_reentrancyBlocked() (gas: 1305013)
 [PASS] test_singleLeg() (gas: 281130)
 [PASS] test_targetMustBeAllowlisted() (gas: 68110)
-Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 75.33ms (78.19ms CPU time)
+Suite result: ok. 14 passed; 0 failed; 0 skipped; finished in 49.60ms (54.62ms CPU time)
 
 Ran 5 tests for test/FisikaExecutor.fork.t.sol:FisikaExecutorForkTest
 [PASS] test_fork_crossVenueTwoHopAtomic() (gas: 943187)
 Logs:
-  USDT->USDC->USDm out 99809380017084684253
+  USDT->USDC->USDm out 99809418962483534686
 
 [PASS] test_fork_mentoQuoteMatchesExecution() (gas: 884513)
 Logs:
@@ -30,14 +30,14 @@ Logs:
 
 [PASS] test_fork_mentoV3ThenV2BrokerAtomic() (gas: 1084745)
 Logs:
-  USDC->USDm->KESm out 6432670634448487742570
+  USDC->USDm->KESm out 6434353539616775032509
 
 [PASS] test_fork_slippageGuardRevertsWholeRoute() (gas: 747955)
 [PASS] test_fork_uniswapSingleLeg() (gas: 637080)
 Logs:
-  USDT->USDC uni fee 100 out 99949312
+  USDT->USDC uni fee 100 out 99949351
 
-Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 15.39s (35.45s CPU time)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 16.31s (36.28s CPU time)
 
 ╭------------------------------------------------+-----------------+--------+--------+--------+---------╮
 | src/FisikaExecutor.sol:FisikaExecutor Contract |                 |        |        |        |         |
@@ -52,7 +52,7 @@ Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 15.39s (35.45s CPU 
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | acceptOwnership                                |           33065 |  33065 |  33065 |  33065 |       1 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
-| execute                                        |           31306 | 227276 | 226742 | 747223 |     274 |
+| execute                                        |           31306 | 226208 | 226742 | 747223 |     274 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
 | owner                                          |            2391 |   2391 |   2391 |   2391 |       2 |
 |------------------------------------------------+-----------------+--------+--------+--------+---------|
@@ -144,4 +144,4 @@ Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 15.39s (35.45s CPU 
 ╰----------------------------------------+-----------------+--------+--------+--------+---------╯
 
 
-Ran 2 test suites in 15.39s (15.47s CPU time): 19 tests passed, 0 failed, 0 skipped (19 total tests)
+Ran 2 test suites in 16.31s (16.36s CPU time): 19 tests passed, 0 failed, 0 skipped (19 total tests)
