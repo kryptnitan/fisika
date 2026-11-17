@@ -6,7 +6,7 @@ import { PaperArbRunner } from './arb.ts';
 import { createApp, multiChainFetch } from './app.ts';
 import { createAgentApp, type AgentChain, type AgentChainClient } from './agent/routes.ts';
 import { dirname } from 'node:path';
-import { parseEther, type Address } from 'viem';
+import { parseEther, type Address, type Hex } from 'viem';
 
 /** Read-only slice of FisikaExecutor's ABI for the console. acceptOwnership() selector is 0x79ba5097. */
 const executorViewAbi = [
@@ -100,6 +100,14 @@ const agent = createAgentApp({
   eventsFile: cfg.agentConsole.eventsFile,
   chains: agentChains,
   memeDir: process.env.MEME_DATA_DIR ?? '/var/lib/fisika/meme',
+  identity: {
+    uri: `${cfg.publicUrl}/.well-known/agent-registration.json`,
+    getReceipt: async (hash) => {
+      const client = agentChains.find((x) => x.chain.key === 'celo')?.client as unknown as { getTransactionReceipt: (a: { hash: Hex }) => Promise<{ status: string; logs: { address: Address; topics: readonly Hex[]; data: Hex }[] }> } | undefined;
+      if (!client) return null;
+      return client.getTransactionReceipt({ hash }).catch(() => null);
+    },
+  },
   executor: {
     address: cfg.executor,
     feeTo: cfg.feeTo,

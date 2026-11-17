@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
 import { createSiweMessage } from 'viem/siwe';
 import { encodeFunctionData, erc20Abi, getAddress, parseUnits } from 'viem';
-import { agentApi, AgentError, type AgentConfig, type AgentState, type Balances, type EventRow, type ExecutorInfo, type MemeInfo, type MemeTradeRow, type Paged, type TradeRow } from '@/lib/agent';
+import { agentApi, AgentError, type AgentConfig, type AgentState, type Balances, type EventRow, type ExecutorInfo, type IdentityInfo, type MemeInfo, type MemeTradeRow, type Paged, type TradeRow } from '@/lib/agent';
 import { UI_CHAINS } from '@/lib/chain';
 import { connect, sendTx, signMessage, waitForTx } from '@/lib/wallet';
 
@@ -151,6 +151,7 @@ function Console({ owner, onSignOut }: { owner: string; onSignOut: () => void })
       <Switches state={state} onChange={refreshAll} guard={guard} />
       <MemePanel refreshKey={tick} onChange={refreshAll} guard={guard} />
       <ExecutorPanel refreshKey={tick} guard={guard} account={owner} />
+      <IdentityPanel refreshKey={tick} guard={guard} account={owner} />
       <div className="agent-grid">
         <BalancesCard cfg={cfg} bal={bal} state={state} onRefresh={loadBal} />
         <Funding cfg={cfg} onDone={refreshAll} guard={guard} />
@@ -547,6 +548,86 @@ function ExecutorPanel({ refreshKey, guard, account }: { refreshKey: number; gua
           {msg ? <p className="small">{msg}</p> : null}
         </>
       )}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------------------------------------- identity */
+
+function IdentityPanel({ refreshKey, guard, account }: { refreshKey: number; guard: Guard; account: string }) {
+  const [info, setInfo] = useState<IdentityInfo | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const load = useCallback(async () => {
+    const r = await guard(agentApi<IdentityInfo>('identity'));
+    if (r) setInfo(r);
+  }, [guard]);
+  useEffect(() => {
+    void load();
+  }, [load, refreshKey]);
+  if (!info) return null;
+
+  const register = async () => {
+    if (!info.registerData) return;
+    if (!window.confirm('Register fisika in the ERC-8004 Identity Registry on Celo from your wallet? Your wallet becomes the identity\'s owner and payment address.')) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const from = await connect(UI_CHAINS.celo);
+      if (from !== account.toLowerCase()) throw new Error(`Your wallet is on ${short(from)}; sign in with the owner wallet ${short(account)}.`);
+      const hash = await sendTx(from, { to: info.registry, data: info.registerData, value: '0' });
+      setMsg(`Sent ${short(hash)}. Waiting for Celo…`);
+      const st = await waitForTx(hash);
+      if (st !== 'success') throw new Error('The transaction reverted.');
+      const rec = await guard(agentApi<{ agentId: string }>('identity', { txHash: hash }));
+      setMsg(rec ? `Registered: fisika is agent #${rec.agentId}.` : null);
+      void load();
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="panel" aria-label="Agent identity">
+      <h2>Agent identity · ERC-8004</h2>
+      {info.agentId ? (
+        <p>
+          Registered as agent <b>#{info.agentId}</b> in the{' '}
+          <a href={`https://celoscan.io/address/${info.registry}`} target="_blank" rel="noreferrer">
+            Identity Registry
+          </a>
+          {info.registeredBy ? <> · owned by {short(info.registeredBy)}</> : null}
+          {info.txHash ? (
+            <>
+              {' '}·{' '}
+              <a href={`https://celoscan.io/tx/${info.txHash}`} target="_blank" rel="noreferrer">
+                tx
+              </a>
+            </>
+          ) : null}
+          . Other agents can find the paid API through{' '}
+          <a href={info.uri ?? '#'} target="_blank" rel="noreferrer">
+            the registration file
+          </a>
+          .
+        </p>
+      ) : (
+        <div className="row-start">
+          <button type="button" className="primary" disabled={busy || !info.registerData} onClick={register}>
+            {busy ? 'Confirm in your wallet…' : 'Register on Celo'}
+          </button>
+          <span className="muted small">
+            One transaction from your wallet (small gas in CELO). It mints the identity to you and points it at{' '}
+            <a href={info.uri ?? '#'} target="_blank" rel="noreferrer">
+              the registration file
+            </a>
+            , which lists the paid API for other agents.
+          </span>
+        </div>
+      )}
+      {msg ? <p className="small">{msg}</p> : null}
     </section>
   );
 }

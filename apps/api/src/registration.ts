@@ -1,10 +1,27 @@
 import { ERC8004 } from '@fisika/core';
+import { readFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import type { ApiConfig } from './config.ts';
+
+/** Where the console's registration flow records the agentId (AGENT_ID in the env still wins when set). */
+export const agentIdFile = () => process.env.AGENT_ID_FILE ?? `${dirname(process.env.CONTROL_FILE ?? '/var/lib/fisika/control.json')}/agent-id.json`;
+
+export function storedAgentId(): { agentId: string; owner: string; txHash: string; at: string } | null {
+  try {
+    return JSON.parse(readFileSync(agentIdFile(), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+export function currentAgentId(cfg: ApiConfig): string | null {
+  return cfg.agent.id ?? storedAgentId()?.agentId ?? null;
+}
 
 /**
  * ERC-8004 registration file (docs.celo.org/build/agents/8004). Served at /.well-known/agent-registration.json and
- * referenced by the Identity Registry entry. `registrations` can only list the agentId after registering, so the
- * flow is: publish, register, set AGENT_ID, redeploy.
+ * referenced by the Identity Registry entry. `registrations` can only list the agentId after registering: the console's
+ * Register button has the owner sign register(uri), then records the id here (no redeploy needed).
  */
 export function registrationFile(cfg: ApiConfig) {
   return {
@@ -17,11 +34,11 @@ export function registrationFile(cfg: ApiConfig) {
       { name: 'web', endpoint: cfg.webUrl },
       { name: 'fx-api', endpoint: `${cfg.publicUrl}/v1`, version: '1' },
       { name: 'openapi', endpoint: `${cfg.publicUrl}/openapi.json` },
-      ...(cfg.agent.wallet ? [{ name: 'agentWallet', endpoint: `eip155:42220:${cfg.agent.wallet}` }] : []),
+      ...(cfg.agent.wallet ?? storedAgentId()?.owner ? [{ name: 'agentWallet', endpoint: `eip155:42220:${cfg.agent.wallet ?? storedAgentId()?.owner}` }] : []),
     ],
     x402Support: true,
     active: true,
-    registrations: cfg.agent.id ? [{ agentId: Number(cfg.agent.id), agentRegistry: `eip155:42220:${ERC8004.identityRegistry}` }] : [],
+    registrations: currentAgentId(cfg) ? [{ agentId: Number(currentAgentId(cfg)), agentRegistry: `eip155:42220:${ERC8004.identityRegistry}` }] : [],
     supportedTrust: ['reputation'],
   };
 }

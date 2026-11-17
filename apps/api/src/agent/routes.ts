@@ -10,7 +10,16 @@ import { Hono, type Context } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { erc20Abi, formatUnits, parseEventLogs, type Hex } from 'viem';
+import { dirname } from 'node:path';
+import { ERC8004 } from '@fisika/core';
+import { agentIdFile, storedAgentId } from '../registration.ts';
+import { encodeFunctionData, erc20Abi, formatUnits, parseEventLogs, type Hex } from 'viem';
+
+/** The slice of the ERC-8004 Identity Registry the console uses (docs.celo.org/build/agents/8004). */
+const identityAbi = [
+  { type: 'function', name: 'register', stateMutability: 'nonpayable', inputs: [{ name: 'agentURI', type: 'string' }], outputs: [{ name: 'agentId', type: 'uint256' }] },
+  { type: 'event', name: 'Registered', inputs: [{ name: 'agentId', type: 'uint256', indexed: true }, { name: 'agentURI', type: 'string', indexed: false }, { name: 'owner', type: 'address', indexed: true }] },
+] as const;
 import type { Address, ChainConfig, TokenRegistry } from '@fisika/core';
 import type { GraphState } from '@fisika/core/setup';
 import { AgentAuth, AuthError, Limiter, SESSION_COOKIE, SESSION_TTL_MS } from './auth.ts';
@@ -48,6 +57,8 @@ export interface AgentDeps {
   controlFile: string;
   eventsFile: string;
   chains: AgentChain[];
+  /** ERC-8004: the registration file's public URL and a receipt reader on Celo, for the console's Register button. */
+  identity?: { uri: string; getReceipt: (hash: Hex) => Promise<{ status: string; logs: { address: Address; topics: readonly Hex[]; data: Hex }[] } | null> } | null;
   /** Solana meme desk data directory (meme-status.json, meme-ledger.jsonl). Null: no meme desk. */
   memeDir?: string | null;
   /** The FisikaExecutor fee contract on Celo, as the API is configured (EXECUTOR_ADDRESS / FEE_TO / SERVICE_FEE_BPS). */
@@ -421,6 +432,45 @@ export function createAgentApp(d: AgentDeps) {
   });
 
   // ---------------------------------------------------------------- Solana meme desk
+  /**
+   * ERC-8004 identity. GET: where things stand and the calldata for register(uri), which the owner signs in their
+   * wallet (the address that registers owns the identity NFT and is its payment wallet). POST {txHash}: read the
+   * Registered event from the receipt, check the owner, record the agentId so the registration file lists it.
+   */
+  app.get('/v1/agent/identity', async (c) => {
+    owner(c);
+    const stored = storedAgentId();
+    const envId = process.env.AGENT_ID || null;
+    return c.json({
+      chain: 'celo',
+      registry: ERC8004.identityRegistry,
+      uri: d.identity?.uri ?? null,
+      agentId: envId ?? stored?.agentId ?? null,
+      registeredBy: stored?.owner ?? null,
+      txHash: stored?.txHash ?? null,
+      registerData: d.identity ? encodeFunctionData({ abi: identityAbi, functionName: 'register', args: [d.identity.uri] }) : null,
+    });
+  });
+  app.post('/v1/agent/identity', async (c) => {
+    const s = act(c, 'identity', 10);
+    if (!d.identity) throw new HttpError(409, 'identity not configured');
+    const body = (await c.req.json().catch(() => null)) as { txHash?: string } | null;
+    const hash = body?.txHash ?? '';
+    if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) throw new HttpError(400, 'txHash required');
+    const r = await d.identity.getReceipt(hash as Hex);
+    if (!r) throw new HttpError(404, 'no receipt yet; try again in a few seconds');
+    if (r.status !== 'success') throw new HttpError(422, 'that transaction reverted');
+    const [ev] = parseEventLogs({ abi: identityAbi, logs: r.logs.filter((l) => lc(l.address) === lc(ERC8004.identityRegistry)) as never, eventName: 'Registered' });
+    if (!ev) throw new HttpError(422, 'no Registered event from the Identity Registry in that transaction');
+    if (lc(ev.args.owner) !== lc(s.address)) throw new HttpError(403, `that identity is owned by ${ev.args.owner}, not the signed-in owner`);
+    const rec = { agentId: ev.args.agentId.toString(), owner: ev.args.owner, txHash: hash, uri: ev.args.agentURI, at: new Date(now()).toISOString() };
+    await mkdir(dirname(agentIdFile()), { recursive: true });
+    await writeFile(agentIdFile(), JSON.stringify(rec, null, 2));
+    await logEvent(d.eventsFile, { type: 'identity_registered', chain: 'celo', by: s.address, txHash: hash, note: `ERC-8004 agentId ${rec.agentId}` });
+    console.log(`[agent] ERC-8004 registered: agentId ${rec.agentId} by ${s.address}`);
+    return c.json(rec);
+  });
+
   /** The fee contract: who owns it, whether the handover to the owner is still pending, and the fee it charges. */
   app.get('/v1/agent/executor', async (c) => {
     owner(c);
@@ -476,9 +526,18 @@ export function createAgentApp(d: AgentDeps) {
   app.get('/v1/agent/activity', async (c) => {
     owner(c);
     const q = c.req.query();
-    const funding = new Set<AgentEvent['type']>(['deposit', 'withdraw_requested', 'withdraw_sent', 'withdraw_failed']);
+    const funding = new Set<AgentEvent['type']>(['deposit', 'withdraw_requested', 'withdraw_sent', 'withdraw_failed', 'unwind', 'unwind_requested']);
     const explorer = (chain: string) => byKey.get(chain)?.chain.explorer ?? d.chains[0]?.chain.explorer ?? '';
+    // A deposit recorded from the console and the same transfer noticed by the trader are one deposit.
+    const seenTx = new Set<string>();
     const rows = (await readEvents(d.eventsFile))
+      .filter((e) => {
+        if (e.type !== 'deposit' || !e.txHash) return true;
+        const k = `${e.chain}:${e.txHash}:${e.token}`;
+        if (seenTx.has(k)) return false;
+        seenTx.add(k);
+        return true;
+      })
       .filter((e) => (q.kind === 'funding' ? funding.has(e.type) : q.kind === 'control' ? !funding.has(e.type) : true))
       .filter((e) => !q.chain || e.chain === q.chain || e.chain === 'all')
       .filter((e) => inRange(e.at, q.from, q.to))

@@ -134,6 +134,17 @@ export interface ExecutorInfo {
   error?: string;
 }
 
+/** ERC-8004 identity on Celo. */
+export interface IdentityInfo {
+  chain: 'celo';
+  registry: string;
+  uri: string | null;
+  agentId: string | null;
+  registeredBy: string | null;
+  txHash: string | null;
+  registerData: string | null;
+}
+
 export interface MemeTradeRow {
   at: string;
   mode: string;

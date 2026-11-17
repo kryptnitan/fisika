@@ -23,7 +23,7 @@
 import { appendFile, readFile, unlink, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { formatUnits } from 'viem';
+import { formatUnits, parseAbiItem } from 'viem';
 import { ArbEngine, RiskGate, type Address, type ArbConfig, type Edge, type Opportunity, type TextileAdapter, type TokenRegistry, type VenueAdapter, type VenueId } from '@fisika/core';
 import type { GraphState } from '@fisika/core/setup';
 import { balanceOf, executeLeg, LegError, type Chain, type TxCost } from './legs.ts';
@@ -93,6 +93,9 @@ export class LiveTrader {
   /** Tokens other than the start token the wallet holds (a half-finished loop): symbol → raw amount. */
   stranded: { symbol: string; token: Address; amount: bigint }[] = [];
   private strandedCheckedMs = 0;
+  /** Last known balance per token, so a rise that no trade, unwind or withdrawal explains is recorded as a deposit. */
+  private baseline = new Map<string, bigint>();
+  private baselineReady = false;
 
   constructor(chain: Chain, state: () => GraphState, tokens: TokenRegistry, adapters: ReadonlyMap<VenueId, VenueAdapter>, textile: TextileAdapter | null, cfg: LiveConfig) {
     this.chain = chain;
@@ -139,8 +142,9 @@ export class LiveTrader {
   inFlight = false;
   pendingWithdrawals = 0;
 
-  private async withdrawals(): Promise<void> {
-    if (!this.cfg.withdrawDir || !this.cfg.controlFile) return;
+  private async withdrawals(): Promise<boolean> {
+    if (!this.cfg.withdrawDir || !this.cfg.controlFile) return false;
+    const pending = (await listRequests(this.cfg.withdrawDir).catch(() => [])).length;
     await processWithdrawals({
       chainKey: this.chainKey,
       pub: this.chain.pub as never,
@@ -180,12 +184,16 @@ export class LiveTrader {
     this.strandedCheckedMs = nowMs;
     const start = this.cfg.startTokens[0]!;
     const held: typeof this.stranded = [];
+    const now = new Map<string, bigint>();
     for (const t of this.tokens.all()) {
+      const bal = await balanceOf(this.chain, t.address).catch(() => null);
+      if (bal === null) continue;
+      now.set(t.address.toLowerCase(), bal);
       if (t.address.toLowerCase() === start.toLowerCase()) continue;
-      const bal = await balanceOf(this.chain, t.address).catch(() => 0n);
       if (bal > this.dust(t.address)) held.push({ symbol: t.symbol, token: t.address, amount: bal });
     }
     this.stranded = held;
+    await this.noteDeposits(now);
     if (held.length && !this.stuck) {
       const note = `holding ${held.map((h) => `${h.symbol} ${formatUnits(h.amount, this.tokens.get(h.token)?.decimals ?? 18)}`).join(', ')} from an unfinished loop; sell it back to ${this.sym(start)} (console: Sell back) then clear the halt`;
       this.stuck = note;
@@ -196,6 +204,54 @@ export class LiveTrader {
       console.error(`[live] ${note}`);
     }
     if (!held.length && this.stuck?.startsWith('holding ')) this.stuck = null;
+  }
+
+  /**
+   * Money sent straight to the bot wallet (not through the console) lands in the history too: any token balance that
+   * rose since the last look, with no trade, unwind or withdrawal in between to explain it, is a deposit. The transfer
+   * is looked up in the last few hundred blocks so the record carries the sender and the tx hash.
+   */
+  private async noteDeposits(now: Map<string, bigint>): Promise<void> {
+    if (!this.baselineReady) {
+      this.baseline = now;
+      this.baselineReady = true;
+      return;
+    }
+    for (const [addr, bal] of now) {
+      const before = this.baseline.get(addr) ?? 0n;
+      if (bal <= before) continue;
+      const t = this.tokens.get(addr as Address);
+      if (!t || bal - before <= this.dust(addr as Address)) continue;
+      const amount = formatUnits(bal - before, t.decimals);
+      let txHash: Hex | undefined;
+      let from: string | undefined;
+      try {
+        const head = await this.chain.pub.getBlockNumber();
+        const logs = await this.chain.pub.getLogs({
+          address: addr as Address,
+          event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
+          args: { to: this.chain.account },
+          fromBlock: head > 600n ? head - 600n : 0n,
+          toBlock: head,
+        });
+        const hit = logs[logs.length - 1];
+        if (hit) {
+          txHash = hit.transactionHash ?? undefined;
+          from = hit.args.from;
+        }
+      } catch {
+        /* the record still gets the amount */
+      }
+      await logEvent(this.eventsFile, { type: 'deposit', chain: this.chainKey, token: t.symbol, amount, txHash, by: 'direct transfer', note: from ? `from ${from.toLowerCase()}` : 'sent straight to the bot wallet' });
+      console.log(`[live] deposit noticed: ${amount} ${t.symbol}${txHash ? ` (${txHash})` : ''}`);
+    }
+    this.baseline = now;
+  }
+
+  /** After anything the trader itself did to the balances, the next look must not mistake it for a deposit. */
+  private resetBaseline(): void {
+    this.baselineReady = false;
+    this.strandedCheckedMs = 0;
   }
 
   /** Console requests dropped as files by the API (which never holds the key): clear the halt, or sell back held tokens. */
@@ -271,7 +327,7 @@ export class LiveTrader {
     this.busy = true;
     try {
       // Between trades by construction (busy): safe point to send queued withdrawals and act on console requests.
-      await this.withdrawals();
+      if (await this.withdrawals()) this.resetBaseline();
       await this.requests(nowMs);
       await this.checkStranded(nowMs);
       if (this.paused()) {
@@ -485,6 +541,7 @@ export class LiveTrader {
   }
 
   private async log(e: LedgerEntry): Promise<LedgerEntry> {
+    if (e.status !== 'aborted_before_spend') this.resetBaseline(); // balances moved by our own hand
     this.recent.unshift(e);
     if (this.recent.length > 50) this.recent.length = 50;
     await appendFile(this.cfg.ledgerPath, `${JSON.stringify(e)}\n`);
