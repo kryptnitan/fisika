@@ -1,15 +1,15 @@
 # fisika paper trading record
 
-77 sessions over 20.6 days (70.6 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-19T04:17:41.459Z. Live Celo prices on free RPCs, nothing signed.
+78 sessions over 21.0 days (71.5 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-19T13:54:10.779Z. Live Celo prices on free RPCs, nothing signed.
 
 | | |
 |---|---|
-| Opportunities that cleared the first check | 14463 |
+| Opportunities that cleared the first check | 14652 |
 | Paper fills (passed live re-quote and every risk limit) | 465 |
 | Paper P&L | $162.6846 |
-| P&L per watched hour | $2.3049 |
-| RPC requests | 349,560 (1.38/s) |
-| Venue refresh failures | {"textile":149} |
+| P&L per watched hour | $2.2753 |
+| RPC requests | 354,359 (1.38/s) |
+| Venue refresh failures | {"textile":150} |
 
 ## Fills by cycle
 
@@ -22,15 +22,16 @@
 
 ## Why opportunities were skipped
 
-- edge_bps_below_min: 12815
-- inventory_exposure: 768
-- edge_usd_below_min: 400
+- edge_bps_below_min: 12884
+- inventory_exposure: 769
+- edge_usd_below_min: 519
 - after_requote: edge_bps_below_min: 15
 
 ## Sessions
 
 | Start | Min | RPCs | Requests | Opps | Fills | P&L |
 |---|---|---|---|---|---|---|
+| 2026-11-19 12:59 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4799 | 189 | 0 | $0.0000 |
 | 2026-11-19 03:22 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4925 | 273 | 0 | $0.0000 |
 | 2026-11-18 21:24 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4467 | 62 | 0 | $0.0000 |
 | 2026-11-18 13:05 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4733 | 187 | 4 | $0.6481 |
@@ -78,4 +79,3 @@
 | 2026-11-06 20:52 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4758 | 101 | 1 | $0.0504 |
 | 2026-11-06 15:00 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4995 | 175 | 1 | $0.0524 |
 | 2026-11-06 06:38 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4534 | 256 | 0 | $0.0000 |
-| 2026-11-06 00:12 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4699 | 50 | 0 | $0.0000 |
