@@ -163,7 +163,8 @@ jobs:
           (cd apps/web && pnpm start > /tmp/web.log 2>&1 &)
           for i in $(seq 1 60); do curl -sf localhost:8787/health >/dev/null && curl -sf localhost:3000 >/dev/null && break; sleep 3; done
           sleep 20
-          timeout 300 npx -y playwright@1.49.0 install --with-deps chromium > /dev/null
+          # apt mirrors flake on the runners; retry the browser install once.
+          timeout 300 npx -y playwright@1.49.0 install --with-deps chromium > /dev/null || timeout 300 npx -y playwright@1.49.0 install --with-deps chromium > /dev/null
           timeout 90 npx -y playwright@1.49.0 screenshot --full-page --wait-for-timeout 6000 --viewport-size 1360,900 http://localhost:3000/ shot-rates.png
           timeout 90 npx -y playwright@1.49.0 screenshot --full-page --wait-for-timeout 4000 --viewport-size 390,844 http://localhost:3000/ shot-rates-mobile.png
           timeout 90 npx -y playwright@1.49.0 screenshot --full-page --wait-for-timeout 4000 --viewport-size 1360,900 http://localhost:3000/arb shot-arb.png
@@ -173,6 +174,12 @@ jobs:
           curl -s -o /dev/null -w 'agent state without session -> %{http_code}\n' localhost:3000/api/proxy/v1/agent/state | tee agent-guard.txt
           curl -s -o /dev/null -w 'agent withdraw without session -> %{http_code}\n' -X POST -H 'origin: http://localhost:3000' -H 'content-type: application/json' -d '{"chain":"celo","token":"USDT","amount":"1"}' localhost:3000/api/proxy/v1/agent/withdraw | tee -a agent-guard.txt
           curl -s -o /dev/null -w 'agent withdraw cross-site -> %{http_code}\n' -X POST -H 'origin: https://evil.example' -H 'content-type: application/json' -d '{}' localhost:3000/api/proxy/v1/agent/withdraw | tee -a agent-guard.txt
+          # Signed-out visitors get nothing private through the website; the internet gets nothing private from the API.
+          for p in v1/arb v1/stats v1/receipts v1/board v1/heatmap bsc/v1/arb; do curl -s -o /dev/null -w "site $p without session -> %{http_code}\n" localhost:3000/api/proxy/$p; done | tee -a agent-guard.txt
+          for p in v1/arb v1/stats v1/heatmap v1/receipts bsc/v1/arb; do curl -s -o /dev/null -w "api $p without key -> %{http_code}\n" localhost:8787/$p; done | tee -a agent-guard.txt
+          curl -s -o /dev/null -w 'api v1/stats with the web server key -> %{http_code}\n' -H 'x-api-key: ci-internal-key-0123456789abcdef' localhost:8787/v1/stats | tee -a agent-guard.txt
+          curl -s -o /dev/null -w 'site health (public) -> %{http_code}\n' localhost:3000/api/proxy/health | tee -a agent-guard.txt
+          node -e "const t=require('fs').readFileSync('agent-guard.txt','utf8');const bad=t.split('\n').filter(l=>/without (session|key)/.test(l)&&!/-> (401|403|404)$/.test(l));if(bad.length){console.error('NOT LOCKED:',bad);process.exit(1)}console.log('all private routes locked')"
           timeout 90 npx -y playwright@1.49.0 screenshot --full-page --wait-for-timeout 8000 --viewport-size 1360,900 'http://localhost:3000/?chain=bsc' shot-rates-bsc.png
           timeout 90 npx -y playwright@1.49.0 screenshot --full-page --wait-for-timeout 6000 --viewport-size 390,844 'http://localhost:3000/?chain=bsc' shot-rates-bsc-mobile.png
           curl -s localhost:8787/v1/chains > chains.json || true
