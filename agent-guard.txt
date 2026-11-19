@@ -1,3 +1,16 @@
 agent state without session -> 401
 agent withdraw without session -> 401
-agent withdraw cross-site -> 403
+agent withdraw cross-site -> 401
+site v1/arb without session -> 401
+site v1/stats without session -> 401
+site v1/receipts without session -> 401
+site v1/board without session -> 401
+site v1/heatmap without session -> 401
+site bsc/v1/arb without session -> 401
+api v1/arb without key -> 404
+api v1/stats without key -> 404
+api v1/heatmap without key -> 404
+api v1/receipts without key -> 404
+api bsc/v1/arb without key -> 404
+api v1/stats with the web server key -> 200
+site health (public) -> 200
