@@ -30,7 +30,7 @@ export interface ApiConfig {
   textileApiKey: string | null;
   agent: { id: string | null; wallet: Address | null; name: string; image: string };
   /** Agent console: the only wallet that may sign in, and the only address withdrawals go to. */
-  agentConsole: { owner: Address | null; withdrawTo: Address | null; wallets: Partial<Record<ChainKey, Address>>; controlFile: string; eventsFile: string };
+  agentConsole: { owner: Address | null; members: Address[]; withdrawTo: Address | null; wallets: Partial<Record<ChainKey, Address>>; controlFile: string; eventsFile: string };
   /** Chains this deployment serves (CHAINS=celo,bsc). The first is the default at /v1/*. */
   chains: ChainKey[];
   /** Per-chain RPCs and live trader files. Celo's mirror rpcUrls / live above. */
@@ -114,6 +114,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     perChain,
     agentConsole: {
       owner: addr('OWNER_ADDRESS'),
+      // Wallets that may sign in to the site without owner rights (comma-separated). Empty: the owner only.
+      members: (env.MEMBER_ADDRESSES ?? '').split(',').map((x) => x.trim()).filter((x) => /^0x[0-9a-fA-F]{40}$/.test(x)) as Address[],
       // Defaults to the owner. The trader enforces its own copy (WITHDRAW_ADDRESS in live.env); this one is shown.
       withdrawTo: addr('WITHDRAW_ADDRESS') ?? addr('OWNER_ADDRESS'),
       wallets: Object.fromEntries(chains.map((k) => [k, addr(`AGENT_WALLET_${k.toUpperCase()}`)]).filter(([, v]) => v)) as Partial<Record<ChainKey, Address>>,

@@ -50,6 +50,8 @@ export interface AgentChain {
 
 export interface AgentDeps {
   owner: Address | null;
+  /** Wallets that may sign in to view the site (rates, API docs) but not the console. */
+  members?: string[];
   withdrawTo: Address | null;
   /** Hosts a SIWE message may name (fisika.lol). */
   domains: string[];
@@ -124,7 +126,7 @@ function page<T>(rows: T[], q: Record<string, string>) {
 
 export function createAgentApp(d: AgentDeps) {
   const now = d.now ?? Date.now;
-  const auth = new AgentAuth(d.owner, d.domains, now);
+  const auth = new AgentAuth(d.owner, d.domains, now, d.members ?? []);
   const limits = new Limiter(now);
   const app = new Hono();
   const byKey = new Map<string, AgentChain>(d.chains.map((c) => [c.chain.key, c]));
@@ -150,8 +152,8 @@ export function createAgentApp(d: AgentDeps) {
     const body = (await c.req.json().catch(() => null)) as { message?: string; signature?: string } | null;
     const { token, session } = await auth.login(body?.message ?? '', body?.signature ?? '');
     setCookie(c, SESSION_COOKIE, token, { httpOnly: true, secure: d.secureCookie, sameSite: 'Strict', path: '/', maxAge: SESSION_TTL_MS / 1000 });
-    console.log(`[agent] owner signed in ${session.address}`);
-    return c.json({ address: session.address, expiresAt: new Date(session.expiresMs).toISOString() });
+    console.log(`[agent] ${session.role} signed in ${session.address}`);
+    return c.json({ address: session.address, role: session.role, expiresAt: new Date(session.expiresMs).toISOString() });
   });
   app.post('/v1/agent/logout', (c) => {
     auth.logout(getCookie(c, SESSION_COOKIE));
@@ -160,13 +162,14 @@ export function createAgentApp(d: AgentDeps) {
   });
   app.get('/v1/agent/session', (c) => {
     const s = auth.session(getCookie(c, SESSION_COOKIE));
-    return s ? c.json({ address: s.address, expiresAt: new Date(s.expiresMs).toISOString() }) : c.json({ error: 'not signed in', configured: !!d.owner }, 401);
+    return s ? c.json({ address: s.address, role: s.role, expiresAt: new Date(s.expiresMs).toISOString() }) : c.json({ error: 'not signed in', configured: !!d.owner }, 401);
   });
 
   // ---------------------------------------------------------------- everything else: owner session required
   const owner = (c: Context) => {
     const s = auth.session(getCookie(c, SESSION_COOKIE));
     if (!s) throw new HttpError(401, 'sign in with the owner wallet');
+    if (s.role !== 'owner') throw new HttpError(403, 'only the owner wallet can use the agent console');
     return s;
   };
   const act = (c: Context, kind: string, perMinute: number) => {

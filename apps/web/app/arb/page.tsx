@@ -1,4 +1,5 @@
 'use client';
+import { Gate } from '../session';
 import { fmtUsd, usePoll, VENUE_LABEL, ago } from '@/lib/api';
 import { useChain } from '@/lib/chain';
 
@@ -43,7 +44,7 @@ const REASON: Record<string, string> = {
   already_filled_prices_unchanged: 'already filled at these prices',
 };
 
-export default function ArbPage() {
+function ArbPageInner() {
   const chain = useChain();
   const { data, error } = usePoll<ArbStatus>('v1/arb', 5_000);
   return (
@@ -145,3 +146,11 @@ function Equity({ points, live }: { points: ArbStatus['equity']; live?: boolean 
   );
 }
 
+
+export default function ArbPage() {
+  return (
+    <Gate need="owner" title="Arbitrage engine">
+      <ArbPageInner />
+    </Gate>
+  );
+}

@@ -1,4 +1,5 @@
 'use client';
+import { Gate } from '../session';
 import { fmtRate, usePoll } from '@/lib/api';
 
 type Receipt = {
@@ -18,7 +19,7 @@ type Receipt = {
   hash: string;
 };
 
-export default function TradesPage() {
+function TradesPageInner() {
   const { data, error } = usePoll<Receipt[]>('v1/receipts?limit=100', 10_000);
   return (
     <>
@@ -70,5 +71,13 @@ export default function TradesPage() {
         </table>
       </div>
     </>
+  );
+}
+
+export default function TradesPage() {
+  return (
+    <Gate need="owner" title="Trades">
+      <TradesPageInner />
+    </Gate>
   );
 }

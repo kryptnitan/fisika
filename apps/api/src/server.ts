@@ -92,6 +92,7 @@ for (const key of cfg.chains) {
 const publicUrl = new URL(cfg.publicUrl);
 const agent = createAgentApp({
   owner: cfg.agentConsole.owner,
+  members: cfg.agentConsole.members,
   withdrawTo: cfg.agentConsole.withdrawTo,
   // The console page is served from the public site; a SIWE message must name that host.
   domains: [publicUrl.host, ...(process.env.AGENT_SIWE_DOMAINS ?? '').split(',').map((x) => x.trim()).filter(Boolean)],

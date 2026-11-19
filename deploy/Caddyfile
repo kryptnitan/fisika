@@ -14,6 +14,19 @@ __DOMAIN__ {
 	handle @admin {
 		respond 404
 	}
+	# The bot's own status, P&L, trade list, depth samples and API revenue: private, served to signed-in owners
+	# through the dashboard only. (The API refuses them without the internal key too.)
+	@private path /v1/arb /bsc/v1/arb /celo/v1/arb /v1/stats /bsc/v1/stats /celo/v1/stats /v1/heatmap /bsc/v1/heatmap /celo/v1/heatmap
+	handle @private {
+		respond 404
+	}
+	@receiptList {
+		method GET
+		path /v1/receipts /bsc/v1/receipts /celo/v1/receipts
+	}
+	handle @receiptList {
+		respond 404
+	}
 	# Agent API: paid routes are gated by x402 inside the API.
 	@api path /v1/* /bsc/v1/* /celo/v1/* /health /bsc/health /openapi.json /bsc/openapi.json /.well-known/agent-registration.json
 	handle @api {

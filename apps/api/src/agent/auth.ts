@@ -4,7 +4,8 @@
  * - The server issues a random single-use nonce (5 minutes).
  * - The browser asks the wallet to sign a standard SIWE message for this site's domain with that nonce.
  * - The server checks the message (domain, nonce, issued time, expiry), recovers the signer, and only if it is
- *   OWNER_ADDRESS opens a session: a random token in an HttpOnly, SameSite=Strict cookie, valid 30 minutes.
+ *   OWNER_ADDRESS (role owner) or on the MEMBER_ADDRESSES list (role member) opens a session: a random token in an
+ *   HttpOnly, SameSite=Strict cookie, valid 30 minutes. Any other wallet is refused; nothing is shown to it.
  *
  * Sessions live in memory: a restart signs everyone out, which is the safe direction.
  */
@@ -16,8 +17,11 @@ export const SESSION_COOKIE = 'fisika_agent';
 const NONCE_TTL_MS = 5 * 60_000;
 export const SESSION_TTL_MS = 30 * 60_000;
 
+export type Role = 'owner' | 'member';
+
 export interface Session {
   address: string;
+  role: Role;
   expiresMs: number;
 }
 
@@ -26,12 +30,20 @@ export class AgentAuth {
   private sessions = new Map<string, Session>();
   readonly owner: string | null;
   readonly domains: string[];
+  readonly members: Set<string>;
   private readonly now: () => number;
 
-  constructor(owner: string | null, domains: string[], now: () => number = Date.now) {
+  constructor(owner: string | null, domains: string[], now: () => number = Date.now, members: string[] = []) {
     this.owner = owner ? owner.toLowerCase() : null;
     this.domains = domains;
     this.now = now;
+    this.members = new Set(members.map((m) => m.toLowerCase()).filter((m) => m !== this.owner));
+  }
+
+  /** What this wallet may do, or null if it has no access. */
+  roleOf(address: string): Role | null {
+    const a = address.toLowerCase();
+    return a === this.owner ? 'owner' : this.members.has(a) ? 'member' : null;
   }
 
   nonce(): string {
@@ -59,9 +71,10 @@ export class AgentAuth {
     if (!validateSiweMessage({ message: parsed, domain: parsed.domain, nonce: parsed.nonce, time: new Date(this.now()) })) throw new AuthError(401, 'sign-in is not valid now');
     const ok = await verifyMessage({ address: parsed.address, message, signature: signature as Hex }).catch(() => false);
     if (!ok) throw new AuthError(401, 'signature does not match the address');
-    if (parsed.address.toLowerCase() !== this.owner) throw new AuthError(403, 'this wallet is not the owner of this agent');
+    const role = this.roleOf(parsed.address);
+    if (!role) throw new AuthError(403, 'this wallet does not have access to fisika');
     const token = randomBytes(32).toString('base64url');
-    const session = { address: this.owner, expiresMs: this.now() + SESSION_TTL_MS };
+    const session: Session = { address: parsed.address.toLowerCase(), role, expiresMs: this.now() + SESSION_TTL_MS };
     this.sessions.set(token, session);
     return { token, session };
   }
@@ -70,7 +83,8 @@ export class AgentAuth {
     if (!token) return null;
     const s = this.sessions.get(token);
     if (!s) return null;
-    if (s.expiresMs < this.now() || s.address !== this.owner) {
+    // Access is re-checked on every call: removing a wallet from the lists ends its session.
+    if (s.expiresMs < this.now() || this.roleOf(s.address) !== s.role) {
       this.sessions.delete(token);
       return null;
     }

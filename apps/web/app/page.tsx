@@ -3,13 +3,21 @@ import { useMemo, useState } from 'react';
 import { api, fmtRate, usePoll, VENUE_LABEL, ago } from '@/lib/api';
 import { connect, sendTx, waitForTx } from '@/lib/wallet';
 import { useChain } from '@/lib/chain';
+import { Landing } from './landing';
+import { allows, useSession } from './session';
 
 type Size = { usd: number; rate: number | null; venues?: string[]; hops?: number; split?: boolean; execution?: string; firm?: boolean; directByVenue?: { venue: string; rate: number }[] };
 type Row = { corridor: string; from: string; to: string; sizes: Size[]; spreadBps: number | null };
 type Board = { asOf: string; block: string; rows: Row[] };
 type Heat = { samples: { atMs: number; depth: Record<string, Record<string, number>>; maxSampledUsd?: number }[] };
 
-export default function RatesPage() {
+export default function Home() {
+  const { session } = useSession();
+  if (session.status === 'loading') return <p className="muted">Loading…</p>;
+  return allows(session, 'member') ? <RatesPage /> : <Landing />;
+}
+
+function RatesPage() {
   const chain = useChain();
   const board = usePoll<Board>('v1/board', 5_000);
   const heat = usePoll<Heat>('v1/heatmap?limit=60', 60_000);

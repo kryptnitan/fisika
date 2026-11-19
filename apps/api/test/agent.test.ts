@@ -18,6 +18,7 @@ import { loadConfig } from '../src/config.ts';
 const NOW = Date.parse('2026-11-06T12:00:00Z');
 const owner = privateKeyToAccount(generatePrivateKey());
 const stranger = privateKeyToAccount(generatePrivateKey());
+const member = privateKeyToAccount(generatePrivateKey());
 const BOT = '0x00000000000000000000000000000000000b0700' as Address;
 const CUSDT = CELO.tokens.find((t) => t.symbol === 'USDT')!.address;
 
@@ -47,6 +48,7 @@ async function setup() {
     owner: owner.address.toLowerCase() as Address,
     withdrawTo: owner.address.toLowerCase() as Address,
     domains: ['fisika.lol'],
+    members: [member.address],
     secureCookie: true,
     controlFile: join(dir, 'control.json'),
     eventsFile: join(dir, 'agent-events.jsonl'),
@@ -73,6 +75,29 @@ async function setup() {
   };
   return { dir, celoDir, bscDir, call, signIn, setReceipt: (r: unknown, t: unknown) => ((receipt = r), (txn = t)) };
 }
+
+describe('site access: members', () => {
+  it('a member wallet signs in to the site but cannot use any console route', async () => {
+    const t = await setup();
+    const m = await t.signIn(member);
+    assert.equal(m.res.status, 200);
+    assert.equal((await m.res.json()).role, 'member');
+    const s = await (await t.call('/v1/agent/session', { cookie: m.cookie })).json();
+    assert.equal(s.role, 'member');
+    for (const [path, body] of [
+      ['/v1/agent/state', undefined],
+      ['/v1/agent/balances', undefined],
+      ['/v1/agent/trades', undefined],
+      ['/v1/agent/meme', undefined],
+      ['/v1/agent/control', { target: 'all', active: true }],
+      ['/v1/agent/withdraw', { chain: 'celo', token: 'USDT', amount: '1' }],
+    ] as const) {
+      assert.equal((await t.call(path, { body, cookie: m.cookie })).status, 403, `${path} as member`);
+    }
+    const o = await t.signIn();
+    assert.equal((await o.res.json()).role, 'owner');
+  });
+});
 
 describe('agent console: owner-only access', () => {
   it('every console route needs a session; non-owner wallets and replays are refused', async () => {
@@ -209,13 +234,17 @@ describe('public arbitrage page follows the console switch', () => {
     const statusFile = join(dir, 'live-status.json');
     const controlFile = join(dir, 'control.json');
     const status = (inFlight: boolean) => writeFile(statusFile, JSON.stringify({ mode: 'LIVE', wallet: BOT, updatedAt: new Date(NOW - 5_000).toISOString(), killed: false, halted: false, inFlight, trades: 0, wins: 0, realizedUsd: 0, recent: [] }));
-    const cfg = loadConfig({ LIVE_STATUS_FILE: statusFile, KILL_FILE: join(dir, 'KILL'), CONTROL_FILE: controlFile });
+    const KEY = 'internal-key-for-the-web-server-0001';
+    const cfg = loadConfig({ LIVE_STATUS_FILE: statusFile, KILL_FILE: join(dir, 'KILL'), CONTROL_FILE: controlFile, INTERNAL_API_KEYS: KEY });
     const tokens = new TokenRegistry();
     const graph = new PriceGraph();
     const st: GraphState = { graph, pricer: new Pricer(tokens, graph, 60_000), gasPriceWei: 1n, nativeUsd: 0.3, block: 1n, updatedMs: NOW, lastRefresh: [], rpc: { checkedMs: NOW, degraded: false, vetting: null } };
     const { app } = createApp({ cfg, tokens, state: () => st, paymentGate: async (_c: any, next: any) => next(), getTxReceipt: async () => null, now: () => NOW } as any);
-    const view = async () => (await (await app.request('/v1/arb')).json()).state;
+    const view = async () => (await (await app.request('/v1/arb', { headers: { 'x-api-key': KEY } })).json()).state;
     await status(false);
+    // The bot's status is private: without the web server's key it does not exist.
+    assert.equal((await app.request('/v1/arb')).status, 404);
+    assert.equal((await app.request('/v1/arb', { headers: { 'x-api-key': 'wrong-key-wrong-key-wrong-key-0001' } })).status, 404);
     assert.equal(await view(), 'paused', 'no switch file: paused');
     await setControl(controlFile, 'all', true, 'test');
     assert.equal(await view(), 'running');

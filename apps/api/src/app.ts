@@ -149,6 +149,22 @@ export function createApp(d: AppDeps) {
 
   const s = () => d.state();
 
+  // ---- private: the bot's own status, P&L, trade list and API revenue. Only fisika's web server (which holds an
+  // internal key and checks the visitor's sign-in) may read these; anyone else gets a plain 404.
+  const hasInternalKey = (c: { req: { header: (k: string) => string | undefined } }) => {
+    const k = c.req.header('x-api-key');
+    return !!k && d.cfg.internalKeys.has(k);
+  };
+  const privateOnly: MiddlewareHandler = async (c, next) => {
+    if (hasInternalKey(c)) return next();
+    return c.json({ error: 'not found' }, 404);
+  };
+  app.use('/v1/arb', privateOnly);
+  app.use('/v1/stats', privateOnly);
+  app.use('/v1/heatmap', privateOnly);
+  // The receipt list is private; a single receipt (by id or tx hash) and posting one stay public for API callers.
+  app.use('/v1/receipts', async (c, next) => (c.req.method === 'GET' ? privateOnly(c, next) : next()));
+
   app.get('/health', (c) => {
     const st = s();
     return c.json(
@@ -439,9 +455,8 @@ function openapi(cfg: ApiConfig, chain: ChainConfig) {
           requestBody: { content: { 'application/json': { example: { quoteId: 'q_…', taker: '0x…', recipient: '0x…' } } } },
         },
       },
-      '/v1/receipts': { post: { summary: 'Report a tx hash; returns a verifiable receipt (quoted vs realized)' }, get: { summary: 'Latest receipts' } },
+      '/v1/receipts': { post: { summary: 'Report a tx hash; returns a verifiable receipt (quoted vs realized)' } },
       '/v1/receipts/{id}': { get: { summary: 'Receipt by id or tx hash' } },
-      '/v1/stats': { get: { summary: 'Calls served, x402 revenue, top payers' } },
     },
   };
 }

@@ -179,3 +179,19 @@ a.button { display: inline-block; text-decoration: none; border-radius: 6px; pad
 
 .halt-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; width: 100%; margin-top: 6px; }
 .row-start { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* access: signed-out landing, locks, who's signed in */
+.lock { vertical-align: -1px; margin: 0 4px; flex: none; }
+.nav a.locked { color: var(--dim); opacity: 0.75; }
+.who { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--dim); }
+.hero { padding: 28px 0 8px; }
+.hero h1 { font-size: 34px; letter-spacing: -0.01em; margin: 0 0 10px; }
+.features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 8px 0 28px; }
+.feature { display: block; text-decoration: none; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; position: relative; }
+.feature:hover { border-color: var(--dim); }
+.feature h2 { font-size: 16px; margin: 0 0 6px; }
+.feature p { margin: 0; color: var(--dim); font-size: 14px; }
+.feature-lock { position: absolute; top: 14px; right: 14px; font-size: 12px; color: var(--dim); display: inline-flex; align-items: center; }
+.locked p { margin: 0; }
+@media (max-width: 900px) { .features { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .features { grid-template-columns: minmax(0, 1fr); } .hero h1 { font-size: 26px; } }

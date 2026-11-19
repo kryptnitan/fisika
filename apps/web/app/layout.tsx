@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { ChainStatus, ChainSwitch, Nav } from './chrome';
+import { ChainStatus, ChainSwitch, Nav, Who } from './chrome';
+import { SessionProvider } from './session';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Martian+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
       </head>
       <body>
+        <SessionProvider>
         <div className="shell">
           <header className="top">
             <a className="wordmark" href="/">
@@ -25,12 +27,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <Nav />
             <ChainSwitch />
             <ChainStatus />
+            <Who />
           </header>
           <main>{children}</main>
           <footer className="foot">
             Non-custodial: fisika never holds your funds. Rates are live from mainnet (Celo or BNB Chain, as selected) and include venue fees; network gas is shown separately.
           </footer>
         </div>
+        </SessionProvider>
       </body>
     </html>
   );

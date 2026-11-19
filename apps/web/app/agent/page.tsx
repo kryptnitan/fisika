@@ -1,11 +1,11 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
-import { createSiweMessage } from 'viem/siwe';
-import { encodeFunctionData, erc20Abi, getAddress, parseUnits } from 'viem';
+import { encodeFunctionData, erc20Abi, parseUnits } from 'viem';
 import { agentApi, AgentError, type AgentConfig, type AgentState, type Balances, type EventRow, type ExecutorInfo, type IdentityInfo, type MemeInfo, type MemeTradeRow, type Paged, type TradeRow } from '@/lib/agent';
 import { UI_CHAINS } from '@/lib/chain';
-import { connect, sendTx, signMessage, waitForTx } from '@/lib/wallet';
+import { connect, sendTx, waitForTx } from '@/lib/wallet';
+import { Gate, useSession } from '../session';
 
 const short = (a: string | null | undefined) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : '—');
 /** Dollars to the cent; sub-cent amounts (gas) keep four decimals so they don't round to $0. */
@@ -13,70 +13,13 @@ const usd = (n: number | null | undefined) => (n === null || n === undefined ? '
 const num = (s: string | null | undefined) => (s === null || s === undefined ? '—' : Number(s).toLocaleString('en-US', { maximumFractionDigits: 6 }));
 
 export default function AgentPage() {
-  const [session, setSession] = useState<{ address: string } | null | 'loading'>('loading');
-  const [configured, setConfigured] = useState(true);
-
-  const check = useCallback(async () => {
-    try {
-      setSession(await agentApi<{ address: string }>('session'));
-    } catch (e) {
-      setSession(null);
-      if (e instanceof AgentError && e.status === 404) setConfigured(false);
-    }
-  }, []);
-  useEffect(() => void check(), [check]);
-
+  const { session, signOut } = useSession();
   return (
-    <>
+    <Gate need="owner" title="My agent">
       <h1>My agent</h1>
-      <p className="lede">The operator console: switch trading on and off, move funds in and out of the bot wallet, and see every trade. Only the owner wallet can sign in.</p>
-      {session === 'loading' ? <p className="muted">Checking your session…</p> : session ? <Console owner={session.address} onSignOut={() => setSession(null)} /> : <SignIn configured={configured} onIn={(a) => setSession({ address: a })} />}
-    </>
-  );
-}
-
-/* ------------------------------------------------------------------------------------------------- sign in */
-
-function SignIn({ onIn, configured }: { onIn: (address: string) => void; configured: boolean }) {
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const go = async () => {
-    setErr(null);
-    setBusy(true);
-    try {
-      const account = await connect(UI_CHAINS.celo);
-      const { nonce, configured: ok } = await agentApi<{ nonce: string; configured: boolean }>('nonce');
-      if (!ok) throw new Error('The agent console is not set up on this server yet (OWNER_ADDRESS).');
-      const message = createSiweMessage({
-        address: getAddress(account),
-        chainId: 42220,
-        domain: window.location.host,
-        uri: window.location.origin,
-        version: '1',
-        nonce,
-        issuedAt: new Date(),
-        expirationTime: new Date(Date.now() + 5 * 60_000),
-        statement: 'Sign in to the fisika agent console. This does not send a transaction or cost gas.',
-      });
-      const signature = await signMessage(account, message);
-      const r = await agentApi<{ address: string }>('login', { message, signature });
-      onIn(r.address);
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <section className="panel signin">
-      <h2>Sign in</h2>
-      <p className="muted">Connect the owner wallet and sign a message. Signing proves you hold the wallet; it sends no transaction and costs no gas. The session lasts 30 minutes.</p>
-      {!configured ? <p className="err">The console is not configured on this server.</p> : null}
-      <button className="primary" type="button" onClick={go} disabled={busy}>
-        {busy ? 'Check your wallet…' : 'Connect wallet and sign in'}
-      </button>
-      {err ? <p className="err">{err}</p> : null}
-    </section>
+      <p className="lede">The operator console: switch trading on and off, move funds in and out of the bot wallet, and see every trade. Only the owner wallet can open it.</p>
+      {session.status === 'in' ? <Console owner={session.address} onSignOut={() => void signOut()} /> : null}
+    </Gate>
   );
 }
 
