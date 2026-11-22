@@ -1,14 +1,14 @@
 # fisika paper trading record
 
-85 sessions over 23.2 days (77.9 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-21T18:23:23.165Z. Live Celo prices on free RPCs, nothing signed.
+86 sessions over 23.5 days (78.8 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-22T00:06:43.549Z. Live Celo prices on free RPCs, nothing signed.
 
 | | |
 |---|---|
-| Opportunities that cleared the first check | 15020 |
+| Opportunities that cleared the first check | 15079 |
 | Paper fills (passed live re-quote and every risk limit) | 465 |
 | Paper P&L | $162.6846 |
-| P&L per watched hour | $2.0879 |
-| RPC requests | 385,823 (1.38/s) |
+| P&L per watched hour | $2.0637 |
+| RPC requests | 390,441 (1.38/s) |
 | Venue refresh failures | {"textile":150} |
 
 ## Fills by cycle
@@ -22,15 +22,16 @@
 
 ## Why opportunities were skipped
 
-- edge_bps_below_min: 13241
-- inventory_exposure: 776
+- edge_bps_below_min: 13298
+- inventory_exposure: 777
 - edge_usd_below_min: 522
-- after_requote: edge_bps_below_min: 16
+- after_requote: edge_bps_below_min: 17
 
 ## Sessions
 
 | Start | Min | RPCs | Requests | Opps | Fills | P&L |
 |---|---|---|---|---|---|---|
+| 2026-11-21 23:11 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4618 | 59 | 0 | $0.0000 |
 | 2026-11-21 17:28 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4483 | 67 | 0 | $0.0000 |
 | 2026-11-21 09:45 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4543 | 170 | 0 | $0.0000 |
 | 2026-11-21 01:29 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4320 | 3 | 0 | $0.0000 |
@@ -78,4 +79,3 @@
 | 2026-11-08 16:40 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4023 | 328 | 0 | $0.0000 |
 | 2026-11-08 10:15 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4353 | 306 | 0 | $0.0000 |
 | 2026-11-08 02:26 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4198 | 68 | 0 | $0.0000 |
-| 2026-11-07 22:43 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4862 | 327 | 0 | $0.0000 |
