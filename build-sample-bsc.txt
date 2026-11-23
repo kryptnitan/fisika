@@ -1,2 +1,2 @@
-{"error":"Textile trades need TEXTILE_API_KEY on this deployment"}
-HTTP 503
+{"error":"this route needs 2 transactions across venues; it cannot be signed as one swap yet"}
+HTTP 422
