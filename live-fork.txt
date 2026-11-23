@@ -1,29 +1,52 @@
-PASS funded test wallet with 300 USDT from the fork
-[live] completed USDT→USDm→USDT uniswap-v3,mento realized $-0.0141
-PASS 2-leg cycle USDT→USDm→USDT completed in 4 txs, cost 0.0089 USDT, ledger P&L $-0.0141
-[live] completed USDT→USDm→KESm→USDm→USDT uniswap-v3,mento-v2,mento-v2,mento realized $-0.4120
-PASS 4-leg cycle via Mento v2 completed in 8 txs, ledger P&L $-0.4120
-PASS ledger and status file written
-PASS impossible minimum output reverts and moves no funds
-PASS Textile leg without a key is refused
-[live] aborted_before_spend USDT→USDm→USDT uniswap-v3,mento-v2 realized $0.0000 · a leg could not be quoted
-node:internal/modules/run_main:123
-    triggerUncaughtException(
-    ^
+file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/utils/rpc/http.js:149
+                throw new HttpRequestError({
+                      ^
 
-AssertionError [ERR_ASSERTION]: a leg could not be quoted
-+ actual - expected
+HttpRequestError: HTTP request failed.
 
-+ 'aborted_before_spend'
-- 'unwound'
+URL: http://127.0.0.1:8545/
+Request body: {"method":"anvil_setBalance","params":["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266","0x56bc75e2d63100000"]}
 
-    at file:///home/runner/work/fisika/fisika/apps/api/test-fork/live-fork.ts:161:10 {
-  generatedMessage: false,
-  code: 'ERR_ASSERTION',
-  actual: 'aborted_before_spend',
-  expected: 'unwound',
-  operator: 'strictEqual',
-  diff: 'simple'
+Details: fetch failed
+Version: viem@2.58.4
+    at Object.request (file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/utils/rpc/http.js:149:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async fn (file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/clients/transports/http.js:92:25)
+    at async request (file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/clients/transports/http.js:97:45)
+    at async withRetry.delay.count.count (file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/utils/buildRequest.js:30:24)
+    at async attemptRetry (file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/utils/promise/withRetry.js:27:30) {
+  details: 'fetch failed',
+  docsPath: undefined,
+  metaMessages: [
+    'URL: http://127.0.0.1:8545/',
+    'Request body: {"method":"anvil_setBalance","params":["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266","0x56bc75e2d63100000"]}'
+  ],
+  shortMessage: 'HTTP request failed.',
+  version: '2.58.4',
+  body: {
+    method: 'anvil_setBalance',
+    params: [
+      '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+      '0x56bc75e2d63100000'
+    ]
+  },
+  headers: undefined,
+  status: undefined,
+  url: 'http://127.0.0.1:8545/',
+  [cause]: TypeError: fetch failed
+      at node:internal/deps/undici/undici:15456:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async withTimeout.errorInstance (file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/utils/rpc/http.js:66:42)
+      at async file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/utils/promise/withTimeout.js:19:25 {
+    [cause]: Error: connect ECONNREFUSED 127.0.0.1:8545
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 8545
+    }
+  }
 }
 
 Node.js v22.23.5
