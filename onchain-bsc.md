@@ -1,6 +1,6 @@
 # On-chain verification — BNB Chain
 
-Block 135262718 · 2026-11-23T11:26:16.875Z
+Block 135264001 · 2026-11-23T11:35:53.889Z
 
 All hard checks passed.
 
@@ -14,16 +14,16 @@ All hard checks passed.
 ## v3 pools
 | DEX | Pair | Fee | Pool | Balances |
 |---|---|---|---|---|
-| Uniswap | USDT/WBNB | 100 | `0x47a90A2d92A8367A91EfA1906bFc8c1E05bf10c4` | 78120.22 USDT / 662.55 WBNB |
-| Uniswap | USDT/WBNB | 500 | `0x6fe9E9de56356F7eDBfcBB29FAB7cd69471a4869` | 1089099.55 USDT / 2147.80 WBNB |
+| Uniswap | USDT/WBNB | 100 | `0x47a90A2d92A8367A91EfA1906bFc8c1E05bf10c4` | 79054.33 USDT / 660.88 WBNB |
+| Uniswap | USDT/WBNB | 500 | `0x6fe9E9de56356F7eDBfcBB29FAB7cd69471a4869` | 1106143.77 USDT / 2117.19 WBNB |
 | Uniswap | USDT/WBNB | 3000 | `0x7862D9B4bE2156B15d54F41ee4EDE2d5b0b455e4` | 22820.81 USDT / 343.91 WBNB |
 | Uniswap | USDT/WBNB | 10000 | `0x4d170f8714367C44787AE98259CE8Adb72240067` | 13379.85 USDT / 132.93 WBNB |
 | PancakeSwap | USDT/cNGN | 100 | `0xB84E7C912A1034aD674bba8859Fca84F1F614A29` | 0.00 USDT / 1000000.00 cNGN |
 | PancakeSwap | USDT/cNGN | 500 | `0x7F049051cc191dB9837503f74715D7Ef96BA7626` | 2741.08 USDT / 17264.22 cNGN |
 | PancakeSwap | USDT/cNGN | 2500 | `0x5244AcbeE4CA1Cd899a53132Cec2816A9C547DC4` | 0.15 USDT / 8.39 cNGN |
-| PancakeSwap | USDT/WBNB | 100 | `0x172fcD41E0913e95784454622d1c3724f546f849` | 1779197.74 USDT / 11761.92 WBNB |
-| PancakeSwap | USDT/WBNB | 500 | `0x36696169C63e42cd08ce11f5deeBbCeBae652050` | 2304797.10 USDT / 15869.59 WBNB |
-| PancakeSwap | USDT/WBNB | 2500 | `0x1401ff943D08a7E098328C1d3a9d388923B115D2` | 11706.20 USDT / 146.99 WBNB |
+| PancakeSwap | USDT/WBNB | 100 | `0x172fcD41E0913e95784454622d1c3724f546f849` | 1806149.65 USDT / 11713.43 WBNB |
+| PancakeSwap | USDT/WBNB | 500 | `0x36696169C63e42cd08ce11f5deeBbCeBae652050` | 2338266.68 USDT / 15809.20 WBNB |
+| PancakeSwap | USDT/WBNB | 2500 | `0x1401ff943D08a7E098328C1d3a9d388923B115D2` | 11697.83 USDT / 147.00 WBNB |
 | PancakeSwap | USDT/WBNB | 10000 | `0x6805E0E5333c5c3acCF2930Be4734E2b98f4Ce06` | 673.37 USDT / 11.59 WBNB |
 
 ## Textile levels
@@ -31,8 +31,8 @@ All hard checks passed.
 [
   {
     "pair": "cNGN->USDT",
-    "min": "1447.474",
-    "max": "533950467.556802",
+    "min": "1447.15",
+    "max": "533785051.315357",
     "sellDecimals": 6,
     "buyDecimals": 18,
     "points": 9
@@ -40,7 +40,7 @@ All hard checks passed.
   {
     "pair": "USDT->cNGN",
     "min": "1",
-    "max": "39.485520265098565",
+    "max": "39.493261259834131",
     "sellDecimals": 18,
     "buyDecimals": 6,
     "points": 7
