@@ -155,9 +155,11 @@ ok('Textile leg without a key is refused');
 // C. A loop whose second leg cannot fill sells the intermediate token straight back, with no one in the loop, and
 // books only what was really lost (not the loop's whole size).
 graph.upsert({ ...edge('mento', USDm, USDT, 'USDT/USDm'), points: [{ amountIn: 1_000_000_000_000_000_000n, amountOut: 1_000_000n }] });
+// Leg 2 quotes fine (the adapter prices the real pool) but names a fee tier with no pool, so every send reverts.
+const brokenLeg2 = () => edge('uniswap-v3', USDm, USDT, uniPool, { fee: 1234 });
 {
   const before = await balanceOf(chain, USDT);
-  const c = await trader.run(force([uniEdge(), edge('mento-v2', USDm, USDT, xid)], 20_000_000n), st);
+  const c = await trader.run(force([uniEdge(), brokenLeg2()], 20_000_000n), st);
   assert.equal(c.status, 'unwound', c.note);
   assert.equal(await balanceOf(chain, USDm), 0n, 'nothing left holding USDm');
   const lost = Number(before - (await balanceOf(chain, USDT))) / 1e6;
@@ -182,9 +184,9 @@ graph.upsert({ ...edge('mento', USDm, USDT, 'USDT/USDm'), points: [{ amountIn: 1
 
 // Path learning: a losing path is benched; a fresh trader reads the record back.
 {
-  const k = [...trader.paths.keys()].find((x) => x.includes('mento-v2'));
+  const k = [...trader.paths.keys()].find((x) => x.endsWith('uniswap-v3,uniswap-v3'));
   assert.ok(k, 'the unfinished loop is on record');
-  assert.equal(trader.adjustedBps(force([uniEdge(), edge('mento-v2', USDm, USDT, xid)], 20_000_000n), Date.now()), null, 'losing path benched');
+  assert.equal(trader.adjustedBps(force([uniEdge(), brokenLeg2()], 20_000_000n), Date.now()), null, 'losing path benched');
   const again = new LiveTrader(chain, () => st, tokens, adapters, null, trader.cfg);
   await again.restore();
   assert.ok(again.paths.has(k!), 'record survives a restart');
