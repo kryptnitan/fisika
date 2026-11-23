@@ -1,52 +1,28 @@
-file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/utils/rpc/http.js:149
-                throw new HttpRequestError({
-                      ^
+PASS funded test wallet with 300 USDT from the fork
+[live] completed USDT→USDm→USDT uniswap-v3,mento realized $-0.0136
+PASS 2-leg cycle USDT→USDm→USDT completed in 4 txs, cost 0.0085 USDT, ledger P&L $-0.0136
+[live] completed USDT→USDm→KESm→USDm→USDT uniswap-v3,mento-v2,mento-v2,mento realized $-0.4115
+PASS 4-leg cycle via Mento v2 completed in 8 txs, ledger P&L $-0.4115
+PASS ledger and status file written
+PASS impossible minimum output reverts and moves no funds
+PASS Textile leg without a key is refused
+[live] unwound USDm→USDT mento realized $-0.0094 · loop could not finish leg 2: sold USDm on mento
+PASS unfinished loop recovered on its own: sold back in 6 txs, real cost 0.0085 USDT, ledger $-0.0094
+[live] unwound USDm→USDT mento realized $-0.0003 · automatic recovery: sold USDm on mento (cost unknown: P&L is gas only)
+PASS held tokens sold back automatically
+PASS losing path benched and remembered across restarts
+[live] completed USDT→USDm→USDT uniswap-v3,uniswap-v3 realized $-0.0022
+PASS [celo] 1. paused for 60 ticks (=10 min): 0 transactions; resumed: next loop ran (5 txs)
+[live] completed USDT→USDm→USDT uniswap-v3,uniswap-v3 realized $-0.0021
+PASS [celo] 2. paused during leg 1: loop completed back to USDT, no new loop started
+PASS [celo] 3. restarted while paused: still paused, no transactions
+[live] completed USDT→USDm→USDT uniswap-v3,uniswap-v3 realized $-0.0021
+PASS [celo] 6. bsc paused only: celo kept trading; celo paused: celo stopped
+[agent] owner signed in 0x70997970c51812dc3a010c7d01b50e0d17dc79c8
+[agent] withdrawal w_b2938189-5276-4a9e-9104-bd616f142fc9 1 USDT on celo requested by owner
+[withdraw] sent w_b2938189-5276-4a9e-9104-bd616f142fc9 1 USDT tx 0x0bd1b62cf7aafd301befbd4a0b7472e622c8972c4aa2ee4301c165abb7eacaa5
+[agent] withdrawal w_605ac44b-b05c-4cda-a5e7-374d4390d440 max native on celo requested by owner
+[withdraw] sent w_605ac44b-b05c-4cda-a5e7-374d4390d440 99.345840580280922819 native tx 0xe2df9e1e08180b1afd830a6a44f82dba25a855409bf5e0849d5c7f66bb7882a6
+PASS [celo] 5. deposit $1 (0x6371118b…) and withdraw $1 (0x0bd1b62c…) to the owner; balances, funding history and trade history updated; Max CELO kept the gas reserve
 
-HttpRequestError: HTTP request failed.
-
-URL: http://127.0.0.1:8545/
-Request body: {"method":"anvil_setBalance","params":["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266","0x56bc75e2d63100000"]}
-
-Details: fetch failed
-Version: viem@2.58.4
-    at Object.request (file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/utils/rpc/http.js:149:23)
-    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-    at async fn (file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/clients/transports/http.js:92:25)
-    at async request (file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/clients/transports/http.js:97:45)
-    at async withRetry.delay.count.count (file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/utils/buildRequest.js:30:24)
-    at async attemptRetry (file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/utils/promise/withRetry.js:27:30) {
-  details: 'fetch failed',
-  docsPath: undefined,
-  metaMessages: [
-    'URL: http://127.0.0.1:8545/',
-    'Request body: {"method":"anvil_setBalance","params":["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266","0x56bc75e2d63100000"]}'
-  ],
-  shortMessage: 'HTTP request failed.',
-  version: '2.58.4',
-  body: {
-    method: 'anvil_setBalance',
-    params: [
-      '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
-      '0x56bc75e2d63100000'
-    ]
-  },
-  headers: undefined,
-  status: undefined,
-  url: 'http://127.0.0.1:8545/',
-  [cause]: TypeError: fetch failed
-      at node:internal/deps/undici/undici:15456:13
-      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
-      at async withTimeout.errorInstance (file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/utils/rpc/http.js:66:42)
-      at async file:///home/runner/work/fisika/fisika/node_modules/.pnpm/viem@2.58.4_typescript@6.0.3_zod@4.6.7/node_modules/viem/_esm/utils/promise/withTimeout.js:19:25 {
-    [cause]: Error: connect ECONNREFUSED 127.0.0.1:8545
-        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16) {
-      errno: -111,
-      code: 'ECONNREFUSED',
-      syscall: 'connect',
-      address: '127.0.0.1',
-      port: 8545
-    }
-  }
-}
-
-Node.js v22.23.5
+14 checks passed
