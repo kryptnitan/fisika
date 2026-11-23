@@ -67,7 +67,7 @@ TEXTILE_API_KEY=
 MAX_TRADE_USD=100
 DAILY_LOSS_LIMIT_USD=4
 MAX_TOKEN_EXPOSURE_USD=105
-MIN_EDGE_BPS=5
+MIN_EDGE_BPS=20
 MIN_EDGE_USD=0.05
 SLIPPAGE_BPS=30
 MIN_CELO_FOR_GAS=0.5
@@ -93,7 +93,7 @@ TEXTILE_API_KEY=
 MAX_TRADE_USD=100
 DAILY_LOSS_LIMIT_USD=10
 MAX_TOKEN_EXPOSURE_USD=110
-MIN_EDGE_BPS=5
+MIN_EDGE_BPS=20
 MIN_EDGE_USD=0.05
 SLIPPAGE_BPS=30
 MIN_NATIVE_FOR_GAS=0.005
@@ -295,6 +295,9 @@ fi
 grep -q '^CONTROL_FILE=' /etc/fisika/api.env || setenv CONTROL_FILE /var/lib/fisika/control.json
 grep -q '^MEME_DATA_DIR=' /etc/fisika/api.env || setenv MEME_DATA_DIR /var/lib/fisika/meme
 for f in /etc/fisika/live.env /etc/fisika/live-bsc.env; do [ -f "$f" ] && { grep -q '^CONTROL_FILE=' "$f" || setenvf "$f" CONTROL_FILE /var/lib/fisika/control.json; }; done
+# Strategy update: a 0.05% minimum edge left no room for fills coming in under their quotes. Raise an untouched
+# default to 0.20%; the trader also learns each path's real fills and benches losing paths.
+for f in /etc/fisika/live.env /etc/fisika/live-bsc.env; do [ -f "$f" ] && sed -i 's/^MIN_EDGE_BPS=5$/MIN_EDGE_BPS=20/' "$f"; done
 # The console shows the bot wallets' balances even before a trader has run.
 setenv AGENT_WALLET_CELO "$(/usr/local/bin/fisika-wallet celo)"
 setenv AGENT_WALLET_BSC "$(/usr/local/bin/fisika-wallet bsc)"

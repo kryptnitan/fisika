@@ -47,6 +47,8 @@ export interface TxCost {
   effectiveGasPrice: bigint;
   /** Logs of the mined transaction; the swap's Transfer events tell how much the wallet received. */
   logs?: Log[];
+  /** Block it was mined in: later balance reads must come from a node at least this far along. */
+  blockNumber?: bigint;
 }
 
 /** An error from a leg; `sent` lists every transaction that was broadcast before it, mined or not. */
@@ -100,7 +102,7 @@ async function send(c: Chain, to: Address, data: Hex): Promise<TxCost> {
     // No receipt in time does not mean no transaction: it was broadcast and may well mine. Never retry on top of it.
     throw new LegError(`no receipt for ${hash} within ${c.receiptTimeoutSec ?? 90}s: ${(e as Error).message.split('\n')[0]}`, false, [{ hash, gasUsed: 0n, effectiveGasPrice: 0n }]);
   }
-  const cost: TxCost = { hash, gasUsed: r.gasUsed, effectiveGasPrice: r.effectiveGasPrice, logs: r.logs };
+  const cost: TxCost = { hash, gasUsed: r.gasUsed, effectiveGasPrice: r.effectiveGasPrice, logs: r.logs, blockNumber: r.blockNumber };
   if (r.status !== 'success') throw Object.assign(new LegError(`transaction reverted: ${hash}`, true, [cost]), { cost });
   return cost;
 }

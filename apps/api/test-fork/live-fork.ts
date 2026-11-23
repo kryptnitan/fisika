@@ -152,6 +152,45 @@ ok('impossible minimum output reverts and moves no funds');
 await assert.rejects(executeLeg(chain, { ...uniEdge(), venue: 'textile' }, 1_000_000n, 1n, null, 0), /TEXTILE_API_KEY/);
 ok('Textile leg without a key is refused');
 
+// C. A loop whose second leg cannot fill sells the intermediate token straight back, with no one in the loop, and
+// books only what was really lost (not the loop's whole size).
+graph.upsert({ ...edge('mento', USDm, USDT, 'USDT/USDm'), points: [{ amountIn: 1_000_000_000_000_000_000n, amountOut: 1_000_000n }] });
+{
+  const before = await balanceOf(chain, USDT);
+  const c = await trader.run(force([uniEdge(), edge('mento-v2', USDm, USDT, xid)], 20_000_000n), st);
+  assert.equal(c.status, 'unwound', c.note);
+  assert.equal(await balanceOf(chain, USDm), 0n, 'nothing left holding USDm');
+  const lost = Number(before - (await balanceOf(chain, USDT))) / 1e6;
+  assert.ok(lost >= 0 && lost < 0.3, `recovery lost ${lost} USDT`);
+  assert.ok(c.realizedUsd > -0.5 && c.realizedUsd <= 0.01, `ledger P&L ${c.realizedUsd} must be the real loss, not the size`);
+  assert.equal(trader.risk?.state.halted ?? false, false, 'no halt');
+  ok(`unfinished loop recovered on its own: sold back in ${c.txs.length} txs, real cost ${lost.toFixed(4)} USDT, ledger $${c.realizedUsd.toFixed(4)}`);
+}
+
+// D. Tokens found in the wallet (crash, deposit) are sold back automatically, no halt and no button.
+{
+  await executeLeg(chain, uniEdge(), 5_000_000n, 1n, null, Math.floor(Date.now() / 1000) + 60);
+  assert.ok((await balanceOf(chain, USDm)) > 0n);
+  const t0 = Date.now() + 120_000;
+  await trader.checkStranded(t0);
+  assert.equal(trader.stranded.length, 1, 'USDm seen as held');
+  await trader.recoverStranded(t0);
+  assert.equal(await balanceOf(chain, USDm), 0n, 'held USDm sold back');
+  assert.equal(trader.stranded.length, 0);
+  ok('held tokens sold back automatically');
+}
+
+// Path learning: a losing path is benched; a fresh trader reads the record back.
+{
+  const k = [...trader.paths.keys()].find((x) => x.includes('mento-v2'));
+  assert.ok(k, 'the unfinished loop is on record');
+  assert.equal(trader.adjustedBps(force([uniEdge(), edge('mento-v2', USDm, USDT, xid)], 20_000_000n), Date.now()), null, 'losing path benched');
+  const again = new LiveTrader(chain, () => st, tokens, adapters, null, trader.cfg);
+  await again.restore();
+  assert.ok(again.paths.has(k!), 'record survives a restart');
+  ok('losing path benched and remembered across restarts');
+}
+
 // Agent console: pause/resume, mid-loop pause, restart, per-chain switch, $1 deposit + withdraw.
 {
   const { ledgerPath, statusPath, killFile, ...base } = trader.cfg;

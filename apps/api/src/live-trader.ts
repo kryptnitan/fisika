@@ -91,6 +91,7 @@ const trader = new LiveTrader(
     statusPath: `${dataDir}/live-status.json`,
     killFile: env.KILL_FILE ?? `${dataDir}/KILL`,
     // Gas reserve in the chain's own token: 0.5 CELO on Celo, 0.005 BNB (~$4) on BNB Chain.
+    maxRecoverLossBps: Number(env.RECOVER_MAX_LOSS_BPS ?? 300),
     minNativeForGas: parseEther(env.MIN_NATIVE_FOR_GAS ?? env.MIN_CELO_FOR_GAS ?? (chain.key === 'celo' ? '0.5' : '0.005')),
     controlFile,
     eventsFile: defaultEventsFile(controlFile),
