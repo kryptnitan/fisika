@@ -1,14 +1,14 @@
 # fisika paper trading record
 
-93 sessions over 25.7 days (85.3 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-24T05:41:06.640Z. Live Celo prices on free RPCs, nothing signed.
+94 sessions over 26.2 days (86.2 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-24T16:45:55.166Z. Live Celo prices on free RPCs, nothing signed.
 
 | | |
 |---|---|
-| Opportunities that cleared the first check | 15433 |
-| Paper fills (passed live re-quote and every risk limit) | 468 |
-| Paper P&L | $162.8546 |
-| P&L per watched hour | $1.9103 |
-| RPC requests | 422,512 (1.38/s) |
+| Opportunities that cleared the first check | 15700 |
+| Paper fills (passed live re-quote and every risk limit) | 469 |
+| Paper P&L | $162.9344 |
+| P&L per watched hour | $1.8909 |
+| RPC requests | 427,517 (1.38/s) |
 | Venue refresh failures | {"textile":150} |
 
 ## Fills by cycle
@@ -19,18 +19,20 @@
 | USDT→wARS→USDT (textile, uniswap-v3) | 21 | $1.6661 | 6.9 bps |
 | USDT→wARS→USDT (uniswap-v3, textile) | 13 | $1.1042 | 6.1 bps |
 | USDT→wARS→USDT (textile, textile) | 2 | $0.3783 | 30.5 bps |
+| USDT→wBRL→USDT (textile, textile) | 1 | $0.0798 | 8.0 bps |
 
 ## Why opportunities were skipped
 
-- edge_bps_below_min: 13636
-- inventory_exposure: 788
-- edge_usd_below_min: 523
-- after_requote: edge_bps_below_min: 18
+- edge_bps_below_min: 13832
+- inventory_exposure: 790
+- edge_usd_below_min: 590
+- after_requote: edge_bps_below_min: 19
 
 ## Sessions
 
 | Start | Min | RPCs | Requests | Opps | Fills | P&L |
 |---|---|---|---|---|---|---|
+| 2026-11-24 15:50 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 5005 | 267 | 1 | $0.0798 |
 | 2026-11-24 04:45 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4544 | 66 | 0 | $0.0000 |
 | 2026-11-23 20:10 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4992 | 55 | 2 | $0.1132 |
 | 2026-11-23 07:46 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4466 | 69 | 0 | $0.0000 |
@@ -78,4 +80,3 @@
 | 2026-11-10 23:16 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4858 | 118 | 2 | $0.1027 |
 | 2026-11-10 17:47 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4532 | 240 | 0 | $0.0000 |
 | 2026-11-10 09:44 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 5073 | 202 | 0 | $0.0000 |
-| 2026-11-10 02:04 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4747 | 268 | 0 | $0.0000 |
