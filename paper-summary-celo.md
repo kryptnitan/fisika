@@ -1,14 +1,14 @@
 # fisika paper trading record
 
-94 sessions over 26.2 days (86.2 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-24T16:45:55.166Z. Live Celo prices on free RPCs, nothing signed.
+95 sessions over 26.5 days (87.1 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-25T01:35:59.712Z. Live Celo prices on free RPCs, nothing signed.
 
 | | |
 |---|---|
-| Opportunities that cleared the first check | 15700 |
+| Opportunities that cleared the first check | 15747 |
 | Paper fills (passed live re-quote and every risk limit) | 469 |
 | Paper P&L | $162.9344 |
-| P&L per watched hour | $1.8909 |
-| RPC requests | 427,517 (1.38/s) |
+| P&L per watched hour | $1.8710 |
+| RPC requests | 432,029 (1.38/s) |
 | Venue refresh failures | {"textile":150} |
 
 ## Fills by cycle
@@ -23,15 +23,16 @@
 
 ## Why opportunities were skipped
 
-- edge_bps_below_min: 13832
-- inventory_exposure: 790
+- edge_bps_below_min: 13877
+- inventory_exposure: 791
 - edge_usd_below_min: 590
-- after_requote: edge_bps_below_min: 19
+- after_requote: edge_bps_below_min: 20
 
 ## Sessions
 
 | Start | Min | RPCs | Requests | Opps | Fills | P&L |
 |---|---|---|---|---|---|---|
+| 2026-11-25 00:40 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4512 | 47 | 0 | $0.0000 |
 | 2026-11-24 15:50 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 5005 | 267 | 1 | $0.0798 |
 | 2026-11-24 04:45 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4544 | 66 | 0 | $0.0000 |
 | 2026-11-23 20:10 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4992 | 55 | 2 | $0.1132 |
@@ -79,4 +80,3 @@
 | 2026-11-11 02:50 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4973 | 100 | 0 | $0.0000 |
 | 2026-11-10 23:16 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4858 | 118 | 2 | $0.1027 |
 | 2026-11-10 17:47 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4532 | 240 | 0 | $0.0000 |
-| 2026-11-10 09:44 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 5073 | 202 | 0 | $0.0000 |
