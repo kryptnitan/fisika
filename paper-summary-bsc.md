@@ -1,14 +1,14 @@
 # fisika paper trading record
 
-101 sessions over 28.7 days (92.6 hours watched), 2026-10-29T12:56:16.625Z to 2026-11-27T05:56:36.985Z. Live BNB Chain prices on free RPCs, nothing signed.
+102 sessions over 29.1 days (93.5 hours watched), 2026-10-29T12:56:16.625Z to 2026-11-27T15:56:15.234Z. Live BNB Chain prices on free RPCs, nothing signed.
 
 | | |
 |---|---|
-| Opportunities that cleared the first check | 6528 |
+| Opportunities that cleared the first check | 6529 |
 | Paper fills (passed live re-quote and every risk limit) | 0 |
 | Paper P&L | $0.0000 |
 | P&L per watched hour | $0.0000 |
-| RPC requests | 89,593 (0.27/s) |
+| RPC requests | 90,479 (0.27/s) |
 | Venue refresh failures | {"textile":207} |
 
 ## Fills by cycle
@@ -18,7 +18,7 @@
 
 ## Why opportunities were skipped
 
-- edge_bps_below_min: 6385
+- edge_bps_below_min: 6386
 - inventory_exposure: 127
 - after_requote: edge_bps_below_min: 15
 - edge_usd_below_min: 1
@@ -27,6 +27,7 @@
 
 | Start | Min | RPCs | Requests | Opps | Fills | P&L |
 |---|---|---|---|---|---|---|
+| 2026-11-27 15:01 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 1 | 0 | $0.0000 |
 | 2026-11-27 05:01 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 0 | 0 | $0.0000 |
 | 2026-11-26 22:19 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 0 | 0 | $0.0000 |
 | 2026-11-26 12:24 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 0 | 0 | $0.0000 |
@@ -74,4 +75,3 @@
 | 2026-11-13 06:39 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 223 | 0 | $0.0000 |
 | 2026-11-12 23:40 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 220 | 0 | $0.0000 |
 | 2026-11-12 18:16 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 0 | 0 | $0.0000 |
-| 2026-11-12 09:46 | 55 | https://bsc-dataseed.bnbchain.org, https://bsc-rpc.publicnode.com | 886 | 220 | 0 | $0.0000 |
