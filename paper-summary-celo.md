@@ -1,14 +1,14 @@
 # fisika paper trading record
 
-103 sessions over 29.5 days (94.4 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-28T00:21:09.619Z. Live Celo prices on free RPCs, nothing signed.
+104 sessions over 29.8 days (95.3 hours watched), 2026-10-29T12:56:17.084Z to 2026-11-28T08:38:14.092Z. Live Celo prices on free RPCs, nothing signed.
 
 | | |
 |---|---|
-| Opportunities that cleared the first check | 16304 |
+| Opportunities that cleared the first check | 16387 |
 | Paper fills (passed live re-quote and every risk limit) | 492 |
 | Paper P&L | $167.9629 |
-| P&L per watched hour | $1.7790 |
-| RPC requests | 469,386 (1.38/s) |
+| P&L per watched hour | $1.7618 |
+| RPC requests | 474,219 (1.38/s) |
 | Venue refresh failures | {"textile":150} |
 
 ## Fills by cycle
@@ -23,15 +23,16 @@
 
 ## Why opportunities were skipped
 
-- edge_bps_below_min: 14330
-- inventory_exposure: 807
+- edge_bps_below_min: 14409
+- inventory_exposure: 810
 - edge_usd_below_min: 648
-- after_requote: edge_bps_below_min: 27
+- after_requote: edge_bps_below_min: 28
 
 ## Sessions
 
 | Start | Min | RPCs | Requests | Opps | Fills | P&L |
 |---|---|---|---|---|---|---|
+| 2026-11-28 07:43 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4833 | 83 | 0 | $0.0000 |
 | 2026-11-27 23:26 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4348 | 81 | 1 | $0.0628 |
 | 2026-11-27 15:01 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 5061 | 91 | 1 | $0.0511 |
 | 2026-11-27 05:01 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4239 | 49 | 0 | $0.0000 |
@@ -79,4 +80,3 @@
 | 2026-11-13 21:58 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4752 | 381 | 2 | $0.3187 |
 | 2026-11-13 15:22 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 5023 | 451 | 184 | $68.5760 |
 | 2026-11-13 06:39 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4489 | 271 | 0 | $0.0000 |
-| 2026-11-12 23:40 | 55 | https://forno.celo.org, https://celo-rpc.publicnode.com | 4847 | 249 | 2 | $0.1381 |
